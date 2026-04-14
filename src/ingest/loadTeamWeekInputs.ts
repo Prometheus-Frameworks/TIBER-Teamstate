@@ -44,6 +44,85 @@ export const validateTeamWeekInputRow = (row: TeamWeekInputRow): TeamWeekInputRo
     }
   }
 
+  if (!Number.isInteger(row.season) || row.season < 1999) {
+    throw new Error(`Invalid season: ${row.season}`);
+  }
+
+  if (!Number.isInteger(row.week) || row.week < 1 || row.week > 22) {
+    throw new Error(`Invalid week: ${row.week}`);
+  }
+
+  if (!row.team.trim() || !row.opponent.trim()) {
+    throw new Error('Team and opponent must be non-empty strings.');
+  }
+
+  const rateFields: Array<keyof TeamWeekInputRow> = [
+    'passRate',
+    'neutralPassRate',
+    'rushRate',
+    'successRate',
+    'explosivePlayRate',
+    'redZoneTdRate',
+    'pressureRateAllowed'
+  ];
+
+  for (const field of rateFields) {
+    const value = row[field];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+      throw new Error(`Invalid rate field ${field}: ${String(value)}`);
+    }
+  }
+
+  const nonNegativeFields: Array<keyof TeamWeekInputRow> = [
+    'pointsFor',
+    'pointsAgainst',
+    'offensivePlays',
+    'neutralPlays',
+    'secondsPerPlay',
+    'drives',
+    'pointsPerDrive',
+    'redZoneTrips',
+    'sacksAllowed',
+    'turnovers',
+    'fantasyPointsForQB',
+    'fantasyPointsForRB',
+    'fantasyPointsForWR',
+    'fantasyPointsForTE',
+    'fantasyPointsAllowedQB',
+    'fantasyPointsAllowedRB',
+    'fantasyPointsAllowedWR',
+    'fantasyPointsAllowedTE'
+  ];
+
+  for (const field of nonNegativeFields) {
+    const value = row[field];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw new Error(`Invalid non-negative field ${field}: ${String(value)}`);
+    }
+  }
+
+  if (Math.abs(row.passRate + row.rushRate - 1) > 0.08) {
+    throw new Error(`passRate + rushRate must be near 1.0. Received ${row.passRate + row.rushRate}`);
+  }
+
+  const optionalSplitFields: Array<keyof TeamWeekInputRow> = [
+    'qbPassAllowed',
+    'qbRushAllowed',
+    'rbRushAllowed',
+    'rbRecAllowed',
+    'wrSlotAllowed',
+    'wrWideAllowed',
+    'teInlineAllowed',
+    'teSplitAllowed'
+  ];
+
+  for (const field of optionalSplitFields) {
+    const value = row[field];
+    if (value !== undefined && (!Number.isFinite(value) || (value as number) < 0)) {
+      throw new Error(`Invalid optional split field ${field}: ${String(value)}`);
+    }
+  }
+
   return row;
 };
 

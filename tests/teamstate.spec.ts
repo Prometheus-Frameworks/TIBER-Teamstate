@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadTeamWeekInputs } from '../src/ingest/loadTeamWeekInputs.js';
+import { loadTeamWeekInputs, validateTeamWeekInputRow } from '../src/ingest/loadTeamWeekInputs.js';
 import { buildTeamWeekState, buildTeamWeekStates } from '../src/transform/buildTeamWeekState.js';
 
 const samplePath = path.resolve(process.cwd(), 'data/sample/team_week_input.sample.json');
@@ -43,6 +43,13 @@ describe('teamstate pipeline', () => {
     expect(two.explanation).toEqual(one.explanation);
   });
 
+  it('keeps explanation tags identical to derived state tags', () => {
+    const rows = loadTeamWeekInputs(samplePath);
+    const state = buildTeamWeekState(rows[2]);
+
+    expect(state.explanation.tags).toEqual(state.tags);
+  });
+
   it('degrades gracefully when optional split fields are missing', () => {
     const [row] = loadTeamWeekInputs(samplePath);
     const { qbPassAllowed, qbRushAllowed, rbRushAllowed, rbRecAllowed, wrSlotAllowed, wrWideAllowed, teInlineAllowed, teSplitAllowed, ...withoutSplits } = row;
@@ -63,5 +70,15 @@ describe('teamstate pipeline', () => {
         expect(Number.isFinite(value)).toBe(true);
       }
     }
+  });
+
+  it('fails fast on invalid rate inputs', () => {
+    const [row] = loadTeamWeekInputs(samplePath);
+    expect(() =>
+      validateTeamWeekInputRow({
+        ...row,
+        neutralPassRate: 1.3
+      })
+    ).toThrow(/Invalid rate field neutralPassRate/);
   });
 });

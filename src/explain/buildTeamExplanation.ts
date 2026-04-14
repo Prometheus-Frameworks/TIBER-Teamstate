@@ -35,12 +35,24 @@ export const buildTeamExplanation = (
   if (!strengths.length) strengths.push('Balanced profile with no singular dominant strength this week.');
   if (!risks.length) risks.push('No immediate structural red flags beyond normal weekly variance.');
 
-  const summary = `${input.team} Week ${input.week}: Team Power ${scores.teamPowerScore.toFixed(1)}, Fantasy Env ${scores.fantasyEnvironmentScore.toFixed(1)}, Matchup Env ${scores.matchupEnvironmentScore.toFixed(1)}, Stability ${scores.stabilityScore.toFixed(1)}, Volatility ${scores.volatilityScore.toFixed(1)}.`;
+  const environmentType =
+    scores.teamPowerScore >= 75 && scores.fantasyEnvironmentScore >= 75
+      ? 'an elite real-life and fantasy environment'
+      : scores.teamPowerScore >= 70
+        ? 'a strong real-life team environment'
+        : scores.fantasyEnvironmentScore >= 70
+          ? 'a fantasy-friendly offense-first environment'
+          : scores.volatilityScore >= 65
+            ? 'a volatile, high-variance environment'
+            : 'a balanced but middling environment';
+
+  const topTagReason = tags.length ? TAG_MESSAGES[tags[0]] : 'No dominant tag signal was triggered this week.';
+  const summary = `${input.team} in Week ${input.week} profiles as ${environmentType}. Core drivers were EPA/play ${input.epaPerPlay.toFixed(2)}, success rate ${(input.successRate * 100).toFixed(1)}%, and ${input.redZoneTrips} red-zone trips at ${(input.redZoneTdRate * 100).toFixed(1)}% TD conversion. ${topTagReason}`;
 
   return {
     summary,
     strengths,
     risks,
-    tags: tags.length ? tags : ['stable_environment']
+    tags
   };
 };
