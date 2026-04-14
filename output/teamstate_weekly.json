@@ -1,0 +1,434 @@
+[
+  {
+    "season": 2025,
+    "week": 8,
+    "team": "DET",
+    "opponent": "GB",
+    "input": {
+      "season": 2025,
+      "week": 8,
+      "team": "DET",
+      "opponent": "GB",
+      "pointsFor": 34,
+      "pointsAgainst": 20,
+      "offensivePlays": 71,
+      "neutralPlays": 50,
+      "secondsPerPlay": 25.7,
+      "passRate": 0.57,
+      "neutralPassRate": 0.6,
+      "rushRate": 0.43,
+      "epaPerPlay": 0.19,
+      "passEpaPerPlay": 0.24,
+      "rushEpaPerPlay": 0.13,
+      "successRate": 0.52,
+      "explosivePlayRate": 0.15,
+      "drives": 10,
+      "pointsPerDrive": 2.9,
+      "redZoneTrips": 6,
+      "redZoneTdRate": 0.68,
+      "sacksAllowed": 1,
+      "pressureRateAllowed": 0.2,
+      "turnovers": 0,
+      "fantasyPointsForQB": 24.8,
+      "fantasyPointsForRB": 30.6,
+      "fantasyPointsForWR": 35.1,
+      "fantasyPointsForTE": 12.4,
+      "fantasyPointsAllowedQB": 19.1,
+      "fantasyPointsAllowedRB": 18.3,
+      "fantasyPointsAllowedWR": 32.2,
+      "fantasyPointsAllowedTE": 8.2,
+      "qbPassAllowed": 17.3,
+      "qbRushAllowed": 3.2,
+      "rbRushAllowed": 12.6,
+      "rbRecAllowed": 6.1,
+      "wrSlotAllowed": 14.5,
+      "wrWideAllowed": 17.7,
+      "teInlineAllowed": 5.1,
+      "teSplitAllowed": 3.2
+    },
+    "scores": {
+      "teamPowerScore": 76.49136363636363,
+      "fantasyEnvironmentScore": 73.84070466570468,
+      "matchupEnvironmentScore": 42.61858737753475,
+      "stabilityScore": 80.40242424242425,
+      "volatilityScore": 35.06830303030303
+    },
+    "components": {
+      "teamPower": {
+        "epaPerPlay": 70,
+        "successRate": 73.33333333333336,
+        "pointsPerDrive": 76,
+        "explosivePlayRate": 68.74999999999999,
+        "redZoneTdRate": 76.00000000000001,
+        "turnoverDiscipline": 100,
+        "pressureAvoidance": 75.75757575757575,
+        "sackAvoidance": 83.33333333333334
+      },
+      "fantasyEnvironment": {
+        "offensivePlays": 74.28571428571429,
+        "pace": 69.16666666666667,
+        "neutralPassRate": 71.42857142857143,
+        "redZoneTrips": 83.33333333333334,
+        "redZoneTdRate": 76.00000000000001,
+        "explosivePlayRate": 68.74999999999999,
+        "fantasyPointsForQB": 76.36363636363637,
+        "fantasyPointsForRB": 83.70370370370371,
+        "fantasyPointsForWR": 70,
+        "fantasyPointsForTE": 57.777777777777786
+      },
+      "matchupEnvironment": {
+        "fantasyPointsAllowedQB": 50.45454545454546,
+        "fantasyPointsAllowedRB": 34.333333333333336,
+        "fantasyPointsAllowedWR": 53.15789473684212,
+        "fantasyPointsAllowedTE": 24.761904761904756,
+        "splitAllowanceBoost": 45.284090909090914
+      },
+      "stability": {
+        "successRate": 73.33333333333336,
+        "pointsPerDrive": 76,
+        "epaPerPlay": 70,
+        "turnoverDiscipline": 100,
+        "sackAvoidance": 83.33333333333334,
+        "pressureAvoidance": 75.75757575757575,
+        "redZoneSustainability": 87.99999999999999
+      }
+    },
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "explanation": {
+      "summary": "DET in Week 8 profiles as a strong real-life team environment. Core drivers were EPA/play 0.19, success rate 52.0%, and 6 red-zone trips at 68.0% TD conversion. Generates frequent and efficient red-zone opportunities.",
+      "strengths": [
+        "Strong team power driven by efficient and successful offense.",
+        "High fantasy-friendly environment with pace, volume, and scoring access.",
+        "Scoring profile is repeatable with solid process indicators."
+      ],
+      "risks": [
+        "No immediate structural red flags beyond normal weekly variance."
+      ],
+      "tags": [
+        "red_zone_machine",
+        "stable_environment"
+      ]
+    }
+  },
+  {
+    "season": 2025,
+    "week": 8,
+    "team": "PIT",
+    "opponent": "BAL",
+    "input": {
+      "season": 2025,
+      "week": 8,
+      "team": "PIT",
+      "opponent": "BAL",
+      "pointsFor": 17,
+      "pointsAgainst": 27,
+      "offensivePlays": 58,
+      "neutralPlays": 39,
+      "secondsPerPlay": 30.8,
+      "passRate": 0.48,
+      "neutralPassRate": 0.47,
+      "rushRate": 0.52,
+      "epaPerPlay": -0.06,
+      "passEpaPerPlay": -0.02,
+      "rushEpaPerPlay": -0.11,
+      "successRate": 0.41,
+      "explosivePlayRate": 0.08,
+      "drives": 9,
+      "pointsPerDrive": 1.6,
+      "redZoneTrips": 2,
+      "redZoneTdRate": 0.75,
+      "sacksAllowed": 4,
+      "pressureRateAllowed": 0.35,
+      "turnovers": 3,
+      "fantasyPointsForQB": 13.1,
+      "fantasyPointsForRB": 17.5,
+      "fantasyPointsForWR": 18.4,
+      "fantasyPointsForTE": 4.2,
+      "fantasyPointsAllowedQB": 24.4,
+      "fantasyPointsAllowedRB": 25.9,
+      "fantasyPointsAllowedWR": 40.7,
+      "fantasyPointsAllowedTE": 6.4,
+      "qbPassAllowed": 20.7,
+      "qbRushAllowed": 5.3,
+      "rbRushAllowed": 18.5,
+      "rbRecAllowed": 7.4,
+      "wrSlotAllowed": 19.8,
+      "wrWideAllowed": 15.1
+    },
+    "scores": {
+      "teamPowerScore": 36.231688311688316,
+      "fantasyEnvironmentScore": 33.27484367484369,
+      "matchupEnvironmentScore": 60.76467076782866,
+      "stabilityScore": 35.08935064935065,
+      "volatilityScore": 59.43745454545454
+    },
+    "components": {
+      "teamPower": {
+        "epaPerPlay": 34.285714285714285,
+        "successRate": 36.666666666666664,
+        "pointsPerDrive": 24.000000000000004,
+        "explosivePlayRate": 25,
+        "redZoneTdRate": 90,
+        "turnoverDiscipline": 25,
+        "pressureAvoidance": 30.30303030303031,
+        "sackAvoidance": 33.33333333333334
+      },
+      "fantasyEnvironment": {
+        "offensivePlays": 37.142857142857146,
+        "pace": 26.666666666666657,
+        "neutralPassRate": 34.285714285714285,
+        "redZoneTrips": 16.666666666666664,
+        "redZoneTdRate": 90,
+        "explosivePlayRate": 25,
+        "fantasyPointsForQB": 23.18181818181818,
+        "fantasyPointsForRB": 35.18518518518518,
+        "fantasyPointsForWR": 19.393939393939387,
+        "fantasyPointsForTE": 12.222222222222223
+      },
+      "matchupEnvironment": {
+        "fantasyPointsAllowedQB": 74.54545454545453,
+        "fantasyPointsAllowedRB": 59.66666666666666,
+        "fantasyPointsAllowedWR": 75.5263157894737,
+        "fantasyPointsAllowedTE": 16.19047619047619,
+        "splitAllowanceBoost": 65.75757575757576
+      },
+      "stability": {
+        "successRate": 36.666666666666664,
+        "pointsPerDrive": 24.000000000000004,
+        "epaPerPlay": 34.285714285714285,
+        "turnoverDiscipline": 25,
+        "sackAvoidance": 33.33333333333334,
+        "pressureAvoidance": 30.30303030303031,
+        "redZoneSustainability": 74
+      }
+    },
+    "tags": [
+      "run_heavy_low_ceiling",
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "wr_slot_funnel_defense",
+      "te_dead_zone_defense"
+    ],
+    "explanation": {
+      "summary": "PIT in Week 8 profiles as a balanced but middling environment. Core drivers were EPA/play -0.06, success rate 41.0%, and 2 red-zone trips at 75.0% TD conversion. Rush tendency suppresses broad fantasy ceiling despite some floor.",
+      "strengths": [
+        "Balanced profile with no singular dominant strength this week."
+      ],
+      "risks": [
+        "Underlying team quality is weak and can collapse under pressure.",
+        "Limited play volume or red-zone access reduces fantasy viability.",
+        "Turnover risk can quickly break expected game environment."
+      ],
+      "tags": [
+        "run_heavy_low_ceiling",
+        "fraudulent_td_environment",
+        "qb_friendly_matchup",
+        "wr_slot_funnel_defense",
+        "te_dead_zone_defense"
+      ]
+    }
+  },
+  {
+    "season": 2025,
+    "week": 8,
+    "team": "TEN",
+    "opponent": "HOU",
+    "input": {
+      "season": 2025,
+      "week": 8,
+      "team": "TEN",
+      "opponent": "HOU",
+      "pointsFor": 21,
+      "pointsAgainst": 23,
+      "offensivePlays": 63,
+      "neutralPlays": 44,
+      "secondsPerPlay": 28.9,
+      "passRate": 0.51,
+      "neutralPassRate": 0.53,
+      "rushRate": 0.49,
+      "epaPerPlay": 0.03,
+      "passEpaPerPlay": 0.05,
+      "rushEpaPerPlay": 0.01,
+      "successRate": 0.47,
+      "explosivePlayRate": 0.11,
+      "drives": 10,
+      "pointsPerDrive": 2.1,
+      "redZoneTrips": 4,
+      "redZoneTdRate": 0.5,
+      "sacksAllowed": 2,
+      "pressureRateAllowed": 0.27,
+      "turnovers": 1,
+      "fantasyPointsForQB": 18.7,
+      "fantasyPointsForRB": 21.2,
+      "fantasyPointsForWR": 24.9,
+      "fantasyPointsForTE": 7.8,
+      "fantasyPointsAllowedQB": 21.1,
+      "fantasyPointsAllowedRB": 27.8,
+      "fantasyPointsAllowedWR": 30.5,
+      "fantasyPointsAllowedTE": 14.2
+    },
+    "scores": {
+      "teamPowerScore": 51.90841991341992,
+      "fantasyEnvironmentScore": 45.901118326118336,
+      "matchupEnvironmentScore": 47.837543859649124,
+      "stabilityScore": 58.970735930735934,
+      "volatilityScore": 41.470484848484844
+    },
+    "components": {
+      "teamPower": {
+        "epaPerPlay": 47.14285714285714,
+        "successRate": 56.666666666666664,
+        "pointsPerDrive": 44.00000000000001,
+        "explosivePlayRate": 43.75000000000001,
+        "redZoneTdRate": 40,
+        "turnoverDiscipline": 75,
+        "pressureAvoidance": 54.54545454545454,
+        "sackAvoidance": 66.66666666666667
+      },
+      "fantasyEnvironment": {
+        "offensivePlays": 51.42857142857142,
+        "pace": 42.500000000000014,
+        "neutralPassRate": 51.428571428571445,
+        "redZoneTrips": 50,
+        "redZoneTdRate": 40,
+        "explosivePlayRate": 43.75000000000001,
+        "fantasyPointsForQB": 48.63636363636363,
+        "fantasyPointsForRB": 48.888888888888886,
+        "fantasyPointsForWR": 39.090909090909086,
+        "fantasyPointsForTE": 32.22222222222222
+      },
+      "matchupEnvironment": {
+        "fantasyPointsAllowedQB": 59.545454545454554,
+        "fantasyPointsAllowedRB": 66,
+        "fantasyPointsAllowedWR": 48.68421052631579,
+        "fantasyPointsAllowedTE": 53.333333333333336,
+        "splitAllowanceBoost": 0
+      },
+      "stability": {
+        "successRate": 56.666666666666664,
+        "pointsPerDrive": 44.00000000000001,
+        "epaPerPlay": 47.14285714285714,
+        "turnoverDiscipline": 75,
+        "sackAvoidance": 66.66666666666667,
+        "pressureAvoidance": 54.54545454545454,
+        "redZoneSustainability": 76
+      }
+    },
+    "tags": [],
+    "explanation": {
+      "summary": "TEN in Week 8 profiles as a balanced but middling environment. Core drivers were EPA/play 0.03, success rate 47.0%, and 4 red-zone trips at 50.0% TD conversion. No dominant tag signal was triggered this week.",
+      "strengths": [
+        "Balanced profile with no singular dominant strength this week."
+      ],
+      "risks": [
+        "No immediate structural red flags beyond normal weekly variance."
+      ],
+      "tags": []
+    }
+  },
+  {
+    "season": 2025,
+    "week": 8,
+    "team": "MIA",
+    "opponent": "NYJ",
+    "input": {
+      "season": 2025,
+      "week": 8,
+      "team": "MIA",
+      "opponent": "NYJ",
+      "pointsFor": 29,
+      "pointsAgainst": 16,
+      "offensivePlays": 69,
+      "neutralPlays": 47,
+      "secondsPerPlay": 26.3,
+      "passRate": 0.62,
+      "neutralPassRate": 0.64,
+      "rushRate": 0.38,
+      "epaPerPlay": 0.16,
+      "passEpaPerPlay": 0.22,
+      "rushEpaPerPlay": 0.06,
+      "successRate": 0.5,
+      "explosivePlayRate": 0.17,
+      "drives": 11,
+      "pointsPerDrive": 2.6,
+      "redZoneTrips": 5,
+      "redZoneTdRate": 0.62,
+      "sacksAllowed": 2,
+      "pressureRateAllowed": 0.23,
+      "turnovers": 1,
+      "fantasyPointsForQB": 23.4,
+      "fantasyPointsForRB": 22.9,
+      "fantasyPointsForWR": 38.8,
+      "fantasyPointsForTE": 9.3,
+      "fantasyPointsAllowedQB": 16.9,
+      "fantasyPointsAllowedRB": 20,
+      "fantasyPointsAllowedWR": 28.2,
+      "fantasyPointsAllowedTE": 11.6
+    },
+    "scores": {
+      "teamPowerScore": 68.02119047619047,
+      "fantasyEnvironmentScore": 68.70741943241944,
+      "matchupEnvironmentScore": 34.48395989974937,
+      "stabilityScore": 70.75428571428571,
+      "volatilityScore": 43.12199999999999
+    },
+    "components": {
+      "teamPower": {
+        "epaPerPlay": 65.71428571428571,
+        "successRate": 66.66666666666667,
+        "pointsPerDrive": 64,
+        "explosivePlayRate": 81.25,
+        "redZoneTdRate": 64,
+        "turnoverDiscipline": 75,
+        "pressureAvoidance": 66.66666666666666,
+        "sackAvoidance": 66.66666666666667
+      },
+      "fantasyEnvironment": {
+        "offensivePlays": 68.57142857142857,
+        "pace": 64.16666666666666,
+        "neutralPassRate": 82.85714285714288,
+        "redZoneTrips": 66.66666666666666,
+        "redZoneTdRate": 64,
+        "explosivePlayRate": 81.25,
+        "fantasyPointsForQB": 70,
+        "fantasyPointsForRB": 55.18518518518518,
+        "fantasyPointsForWR": 81.2121212121212,
+        "fantasyPointsForTE": 40.555555555555564
+      },
+      "matchupEnvironment": {
+        "fantasyPointsAllowedQB": 40.454545454545446,
+        "fantasyPointsAllowedRB": 40,
+        "fantasyPointsAllowedWR": 42.63157894736842,
+        "fantasyPointsAllowedTE": 40.95238095238095,
+        "splitAllowanceBoost": 0
+      },
+      "stability": {
+        "successRate": 66.66666666666667,
+        "pointsPerDrive": 64,
+        "epaPerPlay": 65.71428571428571,
+        "turnoverDiscipline": 75,
+        "sackAvoidance": 66.66666666666667,
+        "pressureAvoidance": 66.66666666666666,
+        "redZoneSustainability": 100
+      }
+    },
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "explanation": {
+      "summary": "MIA in Week 8 profiles as a balanced but middling environment. Core drivers were EPA/play 0.16, success rate 50.0%, and 5 red-zone trips at 62.0% TD conversion. Leans pass-heavy in neutral situations, supporting QB/WR volume.",
+      "strengths": [
+        "Scoring profile is repeatable with solid process indicators."
+      ],
+      "risks": [
+        "No immediate structural red flags beyond normal weekly variance."
+      ],
+      "tags": [
+        "pass_funnel_offense"
+      ]
+    }
+  }
+]
