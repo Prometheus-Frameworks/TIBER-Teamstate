@@ -1,0 +1,57 @@
+[
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 39.56,
+    "rank": 1,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "TE offense environment from production + pace/usage context."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 35.5,
+    "rank": 2,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "TE offense environment from production + pace/usage context."
+  },
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 29.28,
+    "rank": 3,
+    "tags": [],
+    "summary": "TE offense environment from production + pace/usage context."
+  },
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 27.13,
+    "rank": 4,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "TE offense environment from production + pace/usage context."
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 57.37,
+    "rank": 1,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "WR offense environment from production + pace/usage context."
+  },
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 56.52,
+    "rank": 2,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "WR offense environment from production + pace/usage context."
+  },
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 47.46,
+    "rank": 3,
+    "tags": [],
+    "summary": "WR offense environment from production + pace/usage context."
+  },
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 42.72,
+    "rank": 4,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "WR offense environment from production + pace/usage context."
+  }
+]

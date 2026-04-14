@@ -1,0 +1,57 @@
+[
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "QB",
+    "score": 49.95,
+    "rank": 1,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "QB offense environment from production + pace/usage context."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "QB",
+    "score": 49.05,
+    "rank": 2,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "QB offense environment from production + pace/usage context."
+  },
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "QB",
+    "score": 42.23,
+    "rank": 3,
+    "tags": [],
+    "summary": "QB offense environment from production + pace/usage context."
+  },
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "QB",
+    "score": 36.05,
+    "rank": 4,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "QB offense environment from production + pace/usage context."
+  }
+]
