@@ -1,0 +1,53 @@
+[
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "score": 60.76,
+    "rank": 1,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "Season average matchup environment: PIT in Week 8 profiles as a balanced but middling environment. Core drivers were EPA/play -0.06, success rate 41.0%, and 2 red-zone trips at 75.0% TD conversion. Rush tendency suppresses broad fantasy ceiling despite some floor."
+  },
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "score": 47.84,
+    "rank": 2,
+    "tags": [],
+    "summary": "Season average matchup environment: TEN in Week 8 profiles as a balanced but middling environment. Core drivers were EPA/play 0.03, success rate 47.0%, and 4 red-zone trips at 50.0% TD conversion. No dominant tag signal was triggered this week."
+  },
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "score": 42.62,
+    "rank": 3,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "Season average matchup environment: DET in Week 8 profiles as a strong real-life team environment. Core drivers were EPA/play 0.19, success rate 52.0%, and 6 red-zone trips at 68.0% TD conversion. Generates frequent and efficient red-zone opportunities."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "score": 34.48,
+    "rank": 4,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "Season average matchup environment: MIA in Week 8 profiles as a balanced but middling environment. Core drivers were EPA/play 0.16, success rate 50.0%, and 5 red-zone trips at 62.0% TD conversion. Leans pass-heavy in neutral situations, supporting QB/WR volume."
+  }
+]

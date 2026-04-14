@@ -1,0 +1,57 @@
+[
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 14.2,
+    "rank": 1,
+    "tags": [],
+    "summary": "TE matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 11.6,
+    "rank": 2,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "TE matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 8.2,
+    "rank": 3,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "TE matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "TE",
+    "score": 6.4,
+    "rank": 4,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "TE matchup environment based on fantasy points allowed."
+  }
+]

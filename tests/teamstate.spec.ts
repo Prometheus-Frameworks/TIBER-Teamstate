@@ -7,6 +7,8 @@ import { mapRawTeamWeekToTeamStateInput, type RawTeamWeekRow } from '../src/adap
 import { loadTeamWeekInputs, validateTeamWeekInputRow } from '../src/ingest/loadTeamWeekInputs.js';
 import { isDirectExecution, runTeamStatePipeline } from '../src/pipeline/runTeamStatePipeline.js';
 import { rankByScore } from '../src/pipeline/rankings.js';
+import { buildLatestWeekReports } from '../src/reports/buildLatestWeekReports.js';
+import { buildSeasonToDateReports } from '../src/reports/buildSeasonToDateReports.js';
 import { buildTeamWeekState, buildTeamWeekStates } from '../src/transform/buildTeamWeekState.js';
 
 const canonicalSamplePath = path.resolve(process.cwd(), 'data/sample/team_week_input.sample.json');
@@ -79,7 +81,8 @@ describe('teamstate pipeline', () => {
 
   it('degrades gracefully when optional split fields are missing', () => {
     const [row] = loadTeamWeekInputs(canonicalSamplePath);
-    const { qbPassAllowed, qbRushAllowed, rbRushAllowed, rbRecAllowed, wrSlotAllowed, wrWideAllowed, teInlineAllowed, teSplitAllowed, ...withoutSplits } = row;
+    const { qbPassAllowed, qbRushAllowed, rbRushAllowed, rbRecAllowed, wrSlotAllowed, wrWideAllowed, teInlineAllowed, teSplitAllowed, ...withoutSplits } =
+      row;
 
     const state = buildTeamWeekState(withoutSplits);
 
@@ -109,7 +112,6 @@ describe('teamstate pipeline', () => {
     ).toThrow(/Invalid rate field neutralPassRate/);
   });
 
-
   it('detects direct CLI execution using URL/path normalization', () => {
     const cliFilePath = path.resolve(process.cwd(), 'dist/src/pipeline/runTeamStatePipeline.js');
     const metaUrl = pathToFileURL(cliFilePath).href;
@@ -122,12 +124,96 @@ describe('teamstate pipeline', () => {
     expect(isDirectExecution(spacedMetaUrl, spacedFilePath)).toBe(true);
   });
 
-  it('runs the pipeline from raw sample input and writes artifacts', () => {
+  it('builds latest-week reports from the latest week per season', () => {
+    const states = buildTeamWeekStates(loadTeamWeekInputs(canonicalSamplePath));
+    const latest = buildLatestWeekReports(states);
+
+    const latestWeekSet = new Set(Object.values(latest.latestWeekBySeason));
+
+    for (const row of latest.rows.teamPower) {
+      expect(latestWeekSet.has(row.week)).toBe(true);
+    }
+
+    const one = buildLatestWeekReports(states);
+    const two = buildLatestWeekReports(states);
+    expect(two.rows.matchupEnvironment).toEqual(one.rows.matchupEnvironment);
+  });
+
+  it('builds deterministic season-to-date aggregates and rankings', () => {
+    const states = buildTeamWeekStates(loadTeamWeekInputs(canonicalSamplePath));
+    const one = buildSeasonToDateReports(states);
+    const two = buildSeasonToDateReports(states);
+
+    expect(two.aggregates).toEqual(one.aggregates);
+    expect(two.rows.teamPower).toEqual(one.rows.teamPower);
+    expect(one.aggregates[0].averages.teamPowerScore).toBeTypeOf('number');
+    expect(one.aggregates[0].games).toBeGreaterThan(0);
+  });
+
+  it('keeps offense environment outputs separate from defense matchup inputs', () => {
+    const [baseRow] = loadTeamWeekInputs(canonicalSamplePath);
+    const offenseCloneA = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'AAA',
+      opponent: 'BBB',
+      week: 5,
+      fantasyPointsAllowedQB: 10,
+      fantasyPointsAllowedRB: 8,
+      fantasyPointsAllowedWR: 12,
+      fantasyPointsAllowedTE: 5
+    });
+    const offenseCloneB = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'BBB',
+      opponent: 'AAA',
+      week: 5,
+      fantasyPointsAllowedQB: 30,
+      fantasyPointsAllowedRB: 26,
+      fantasyPointsAllowedWR: 31,
+      fantasyPointsAllowedTE: 18
+    });
+
+    const reports = buildSeasonToDateReports(buildTeamWeekStates([offenseCloneA, offenseCloneB]));
+    const qbOffenseScores = reports.rows.qbOffenseEnvironment.map((row) => row.score);
+    const qbMatchupScores = reports.rows.qbMatchups.map((row) => row.score);
+
+    expect(qbOffenseScores[0]).toBe(qbOffenseScores[1]);
+    expect(qbMatchupScores[0]).not.toBe(qbMatchupScores[1]);
+  });
+
+  it('rewards higher offensive play volume for qb/wr offense environments', () => {
+    const [baseRow] = loadTeamWeekInputs(canonicalSamplePath);
+    const highVolume = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'HIV',
+      opponent: 'LOW',
+      week: 6,
+      offensivePlays: 72
+    });
+    const lowVolume = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'LOW',
+      opponent: 'HIV',
+      week: 6,
+      offensivePlays: 52
+    });
+
+    const reports = buildSeasonToDateReports(buildTeamWeekStates([highVolume, lowVolume]));
+    const qbByTeam = new Map(reports.rows.qbOffenseEnvironment.map((row) => [row.team, row.score]));
+    const wrByTeam = new Map(reports.rows.wrOffenseEnvironment.map((row) => [row.team, row.score]));
+
+    expect(qbByTeam.get('HIV')).toBeGreaterThan(qbByTeam.get('LOW') ?? 0);
+    expect(wrByTeam.get('HIV')).toBeGreaterThan(wrByTeam.get('LOW') ?? 0);
+  });
+
+  it('runs the pipeline from raw sample input and writes PR2 + PR3 artifacts', () => {
     const outputDir = mkdtempSync(path.join(os.tmpdir(), 'teamstate-output-'));
 
     const result = runTeamStatePipeline(rawSamplePath, outputDir);
 
     expect(result.teamStates.length).toBeGreaterThan(0);
+    expect(result.latestWeekReports.rows.teamPower.length).toBeGreaterThan(0);
+    expect(result.seasonToDateReports.rows.teamPower.length).toBeGreaterThan(0);
 
     const expectedFiles = [
       'teamstate_weekly.json',
@@ -137,7 +223,25 @@ describe('teamstate pipeline', () => {
       'rankings.qb_matchups.json',
       'rankings.rb_matchups.json',
       'rankings.wr_matchups.json',
-      'rankings.te_matchups.json'
+      'rankings.te_matchups.json',
+      'latest_week.team_power.json',
+      'latest_week.fantasy_environment.json',
+      'latest_week.matchup_environment.json',
+      'latest_week.qb_matchups.json',
+      'latest_week.rb_matchups.json',
+      'latest_week.wr_matchups.json',
+      'latest_week.te_matchups.json',
+      'season_to_date.team_power.json',
+      'season_to_date.fantasy_environment.json',
+      'season_to_date.matchup_environment.json',
+      'season_to_date.qb_offense_environment.json',
+      'season_to_date.rb_offense_environment.json',
+      'season_to_date.wr_offense_environment.json',
+      'season_to_date.te_offense_environment.json',
+      'season_to_date.qb_matchups.json',
+      'season_to_date.rb_matchups.json',
+      'season_to_date.wr_matchups.json',
+      'season_to_date.te_matchups.json'
     ];
 
     for (const fileName of expectedFiles) {

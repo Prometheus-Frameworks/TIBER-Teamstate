@@ -1,0 +1,57 @@
+[
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 27.8,
+    "rank": 1,
+    "tags": [],
+    "summary": "RB matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 25.9,
+    "rank": 2,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "RB matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 20,
+    "rank": 3,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "RB matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 18.3,
+    "rank": 4,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "RB matchup environment based on fantasy points allowed."
+  }
+]

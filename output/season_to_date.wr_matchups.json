@@ -1,0 +1,57 @@
+[
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 40.7,
+    "rank": 1,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "WR matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 32.2,
+    "rank": 2,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "WR matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 30.5,
+    "rank": 3,
+    "tags": [],
+    "summary": "WR matchup environment based on fantasy points allowed."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "WR",
+    "score": 28.2,
+    "rank": 4,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "WR matchup environment based on fantasy points allowed."
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "team": "DET",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 60.25,
+    "rank": 1,
+    "tags": [
+      "red_zone_machine",
+      "stable_environment"
+    ],
+    "summary": "RB offense environment from production + pace/usage context."
+  },
+  {
+    "team": "MIA",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 51.61,
+    "rank": 2,
+    "tags": [
+      "pass_funnel_offense"
+    ],
+    "summary": "RB offense environment from production + pace/usage context."
+  },
+  {
+    "team": "TEN",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 45.03,
+    "rank": 3,
+    "tags": [],
+    "summary": "RB offense environment from production + pace/usage context."
+  },
+  {
+    "team": "PIT",
+    "season": 2025,
+    "latestWeek": 8,
+    "games": 1,
+    "position": "RB",
+    "score": 42.67,
+    "rank": 4,
+    "tags": [
+      "fraudulent_td_environment",
+      "qb_friendly_matchup",
+      "run_heavy_low_ceiling",
+      "te_dead_zone_defense",
+      "wr_slot_funnel_defense"
+    ],
+    "summary": "RB offense environment from production + pace/usage context."
+  }
+]
