@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { mapRawTeamWeekToTeamStateInput, type RawTeamWeekRow } from '../adapters/mapRawTeamWeekToTeamStateInput.js';
 import { validateTeamWeekInputRow } from '../ingest/loadTeamWeekInputs.js';
 import { buildTeamWeekStates } from '../transform/buildTeamWeekState.js';
@@ -10,6 +11,17 @@ export interface TeamStatePipelineResult {
   teamStates: ReturnType<typeof buildTeamWeekStates>;
   rankings: Record<string, RankingRow[]>;
 }
+
+export const isDirectExecution = (metaUrl: string, argvPath: string | undefined): boolean => {
+  if (!argvPath) {
+    return false;
+  }
+
+  const moduleFilePath = path.normalize(path.resolve(fileURLToPath(metaUrl)));
+  const entryFilePath = path.normalize(path.resolve(argvPath));
+
+  return moduleFilePath === entryFilePath;
+};
 
 export const runTeamStatePipeline = (rawInputPath: string, outputDir: string): TeamStatePipelineResult => {
   const rawJson = readFileSync(rawInputPath, 'utf-8');
@@ -41,9 +53,7 @@ export const runTeamStatePipeline = (rawInputPath: string, outputDir: string): T
   return { teamStates, rankings };
 };
 
-const isExecutedDirectly = process.argv[1] && import.meta.url.endsWith(process.argv[1]);
-
-if (isExecutedDirectly) {
+if (isDirectExecution(import.meta.url, process.argv[1])) {
   const cwd = process.cwd();
   const rawInputPath = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(cwd, 'data/sample/team_week_raw.sample.json');
   const outputDir = process.argv[3] ? path.resolve(process.argv[3]) : path.resolve(cwd, 'output');

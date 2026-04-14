@@ -1,10 +1,11 @@
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { mapRawTeamWeekToTeamStateInput, type RawTeamWeekRow } from '../src/adapters/mapRawTeamWeekToTeamStateInput.js';
 import { loadTeamWeekInputs, validateTeamWeekInputRow } from '../src/ingest/loadTeamWeekInputs.js';
-import { runTeamStatePipeline } from '../src/pipeline/runTeamStatePipeline.js';
+import { isDirectExecution, runTeamStatePipeline } from '../src/pipeline/runTeamStatePipeline.js';
 import { rankByScore } from '../src/pipeline/rankings.js';
 import { buildTeamWeekState, buildTeamWeekStates } from '../src/transform/buildTeamWeekState.js';
 
@@ -106,6 +107,19 @@ describe('teamstate pipeline', () => {
         neutralPassRate: 1.3
       })
     ).toThrow(/Invalid rate field neutralPassRate/);
+  });
+
+
+  it('detects direct CLI execution using URL/path normalization', () => {
+    const cliFilePath = path.resolve(process.cwd(), 'dist/src/pipeline/runTeamStatePipeline.js');
+    const metaUrl = pathToFileURL(cliFilePath).href;
+
+    expect(isDirectExecution(metaUrl, cliFilePath)).toBe(true);
+    expect(isDirectExecution(metaUrl, path.resolve(process.cwd(), 'dist/src/pipeline/other.js'))).toBe(false);
+
+    const spacedFilePath = path.resolve(process.cwd(), 'tmp folder/runTeamStatePipeline.js');
+    const spacedMetaUrl = pathToFileURL(spacedFilePath).href;
+    expect(isDirectExecution(spacedMetaUrl, spacedFilePath)).toBe(true);
   });
 
   it('runs the pipeline from raw sample input and writes artifacts', () => {
