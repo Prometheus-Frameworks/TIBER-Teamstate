@@ -22,9 +22,12 @@ export interface SeasonToDateAverages {
   stabilityScore: number;
   volatilityScore: number;
   offensivePlays: number;
+  secondsPerPlay: number;
   neutralPassRate: number;
+  rushRate: number;
   redZoneTrips: number;
   redZoneTdRate: number;
+  explosivePlayRate: number;
   fantasyPointsForQB: number;
   fantasyPointsForRB: number;
   fantasyPointsForWR: number;

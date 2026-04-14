@@ -123,16 +123,16 @@ PR3 intentionally keeps two distinct positional report families:
 - `*_offense_environment` outputs answer: "which offenses are best for this position?"
 - built from transparent weighted combinations of existing offensive inputs
 - examples:
-  - QB offense: fantasy points for QB + pass environment + pace + overall team quality
-  - RB offense: fantasy points for RB + red-zone volume/efficiency + fantasy ecosystem quality
-  - WR offense: fantasy points for WR + pass environment + pace + explosiveness/team quality
+  - QB offense: fantasy points for QB + pass environment + offensive volume + pace + team quality
+  - RB offense: fantasy points for RB + red-zone volume/efficiency + rush tendency + fantasy ecosystem quality
+  - WR offense: fantasy points for WR + pass environment + offensive volume + pace + explosiveness
   - TE offense: fantasy points for TE + red-zone efficiency + pass environment + stability
 
 ### Defensive positional matchups (opponent environment)
 
 - `*_matchups` outputs answer: "which defenses are best/worst matchups for this position?"
 - built from fantasy points allowed by position
-- kept separate from offense environment outputs to avoid blending concepts
+- kept separate from offense environment outputs to avoid blending concepts (offense formulas do not use defense matchup scores)
 
 ## Output Artifacts
 

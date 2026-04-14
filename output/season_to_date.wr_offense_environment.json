@@ -5,7 +5,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "WR",
-    "score": 57.37,
+    "score": 69.65,
     "rank": 1,
     "tags": [
       "pass_funnel_offense"
@@ -18,7 +18,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "WR",
-    "score": 56.52,
+    "score": 65.9,
     "rank": 2,
     "tags": [
       "red_zone_machine",
@@ -32,7 +32,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "WR",
-    "score": 47.46,
+    "score": 52.65,
     "rank": 3,
     "tags": [],
     "summary": "WR offense environment from production + pace/usage context."
@@ -43,7 +43,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "WR",
-    "score": 42.72,
+    "score": 43.55,
     "rank": 4,
     "tags": [
       "fraudulent_td_environment",

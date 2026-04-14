@@ -3,29 +3,33 @@ import type { Position, PositionalEnvironmentRow, PositionalMatchupRow } from '.
 
 const roundScore = (value: number): number => Number(value.toFixed(2));
 
+const paceBoost = (secondsPerPlay: number): number => Math.max(0, 40 - secondsPerPlay) * 2.5;
+
 const scoreQBOffenseEnvironment = (row: TeamSeasonAggregate): number =>
-  row.averages.fantasyPointsForQB * 0.5 +
+  row.averages.fantasyPointsForQB * 0.45 +
   row.averages.neutralPassRate * 25 +
-  (100 - row.averages.offensivePlays) * 0.25 +
-  row.averages.teamPowerScore * 0.2;
-
-const scoreRBOffenseEnvironment = (row: TeamSeasonAggregate): number =>
-  row.averages.fantasyPointsForRB * 0.5 +
-  row.averages.redZoneTrips * 2.5 +
-  row.averages.redZoneTdRate * 20 +
-  row.averages.fantasyEnvironmentScore * 0.2;
-
-const scoreWROffenseEnvironment = (row: TeamSeasonAggregate): number =>
-  row.averages.fantasyPointsForWR * 0.55 +
-  row.averages.neutralPassRate * 25 +
-  (100 - row.averages.offensivePlays) * 0.15 +
-  row.averages.matchupEnvironmentScore * 0.15 +
+  row.averages.offensivePlays * 0.25 +
+  paceBoost(row.averages.secondsPerPlay) * 0.3 +
   row.averages.teamPowerScore * 0.15;
 
+const scoreRBOffenseEnvironment = (row: TeamSeasonAggregate): number =>
+  row.averages.fantasyPointsForRB * 0.45 +
+  row.averages.redZoneTrips * 2.2 +
+  row.averages.redZoneTdRate * 20 +
+  row.averages.rushRate * 20 +
+  row.averages.fantasyEnvironmentScore * 0.15;
+
+const scoreWROffenseEnvironment = (row: TeamSeasonAggregate): number =>
+  row.averages.fantasyPointsForWR * 0.5 +
+  row.averages.neutralPassRate * 25 +
+  row.averages.offensivePlays * 0.2 +
+  paceBoost(row.averages.secondsPerPlay) * 0.2 +
+  row.averages.explosivePlayRate * 80;
+
 const scoreTEOffenseEnvironment = (row: TeamSeasonAggregate): number =>
-  row.averages.fantasyPointsForTE * 0.65 +
-  row.averages.redZoneTdRate * 18 +
-  row.averages.neutralPassRate * 12 +
+  row.averages.fantasyPointsForTE * 0.6 +
+  row.averages.redZoneTdRate * 20 +
+  row.averages.neutralPassRate * 10 +
   row.averages.stabilityScore * 0.15;
 
 const scoreByPosition: Record<Position, (row: TeamSeasonAggregate) => number> = {

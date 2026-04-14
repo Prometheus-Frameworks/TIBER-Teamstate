@@ -150,14 +150,60 @@ describe('teamstate pipeline', () => {
     expect(one.aggregates[0].games).toBeGreaterThan(0);
   });
 
-  it('keeps offense environment outputs separate from defense matchup outputs', () => {
-    const states = buildTeamWeekStates(loadTeamWeekInputs(canonicalSamplePath));
-    const reports = buildSeasonToDateReports(states);
+  it('keeps offense environment outputs separate from defense matchup inputs', () => {
+    const [baseRow] = loadTeamWeekInputs(canonicalSamplePath);
+    const offenseCloneA = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'AAA',
+      opponent: 'BBB',
+      week: 5,
+      fantasyPointsAllowedQB: 10,
+      fantasyPointsAllowedRB: 8,
+      fantasyPointsAllowedWR: 12,
+      fantasyPointsAllowedTE: 5
+    });
+    const offenseCloneB = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'BBB',
+      opponent: 'AAA',
+      week: 5,
+      fantasyPointsAllowedQB: 30,
+      fantasyPointsAllowedRB: 26,
+      fantasyPointsAllowedWR: 31,
+      fantasyPointsAllowedTE: 18
+    });
 
-    expect(reports.rows.qbOffenseEnvironment[0].summary).toContain('offense environment');
-    expect(reports.rows.qbMatchups[0].summary).toContain('matchup environment');
-    expect(reports.rows.qbOffenseEnvironment[0].position).toBe('QB');
-    expect(reports.rows.qbMatchups[0].position).toBe('QB');
+    const reports = buildSeasonToDateReports(buildTeamWeekStates([offenseCloneA, offenseCloneB]));
+    const qbOffenseScores = reports.rows.qbOffenseEnvironment.map((row) => row.score);
+    const qbMatchupScores = reports.rows.qbMatchups.map((row) => row.score);
+
+    expect(qbOffenseScores[0]).toBe(qbOffenseScores[1]);
+    expect(qbMatchupScores[0]).not.toBe(qbMatchupScores[1]);
+  });
+
+  it('rewards higher offensive play volume for qb/wr offense environments', () => {
+    const [baseRow] = loadTeamWeekInputs(canonicalSamplePath);
+    const highVolume = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'HIV',
+      opponent: 'LOW',
+      week: 6,
+      offensivePlays: 72
+    });
+    const lowVolume = validateTeamWeekInputRow({
+      ...baseRow,
+      team: 'LOW',
+      opponent: 'HIV',
+      week: 6,
+      offensivePlays: 52
+    });
+
+    const reports = buildSeasonToDateReports(buildTeamWeekStates([highVolume, lowVolume]));
+    const qbByTeam = new Map(reports.rows.qbOffenseEnvironment.map((row) => [row.team, row.score]));
+    const wrByTeam = new Map(reports.rows.wrOffenseEnvironment.map((row) => [row.team, row.score]));
+
+    expect(qbByTeam.get('HIV')).toBeGreaterThan(qbByTeam.get('LOW') ?? 0);
+    expect(wrByTeam.get('HIV')).toBeGreaterThan(wrByTeam.get('LOW') ?? 0);
   });
 
   it('runs the pipeline from raw sample input and writes PR2 + PR3 artifacts', () => {

@@ -5,7 +5,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "QB",
-    "score": 49.95,
+    "score": 66.11,
     "rank": 1,
     "tags": [
       "red_zone_machine",
@@ -19,7 +19,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "QB",
-    "score": 49.05,
+    "score": 64.26,
     "rank": 2,
     "tags": [
       "pass_funnel_offense"
@@ -32,7 +32,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "QB",
-    "score": 42.23,
+    "score": 53.53,
     "rank": 3,
     "tags": [],
     "summary": "QB offense environment from production + pace/usage context."
@@ -43,7 +43,7 @@
     "latestWeek": 8,
     "games": 1,
     "position": "QB",
-    "score": 36.05,
+    "score": 44.48,
     "rank": 4,
     "tags": [
       "fraudulent_td_environment",
