@@ -1,0 +1,25 @@
+{
+  "name": "tiber-teamstate",
+  "version": "0.1.0",
+  "description": "Deterministic team-level environment intelligence library for NFL analysis.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "nfl",
+    "fantasy",
+    "analytics",
+    "typescript"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.15.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
