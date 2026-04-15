@@ -2,12 +2,12 @@
 
 TIBER-Teamstate is a deterministic TypeScript backend/library for modeling **team-level NFL environments** from team-week source data.
 
-PR3 extends the PR2 ingest/adapter pipeline into a richer reporting layer that is directly useful for downstream TIBER engines:
+PR4 extends the PR3 reporting layer with downstream-ready ingestion and contract artifacts:
 
-- latest-week rankings ("what looks best right now?")
-- season-to-date aggregated rankings ("what has held up across the season?")
-- offense environment rankings by position (QB/RB/WR/TE)
-- defense matchup rankings by position (kept separate from offense environment)
+- flexible raw input loading (`file` or `directory` of `.json` files)
+- optional season/week filtering during pipeline runs
+- explicit pipeline metadata artifact (`pipeline_metadata.json`)
+- compact current-state contract artifacts (`current_*.json`) for downstream repos
 
 ## Score Model (Separate Scores)
 
@@ -23,34 +23,27 @@ The architecture intentionally keeps these scores separate (no blended single sc
 
 ## Project Structure
 
-- `src/types/teamstate.ts` – canonical row/output types.
+- `src/ingest/loadRawTeamWeekRows.ts` – flexible raw file/directory loader + deterministic merge order.
 - `src/adapters/mapRawTeamWeekToTeamStateInput.ts` – raw source to canonical mapping adapter.
 - `src/ingest/loadTeamWeekInputs.ts` – canonical row validation.
 - `src/transform/buildTeamWeekState.ts` – weekly state generation.
-- `src/pipeline/rankings.ts` – base weekly ranking helpers.
-- `src/reports/types.ts` – report row and aggregate types.
 - `src/reports/buildLatestWeekReports.ts` – latest-week report builders.
 - `src/reports/buildSeasonToDateReports.ts` – season aggregate + ranking builders.
-- `src/reports/positionalEnvironment.ts` – offense/defense positional ranking builders.
-- `src/pipeline/runTeamStatePipeline.ts` – end-to-end pipeline runner + artifact writer.
-- `src/utils/writeJsonFile.ts` – stable JSON output utility.
+- `src/pipeline/runTeamStatePipeline.ts` – end-to-end orchestration + artifact writing.
+- `src/contracts/currentSnapshot.ts` – explicit row contracts for downstream snapshot artifacts.
 
-## Raw Input Format
+## Raw Input Ingestion (PR4)
 
-The pipeline expects an array of raw source rows with explicit source field names (example keys):
+The pipeline accepts:
 
-- Identity/context: `season`, `week`, `team_code`, `opponent_code`
-- Team production: `points_for`, `offensive_plays`, `neutral_plays`, `seconds_per_play`
-- Efficiency/profile: `epa_per_play`, `pass_epa_per_play`, `success_rate`, `explosive_play_rate`
-- Drive/red-zone/pressure: `points_per_drive`, `red_zone_trips`, `red_zone_td_rate`, `pressure_rate_allowed`
-- Fantasy for/allowed: `fantasy_points_for_qb` ... `fantasy_points_allowed_te`
-- Optional split fields: `qb_pass_allowed`, `wr_slot_allowed`, `te_inline_allowed`, etc.
+1. a **single raw json file** containing an array of raw rows
+2. a **directory of raw json files** (`*.json` only, merged in stable sorted filename order)
 
-Adapter assumptions:
+Behavior:
 
-- required core fields are mapped directly and must be present
-- optional split fields are safely omitted when missing or non-numeric
-- vendor-specific naming is isolated to adapter code, not scoring logic
+- directory ingestion reads files with deterministic `localeCompare` sort
+- all rows are merged into one array before mapping/validation
+- invalid JSON or invalid top-level shape fails with a clear file-specific error
 
 ## Usage
 
@@ -73,125 +66,92 @@ npm run check
 npm run build
 ```
 
-### Run pipeline
+### Run pipeline (defaults)
 
 ```bash
 npm run pipeline
 ```
 
-Optional direct invocation with paths:
+Defaults:
+
+- input: `data/sample/team_week_raw.sample.json`
+- output: `output/`
+
+### Run pipeline with flags
+
+```bash
+npm run pipeline -- --input data/sample/team_week_raw.sample.json --output output
+npm run pipeline -- --input data/raw --season 2025 --week 8
+```
+
+### Positional invocation still works
 
 ```bash
 node dist/src/pipeline/runTeamStatePipeline.js <raw-input-path> <output-dir>
 ```
 
-Defaults:
+## Filtering (PR4)
 
-- raw input: `data/sample/team_week_raw.sample.json`
-- output directory: `output/`
+Optional filters:
 
-## Aggregation Logic (PR3)
+- `--season 2025` → include only rows for season `2025`
+- `--week 8` → include only rows with `week <= 8` within the selected data
+- `--season 2025 --week 8` → season-specific cutoff
 
-Season-to-date aggregation is deterministic and grouped by `team + season`.
-
-For each team-season bucket:
-
-- `latestWeek` = max week observed for that team-season
-- `games` = number of rows observed
-- score averages:
-  - average Team Power Score
-  - average Fantasy Environment Score
-  - average Matchup Environment Score
-  - average Stability Score
-  - average Volatility Score
-- input summary averages:
-  - offensive plays
-  - neutral pass rate
-  - red-zone trips
-  - red-zone TD rate
-  - fantasy points for QB/RB/WR/TE
-  - fantasy points allowed to QB/RB/WR/TE
-
-All ranking sorts use explicit deterministic tie-breaking (`score`, then `season`, `latestWeek/week`, then `team`).
-
-## Offense vs Defense Positional Reports
-
-PR3 intentionally keeps two distinct positional report families:
-
-### Offensive position environment (team's own ecosystem)
-
-- `*_offense_environment` outputs answer: "which offenses are best for this position?"
-- built from transparent weighted combinations of existing offensive inputs
-- examples:
-  - QB offense: fantasy points for QB + pass environment + offensive volume + pace + team quality
-  - RB offense: fantasy points for RB + red-zone volume/efficiency + rush tendency + fantasy ecosystem quality
-  - WR offense: fantasy points for WR + pass environment + offensive volume + pace + explosiveness
-  - TE offense: fantasy points for TE + red-zone efficiency + pass environment + stability
-
-### Defensive positional matchups (opponent environment)
-
-- `*_matchups` outputs answer: "which defenses are best/worst matchups for this position?"
-- built from fantasy points allowed by position
-- kept separate from offense environment outputs to avoid blending concepts (offense formulas do not use defense matchup scores)
+Filtering is applied **before** state build and report generation.
 
 ## Output Artifacts
 
-Weekly state output:
+### Existing detailed artifacts
 
-- `output/teamstate_weekly.json`
+- `teamstate_weekly.json`
+- `rankings.*.json`
+- `latest_week.*.json`
+- `season_to_date.*.json`
 
-PR2 weekly ranking outputs:
+### New metadata artifact (PR4)
 
-- `output/rankings.team_power.json`
-- `output/rankings.fantasy_environment.json`
-- `output/rankings.matchup_environment.json`
-- `output/rankings.qb_matchups.json`
-- `output/rankings.rb_matchups.json`
-- `output/rankings.wr_matchups.json`
-- `output/rankings.te_matchups.json`
+`output/pipeline_metadata.json` includes:
 
-PR3 latest-week outputs:
+- `generatedAt`
+- `sourceInputPath`
+- `sourceFileCount`
+- `sourceRowCount`
+- `mappedRowCount`
+- `filteredRowCount`
+- `seasonsIncluded`
+- `latestWeekBySeason`
+- `selectedSeason` (nullable)
+- `selectedWeek` (nullable)
 
-- `output/latest_week.team_power.json`
-- `output/latest_week.fantasy_environment.json`
-- `output/latest_week.matchup_environment.json`
-- `output/latest_week.qb_matchups.json`
-- `output/latest_week.rb_matchups.json`
-- `output/latest_week.wr_matchups.json`
-- `output/latest_week.te_matchups.json`
+### New current snapshot contract artifacts (PR4)
 
-PR3 season-to-date outputs:
+- `output/current_snapshot.json`
+  - top team power/fantasy/matchup slices
+  - volatility + stability summaries
+  - explicit scope block (`selectedSeason`, `selectedWeek`, `seasonsIncluded`, `latestWeekBySeason`)
+- `output/current_offense_environments.json`
+  - compact QB/RB/WR/TE current offense environment rows
+- `output/current_matchup_environments.json`
+  - compact QB/RB/WR/TE current matchup environment rows
 
-- `output/season_to_date.team_power.json`
-- `output/season_to_date.fantasy_environment.json`
-- `output/season_to_date.matchup_environment.json`
-- `output/season_to_date.qb_offense_environment.json`
-- `output/season_to_date.rb_offense_environment.json`
-- `output/season_to_date.wr_offense_environment.json`
-- `output/season_to_date.te_offense_environment.json`
-- `output/season_to_date.qb_matchups.json`
-- `output/season_to_date.rb_matchups.json`
-- `output/season_to_date.wr_matchups.json`
-- `output/season_to_date.te_matchups.json`
-
-Each ranking row is machine-friendly and includes:
+All snapshot artifacts use concise row shapes:
 
 - `team`
 - `season`
-- `week` or `latestWeek` (depending on report)
+- `latestWeek`
 - `score`
 - `rank`
 - `tags`
 - `summary`
 
-## Downstream Consumption Notes
+## Recommended downstream consumption pattern
 
-Downstream TIBER repos can treat Teamstate as a deterministic report producer:
-
-1. Run pipeline to produce fresh artifacts from your adapter input.
-2. Use `latest_week.*` for current-week recommendations.
-3. Use `season_to_date.*` for regime-level priors and baseline confidence.
-4. Combine offense environment files with matchup files in downstream logic only when needed (Teamstate keeps them separate by design).
+1. run Teamstate with your chosen ingest input and optional filters
+2. consume `pipeline_metadata.json` first to understand slice + provenance
+3. consume `current_snapshot.json` for quick global context
+4. consume positional current artifacts for role-specific downstream logic
+5. optionally fall back to detailed `latest_week.*` / `season_to_date.*` for deeper diagnostics
 
 ## Notes
 

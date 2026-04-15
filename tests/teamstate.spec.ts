@@ -1,10 +1,12 @@
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { mapRawTeamWeekToTeamStateInput, type RawTeamWeekRow } from '../src/adapters/mapRawTeamWeekToTeamStateInput.js';
+import { loadRawTeamWeekRows } from '../src/ingest/loadRawTeamWeekRows.js';
 import { loadTeamWeekInputs, validateTeamWeekInputRow } from '../src/ingest/loadTeamWeekInputs.js';
+import { parsePipelineArgs } from '../src/pipeline/parsePipelineArgs.js';
 import { isDirectExecution, runTeamStatePipeline } from '../src/pipeline/runTeamStatePipeline.js';
 import { rankByScore } from '../src/pipeline/rankings.js';
 import { buildLatestWeekReports } from '../src/reports/buildLatestWeekReports.js';
@@ -247,5 +249,112 @@ describe('teamstate pipeline', () => {
     for (const fileName of expectedFiles) {
       expect(existsSync(path.join(outputDir, fileName))).toBe(true);
     }
+  });
+
+  it('loads raw rows from a single file path', () => {
+    const loaded = loadRawTeamWeekRows(rawSamplePath);
+    const sampleRows = JSON.parse(readFileSync(rawSamplePath, 'utf-8')) as RawTeamWeekRow[];
+
+    expect(loaded.sourceFiles).toHaveLength(1);
+    expect(loaded.sourceFiles[0]).toBe(path.resolve(rawSamplePath));
+    expect(loaded.rows).toHaveLength(sampleRows.length);
+  });
+
+  it('loads and merges raw rows from a directory in deterministic file order', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'teamstate-raw-dir-'));
+    const sampleRows = JSON.parse(readFileSync(rawSamplePath, 'utf-8')) as RawTeamWeekRow[];
+    writeFileSync(path.join(tempDir, 'b.json'), JSON.stringify([sampleRows[1]], null, 2));
+    writeFileSync(path.join(tempDir, 'a.json'), JSON.stringify([sampleRows[0]], null, 2));
+
+    const loaded = loadRawTeamWeekRows(tempDir);
+
+    expect(loaded.sourceFiles.map((filePath) => path.basename(filePath))).toEqual(['a.json', 'b.json']);
+    expect(loaded.rows[0].team_code).toBe(sampleRows[0].team_code);
+    expect(loaded.rows[1].team_code).toBe(sampleRows[1].team_code);
+  });
+
+  it('applies season and week filters before state generation', () => {
+    const outputDir = mkdtempSync(path.join(os.tmpdir(), 'teamstate-filtered-'));
+    const sampleRows = JSON.parse(readFileSync(rawSamplePath, 'utf-8')) as RawTeamWeekRow[];
+    const targetSeason = sampleRows[0].season;
+    const weeksForSeason = sampleRows.filter((row) => row.season === targetSeason).map((row) => row.week);
+    const targetWeek = Math.max(...weeksForSeason);
+    const result = runTeamStatePipeline(rawSamplePath, outputDir, { season: targetSeason, week: targetWeek });
+
+    expect(result.metadata.selectedSeason).toBe(targetSeason);
+    expect(result.metadata.selectedWeek).toBe(targetWeek);
+    expect(result.metadata.filteredRowCount).toBe(result.teamStates.length);
+    expect(result.teamStates.every((row) => row.season === targetSeason && row.week <= targetWeek)).toBe(true);
+  });
+
+  it('writes PR4 metadata and current snapshot artifacts deterministically for fixed input', () => {
+    const outputDir = mkdtempSync(path.join(os.tmpdir(), 'teamstate-current-artifacts-'));
+    const sampleRows = JSON.parse(readFileSync(rawSamplePath, 'utf-8')) as RawTeamWeekRow[];
+    const targetSeason = sampleRows[0].season;
+    const targetWeek = Math.max(...sampleRows.filter((row) => row.season === targetSeason).map((row) => row.week));
+    runTeamStatePipeline(rawSamplePath, outputDir, { season: targetSeason, week: targetWeek });
+
+    const metadataPath = path.join(outputDir, 'pipeline_metadata.json');
+    const currentSnapshotPath = path.join(outputDir, 'current_snapshot.json');
+    const offensePath = path.join(outputDir, 'current_offense_environments.json');
+    const matchupPath = path.join(outputDir, 'current_matchup_environments.json');
+
+    expect(existsSync(metadataPath)).toBe(true);
+    expect(existsSync(currentSnapshotPath)).toBe(true);
+    expect(existsSync(offensePath)).toBe(true);
+    expect(existsSync(matchupPath)).toBe(true);
+
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf-8')) as { selectedSeason: number | null; selectedWeek: number | null; sourceFileCount: number };
+    expect(metadata.selectedSeason).toBe(targetSeason);
+    expect(metadata.selectedWeek).toBe(targetWeek);
+    expect(metadata.sourceFileCount).toBe(1);
+
+    const snapshotOne = JSON.parse(readFileSync(currentSnapshotPath, 'utf-8')) as {
+      scope: { selectedSeason: number | null; selectedWeek: number | null };
+      topTeamPower: Array<{ team: string; rank: number }>;
+    };
+    runTeamStatePipeline(rawSamplePath, outputDir, { season: targetSeason, week: targetWeek });
+    const snapshotTwo = JSON.parse(readFileSync(currentSnapshotPath, 'utf-8')) as {
+      topTeamPower: Array<{ team: string; rank: number }>;
+    };
+
+    expect(snapshotOne.scope.selectedSeason).toBe(targetSeason);
+    expect(snapshotOne.scope.selectedWeek).toBe(targetWeek);
+    expect(snapshotOne.topTeamPower).toEqual(snapshotTwo.topTeamPower);
+  });
+
+  it('assigns fresh sequential ranks for least-volatile snapshot rows', () => {
+    const outputDir = mkdtempSync(path.join(os.tmpdir(), 'teamstate-volatility-ranks-'));
+    runTeamStatePipeline(rawSamplePath, outputDir);
+
+    const snapshot = JSON.parse(readFileSync(path.join(outputDir, 'current_snapshot.json'), 'utf-8')) as {
+      leastVolatileTeams: Array<{ score: number; rank: number }>;
+    };
+
+    const ranks = snapshot.leastVolatileTeams.map((row) => row.rank);
+    expect(ranks).toEqual(ranks.map((_, index) => index + 1));
+
+    for (let index = 1; index < snapshot.leastVolatileTeams.length; index += 1) {
+      expect(snapshot.leastVolatileTeams[index].score).toBeGreaterThanOrEqual(snapshot.leastVolatileTeams[index - 1].score);
+    }
+  });
+
+  it('parses flagged and positional pipeline CLI args', () => {
+    const defaults = {
+      defaultInputPath: '/tmp/default-input.json',
+      defaultOutputDir: '/tmp/default-output'
+    };
+
+    const flagged = parsePipelineArgs(['--input', 'data/raw', '--output', 'output', '--season', '2025', '--week', '8'], defaults);
+    expect(flagged.inputPath).toBe('data/raw');
+    expect(flagged.outputDir).toBe('output');
+    expect(flagged.season).toBe(2025);
+    expect(flagged.week).toBe(8);
+
+    const positional = parsePipelineArgs(['input.json', 'outdir'], defaults);
+    expect(positional.inputPath).toBe('input.json');
+    expect(positional.outputDir).toBe('outdir');
+    expect(positional.season).toBeNull();
+    expect(positional.week).toBeNull();
   });
 });
