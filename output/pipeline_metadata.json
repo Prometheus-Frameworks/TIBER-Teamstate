@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-04-15T13:14:51.339Z",
+  "sourceInputPath": "/workspace/TIBER-Teamstate/data/sample/team_week_raw.sample.json",
+  "sourceFileCount": 1,
+  "sourceRowCount": 4,
+  "mappedRowCount": 4,
+  "filteredRowCount": 4,
+  "seasonsIncluded": [
+    2025
+  ],
+  "latestWeekBySeason": {
+    "2025": 8
+  },
+  "selectedSeason": 2025,
+  "selectedWeek": 18
+}
