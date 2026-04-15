@@ -82,6 +82,29 @@ export const buildCurrentSnapshotArtifacts = (
       summary: `Season average volatility: ${aggregate.summary}`
     }));
 
+  const leastVolatileRows = [...reports.aggregates]
+    .sort((a, b) => {
+      const diff = a.averages.volatilityScore - b.averages.volatilityScore;
+      if (diff !== 0) {
+        return diff;
+      }
+
+      if (a.season !== b.season) {
+        return b.season - a.season;
+      }
+
+      return a.team.localeCompare(b.team);
+    })
+    .map((aggregate, index) => ({
+      team: aggregate.team,
+      season: aggregate.season,
+      latestWeek: aggregate.latestWeek,
+      score: Number(aggregate.averages.volatilityScore.toFixed(2)),
+      rank: index + 1,
+      tags: [...aggregate.tags],
+      summary: `Season average volatility: ${aggregate.summary}`
+    }));
+
   const currentSnapshot: CurrentSnapshotContract = {
     generatedAt,
     scope,
@@ -90,7 +113,7 @@ export const buildCurrentSnapshotArtifacts = (
     topMatchupEnvironment: toCurrentSnapshotRankingRows(reports.rows.matchupEnvironment, TOP_LIMIT),
     mostStableTeams: stableRows.slice(0, TOP_LIMIT),
     mostVolatileTeams: volatileRows.slice(0, TOP_LIMIT),
-    leastVolatileTeams: [...volatileRows].reverse().slice(0, TOP_LIMIT)
+    leastVolatileTeams: leastVolatileRows.slice(0, TOP_LIMIT)
   };
 
   const currentOffenseEnvironments: CurrentOffenseEnvironmentsContract = {

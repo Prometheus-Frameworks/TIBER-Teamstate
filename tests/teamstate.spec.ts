@@ -323,6 +323,22 @@ describe('teamstate pipeline', () => {
     expect(snapshotOne.topTeamPower).toEqual(snapshotTwo.topTeamPower);
   });
 
+  it('assigns fresh sequential ranks for least-volatile snapshot rows', () => {
+    const outputDir = mkdtempSync(path.join(os.tmpdir(), 'teamstate-volatility-ranks-'));
+    runTeamStatePipeline(rawSamplePath, outputDir);
+
+    const snapshot = JSON.parse(readFileSync(path.join(outputDir, 'current_snapshot.json'), 'utf-8')) as {
+      leastVolatileTeams: Array<{ score: number; rank: number }>;
+    };
+
+    const ranks = snapshot.leastVolatileTeams.map((row) => row.rank);
+    expect(ranks).toEqual(ranks.map((_, index) => index + 1));
+
+    for (let index = 1; index < snapshot.leastVolatileTeams.length; index += 1) {
+      expect(snapshot.leastVolatileTeams[index].score).toBeGreaterThanOrEqual(snapshot.leastVolatileTeams[index - 1].score);
+    }
+  });
+
   it('parses flagged and positional pipeline CLI args', () => {
     const defaults = {
       defaultInputPath: '/tmp/default-input.json',
