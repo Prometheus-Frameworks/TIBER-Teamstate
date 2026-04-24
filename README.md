@@ -9,6 +9,36 @@ PR4 extends the PR3 reporting layer with downstream-ready ingestion and contract
 - explicit pipeline metadata artifact (`pipeline_metadata.json`)
 - compact current-state contract artifacts (`current_*.json`) for downstream repos
 
+## Teamstate Offensive Environment v0 (2026)
+
+This repository now includes a lightweight Teamstate offensive environment seed artifact for post-draft rookie landing-spot translation.
+
+- Artifact: `data/processed/2026_team_offensive_environment_v0.json`
+- Documentation: `docs/teamstate-offensive-environment-v0.md`
+- Validator: `scripts/validate_team_offensive_environment.py`
+- Test: `tests/test_team_offensive_environment.py`
+
+Design doctrine for v0:
+
+- Teamstate does not grade the rookie.
+- Teamstate grades the offensive environment the rookie joined.
+- Labels are intentionally conservative while public-source validation is pending.
+- `source_status` distinguishes `operator_seeded` versus validated public-data rows.
+
+Initial seed priority includes New Orleans (`NO`) with an operator-seeded `offensive_playcaller` value of `Kellen Moore` and context tags supporting Jordyn Tyson translation experiments.
+
+Run validator:
+
+```bash
+python scripts/validate_team_offensive_environment.py
+```
+
+Run Python tests:
+
+```bash
+python -m unittest tests/test_team_offensive_environment.py
+```
+
 ## Score Model (Separate Scores)
 
 Every `TeamWeekState` emits 0–100 bounded scores:
