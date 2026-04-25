@@ -65,6 +65,45 @@ Run:
 python scripts/validate_team_landing_context_tags.py
 ```
 
+## 2026 Taxonomy Refinement Notes
+
+To reduce false-positive "good context" signaling, the following tags are classified as
+`risk_context_tags` (not `positive_context_tags`) wherever they appear:
+
+- `depth_chart_volume_cap`
+- `target_concentration_ahead`
+- `delayed_start_path`
+- `veteran_depth_chart_block`
+- `steelers_wr_room_watch`
+- `shared_backfield_context`
+- `scheme_transition_variance`
+
+The following tags remain valid `positive_context_tags` where present:
+
+- `shanahan_efficiency_environment`
+- `yac_creation_scheme`
+- `concentrated_wr_investment`
+- `rookie_wr_priority_signal`
+- `wr1_depth_chart_path`
+- `top5_wr_opportunity_insulation`
+- `kellen_moore_pace_boost`
+- `pass_environment_upside`
+- `mcvay_developmental_environment`
+- `efficient_passing_environment`
+- `high_efficiency_environment`
+- `late_round1_wr_commitment`
+- `round1_rb_commitment`
+- `speed_space_environment`
+- `organizational_development_path`
+
+Reference team examples in the current seed:
+
+- PHI risk includes `depth_chart_volume_cap` and `target_concentration_ahead`.
+- LAR risk includes `delayed_start_path` and `veteran_depth_chart_block`.
+- PIT risk includes `steelers_wr_room_watch` and `delayed_start_path`.
+- SEA risk includes `shared_backfield_context` and `workload_projection_risk`.
+- NO risk includes `scheme_transition_variance` and `qb_context_uncertainty`.
+
 ## Downstream Join Guidance
 
 When consuming this artifact in downstream repos (for example, TIBER-Rookies):
