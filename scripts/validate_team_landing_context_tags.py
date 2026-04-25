@@ -98,13 +98,12 @@ def validate_rows(rows: Any) -> list[str]:
         positive_tags = _validate_tag_array(row, "positive_context_tags", prefix, errors)
         risk_tags = _validate_tag_array(row, "risk_context_tags", prefix, errors)
 
-        if context_tags and (positive_tags or risk_tags):
-            combined = positive_tags + risk_tags
-            _assert(
-                set(context_tags) == set(combined),
-                f"{prefix}: context_tags must match positive_context_tags + risk_context_tags.",
-                errors,
-            )
+        combined = positive_tags + risk_tags
+        _assert(
+            set(context_tags) == set(combined),
+            f"{prefix}: context_tags must match positive_context_tags + risk_context_tags.",
+            errors,
+        )
 
         _assert(isinstance(row.get("notes"), str), f"{prefix}: notes must be a string.", errors)
         _assert(
