@@ -1,0 +1,784 @@
+[
+  {
+    "season": 2026,
+    "team": "SF",
+    "team_name": "San Francisco 49ers",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "shanahan_efficiency_environment",
+      "yac_creation_scheme"
+    ],
+    "risk_team_context_tags": [
+      "low_pass_volume_risk",
+      "role_specific_usage_dependency",
+      "day2_49ers_skill_pick_hit_rate_caution"
+    ],
+    "rookie_landing_context_tags": [
+      "shanahan_efficiency_environment",
+      "yac_creation_scheme",
+      "low_pass_volume_risk",
+      "role_specific_usage_dependency",
+      "day2_49ers_skill_pick_hit_rate_caution"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "CLE",
+    "team_name": "Cleveland Browns",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "concentrated_wr_investment",
+      "rookie_wr_priority_signal"
+    ],
+    "risk_team_context_tags": [
+      "browns_offensive_volatility",
+      "target_competition_between_rookies",
+      "qb_environment_uncertainty"
+    ],
+    "rookie_landing_context_tags": [
+      "concentrated_wr_investment",
+      "rookie_wr_priority_signal",
+      "browns_offensive_volatility",
+      "target_competition_between_rookies",
+      "qb_environment_uncertainty"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "TEN",
+    "team_name": "Tennessee Titans",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "wr1_depth_chart_path",
+      "backfield_opportunity_watch"
+    ],
+    "risk_team_context_tags": [
+      "young_qb_development_dependency",
+      "offense_environment_uncertainty"
+    ],
+    "rookie_landing_context_tags": [
+      "wr1_depth_chart_path",
+      "backfield_opportunity_watch",
+      "young_qb_development_dependency",
+      "offense_environment_uncertainty"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "PHI",
+    "team_name": "Philadelphia Eagles",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "high_efficiency_environment"
+    ],
+    "risk_team_context_tags": [
+      "depth_chart_volume_cap",
+      "target_concentration_ahead"
+    ],
+    "rookie_landing_context_tags": [
+      "high_efficiency_environment",
+      "depth_chart_volume_cap",
+      "target_concentration_ahead"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "LAR",
+    "team_name": "Los Angeles Rams",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "mcvay_developmental_environment",
+      "efficient_passing_environment",
+      "heavy_personnel_role_watch"
+    ],
+    "risk_team_context_tags": [
+      "veteran_depth_chart_block",
+      "delayed_start_path",
+      "role_specific_usage_dependency"
+    ],
+    "rookie_landing_context_tags": [
+      "mcvay_developmental_environment",
+      "efficient_passing_environment",
+      "heavy_personnel_role_watch",
+      "veteran_depth_chart_block",
+      "delayed_start_path",
+      "role_specific_usage_dependency"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "SEA",
+    "team_name": "Seattle Seahawks",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "round1_rb_commitment"
+    ],
+    "risk_team_context_tags": [
+      "shared_backfield_context",
+      "workload_projection_risk"
+    ],
+    "rookie_landing_context_tags": [
+      "round1_rb_commitment",
+      "shared_backfield_context",
+      "workload_projection_risk"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "PIT",
+    "team_name": "Pittsburgh Steelers",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "organizational_development_path"
+    ],
+    "risk_team_context_tags": [
+      "qb_room_uncertainty",
+      "steelers_wr_room_watch",
+      "delayed_start_path"
+    ],
+    "rookie_landing_context_tags": [
+      "organizational_development_path",
+      "qb_room_uncertainty",
+      "steelers_wr_room_watch",
+      "delayed_start_path"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "WAS",
+    "team_name": "Washington Commanders",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "jayden_daniels_environment",
+      "high_upside_offense",
+      "available_target_opportunity"
+    ],
+    "risk_team_context_tags": [
+      "role_projection_uncertainty"
+    ],
+    "rookie_landing_context_tags": [
+      "jayden_daniels_environment",
+      "high_upside_offense",
+      "available_target_opportunity",
+      "role_projection_uncertainty"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "JAX",
+    "team_name": "Jacksonville Jaguars",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "data_savvy_org_validation",
+      "late_round_te_watch"
+    ],
+    "risk_team_context_tags": [
+      "round5_insulation_risk",
+      "depth_chart_path_uncertain",
+      "delayed_te_translation_watch"
+    ],
+    "rookie_landing_context_tags": [
+      "data_savvy_org_validation",
+      "late_round_te_watch",
+      "round5_insulation_risk",
+      "depth_chart_path_uncertain",
+      "delayed_te_translation_watch"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "KC",
+    "team_name": "Kansas City Chiefs",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "high_powered_offense",
+      "passing_down_role_path"
+    ],
+    "risk_team_context_tags": [
+      "late_round_role_uncertainty",
+      "depth_chart_dependency"
+    ],
+    "rookie_landing_context_tags": [
+      "high_powered_offense",
+      "passing_down_role_path",
+      "late_round_role_uncertainty",
+      "depth_chart_dependency"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "BUF",
+    "team_name": "Buffalo Bills",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "high_value_passing_environment",
+      "wr2_wr3_path"
+    ],
+    "risk_team_context_tags": [
+      "role_competition_risk",
+      "low_draft_capital_insulation"
+    ],
+    "rookie_landing_context_tags": [
+      "high_value_passing_environment",
+      "wr2_wr3_path",
+      "role_competition_risk",
+      "low_draft_capital_insulation"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "NYG",
+    "team_name": "New York Giants",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "year1_route_path",
+      "improved_offense_watch"
+    ],
+    "risk_team_context_tags": [
+      "role_competition_risk",
+      "profile_translation_risk"
+    ],
+    "rookie_landing_context_tags": [
+      "year1_route_path",
+      "improved_offense_watch",
+      "role_competition_risk",
+      "profile_translation_risk"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "MIA",
+    "team_name": "Miami Dolphins",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "speed_space_environment"
+    ],
+    "risk_team_context_tags": [
+      "target_competition_cluster",
+      "role_assignment_uncertainty"
+    ],
+    "rookie_landing_context_tags": [
+      "speed_space_environment",
+      "target_competition_cluster",
+      "role_assignment_uncertainty"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "CHI",
+    "team_name": "Chicago Bears",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "young_qb_growth_environment"
+    ],
+    "risk_team_context_tags": [
+      "target_hierarchy_uncertainty",
+      "role_competition_risk"
+    ],
+    "rookie_landing_context_tags": [
+      "young_qb_growth_environment",
+      "target_hierarchy_uncertainty",
+      "role_competition_risk"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "HOU",
+    "team_name": "Houston Texans",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "improved_offense_watch"
+    ],
+    "risk_team_context_tags": [
+      "offensive_line_dependency",
+      "play_caller_transfer_uncertainty"
+    ],
+    "rookie_landing_context_tags": [
+      "improved_offense_watch",
+      "offensive_line_dependency",
+      "play_caller_transfer_uncertainty"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "NO",
+    "team_name": "New Orleans Saints",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "pace_boost_candidate",
+      "pass_environment_upside"
+    ],
+    "risk_team_context_tags": [
+      "qb_context_uncertainty",
+      "scheme_transition_variance"
+    ],
+    "rookie_landing_context_tags": [
+      "pace_boost_candidate",
+      "pass_environment_upside",
+      "qb_context_uncertainty",
+      "scheme_transition_variance"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "NYJ",
+    "team_name": "New York Jets",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "early_round_skill_investment",
+      "volume_rebound_path"
+    ],
+    "risk_team_context_tags": [
+      "offensive_stability_watch",
+      "target_competition_cluster"
+    ],
+    "rookie_landing_context_tags": [
+      "early_round_skill_investment",
+      "volume_rebound_path",
+      "offensive_stability_watch",
+      "target_competition_cluster"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "ATL",
+    "team_name": "Atlanta Falcons",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "play_action_efficiency_environment",
+      "red_zone_opportunity_watch"
+    ],
+    "risk_team_context_tags": [
+      "volume_balance_risk",
+      "target_concentration_ahead"
+    ],
+    "rookie_landing_context_tags": [
+      "play_action_efficiency_environment",
+      "red_zone_opportunity_watch",
+      "volume_balance_risk",
+      "target_concentration_ahead"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "CAR",
+    "team_name": "Carolina Panthers",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "young_offense_growth_path",
+      "playmaker_deployment_upside"
+    ],
+    "risk_team_context_tags": [
+      "qb_environment_uncertainty",
+      "overall_offense_floor_risk"
+    ],
+    "rookie_landing_context_tags": [
+      "young_offense_growth_path",
+      "playmaker_deployment_upside",
+      "qb_environment_uncertainty",
+      "overall_offense_floor_risk"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "TB",
+    "team_name": "Tampa Bay Buccaneers",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "stable_playcaller_continuity",
+      "vertical_passing_upside"
+    ],
+    "risk_team_context_tags": [
+      "target_competition_cluster",
+      "role_assignment_uncertainty"
+    ],
+    "rookie_landing_context_tags": [
+      "stable_playcaller_continuity",
+      "vertical_passing_upside",
+      "target_competition_cluster",
+      "role_assignment_uncertainty"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "BAL",
+    "team_name": "Baltimore Ravens",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "high_efficiency_rush_pass_balance",
+      "red_zone_trip_upside"
+    ],
+    "risk_team_context_tags": [
+      "low_pass_volume_risk",
+      "target_concentration_ahead"
+    ],
+    "rookie_landing_context_tags": [
+      "high_efficiency_rush_pass_balance",
+      "red_zone_trip_upside",
+      "low_pass_volume_risk",
+      "target_concentration_ahead"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "NE",
+    "team_name": "New England Patriots",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "rookie_usage_runway",
+      "scheme_rebuild_opportunity"
+    ],
+    "risk_team_context_tags": [
+      "offense_environment_uncertainty",
+      "target_distribution_volatility"
+    ],
+    "rookie_landing_context_tags": [
+      "rookie_usage_runway",
+      "scheme_rebuild_opportunity",
+      "offense_environment_uncertainty",
+      "target_distribution_volatility"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  },
+  {
+    "season": 2026,
+    "team": "ARI",
+    "team_name": "Arizona Cardinals",
+    "head_coach": "operator_seeded_unknown",
+    "offensive_coordinator": "operator_seeded_unknown",
+    "play_caller": "operator_seeded_unknown",
+    "qb_context": "operator_seeded_unknown",
+    "offensive_identity_tags": [
+      "operator_seeded_unknown"
+    ],
+    "personnel_usage_tags": [
+      "operator_seeded_unknown"
+    ],
+    "pace_pass_environment_tags": [
+      "operator_seeded_unknown"
+    ],
+    "positive_team_context_tags": [
+      "creative_space_usage",
+      "year2_offense_continuity"
+    ],
+    "risk_team_context_tags": [
+      "target_concentration_ahead",
+      "role_competition_risk"
+    ],
+    "rookie_landing_context_tags": [
+      "creative_space_usage",
+      "year2_offense_continuity",
+      "target_concentration_ahead",
+      "role_competition_risk"
+    ],
+    "source_status": "operator_seeded_unknown",
+    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+  }
+]
