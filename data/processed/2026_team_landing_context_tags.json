@@ -8,8 +8,7 @@
       "yac_creation_scheme",
       "low_pass_volume_risk",
       "role_specific_usage_dependency",
-      "day2_49ers_skill_pick_hit_rate_caution",
-      "year1_volume_uncertainty"
+      "day2_49ers_skill_pick_hit_rate_caution"
     ],
     "positive_context_tags": [
       "shanahan_efficiency_environment",
@@ -18,11 +17,10 @@
     "risk_context_tags": [
       "low_pass_volume_risk",
       "role_specific_usage_dependency",
-      "day2_49ers_skill_pick_hit_rate_caution",
-      "year1_volume_uncertainty"
+      "day2_49ers_skill_pick_hit_rate_caution"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
@@ -44,8 +42,8 @@
       "target_competition_between_rookies",
       "qb_environment_uncertainty"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
@@ -53,62 +51,20 @@
     "team_name": "Tennessee Titans",
     "context_tags": [
       "wr1_depth_chart_path",
-      "top5_wr_opportunity_insulation",
+      "backfield_opportunity_watch",
       "young_qb_development_dependency",
-      "offensive_environment_uncertainty"
+      "offense_environment_uncertainty"
     ],
     "positive_context_tags": [
       "wr1_depth_chart_path",
-      "top5_wr_opportunity_insulation"
+      "backfield_opportunity_watch"
     ],
     "risk_context_tags": [
       "young_qb_development_dependency",
-      "offensive_environment_uncertainty"
+      "offense_environment_uncertainty"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "NO",
-    "team_name": "New Orleans Saints",
-    "context_tags": [
-      "kellen_moore_pace_boost",
-      "pass_environment_upside",
-      "qb_context_uncertainty",
-      "scheme_transition_variance"
-    ],
-    "positive_context_tags": [
-      "kellen_moore_pace_boost",
-      "pass_environment_upside"
-    ],
-    "risk_context_tags": [
-      "qb_context_uncertainty",
-      "scheme_transition_variance"
-    ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "LAR",
-    "team_name": "Los Angeles Rams",
-    "context_tags": [
-      "mcvay_developmental_environment",
-      "efficient_passing_environment",
-      "delayed_start_path",
-      "veteran_depth_chart_block"
-    ],
-    "positive_context_tags": [
-      "mcvay_developmental_environment",
-      "efficient_passing_environment"
-    ],
-    "risk_context_tags": [
-      "delayed_start_path",
-      "veteran_depth_chart_block"
-    ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
@@ -126,27 +82,33 @@
       "depth_chart_volume_cap",
       "target_concentration_ahead"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
-    "team": "NYJ",
-    "team_name": "New York Jets",
+    "team": "LAR",
+    "team_name": "Los Angeles Rams",
     "context_tags": [
-      "late_round1_wr_commitment",
-      "role_path_review",
-      "offensive_stability_watch"
+      "mcvay_developmental_environment",
+      "efficient_passing_environment",
+      "heavy_personnel_role_watch",
+      "veteran_depth_chart_block",
+      "delayed_start_path",
+      "role_specific_usage_dependency"
     ],
     "positive_context_tags": [
-      "late_round1_wr_commitment"
+      "mcvay_developmental_environment",
+      "efficient_passing_environment",
+      "heavy_personnel_role_watch"
     ],
     "risk_context_tags": [
-      "role_path_review",
-      "offensive_stability_watch"
+      "veteran_depth_chart_block",
+      "delayed_start_path",
+      "role_specific_usage_dependency"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
@@ -164,8 +126,8 @@
       "shared_backfield_context",
       "workload_projection_risk"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
@@ -185,8 +147,115 @@
       "steelers_wr_room_watch",
       "delayed_start_path"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "WAS",
+    "team_name": "Washington Commanders",
+    "context_tags": [
+      "jayden_daniels_environment",
+      "high_upside_offense",
+      "available_target_opportunity",
+      "role_projection_uncertainty"
+    ],
+    "positive_context_tags": [
+      "jayden_daniels_environment",
+      "high_upside_offense",
+      "available_target_opportunity"
+    ],
+    "risk_context_tags": [
+      "role_projection_uncertainty"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "JAX",
+    "team_name": "Jacksonville Jaguars",
+    "context_tags": [
+      "data_savvy_org_validation",
+      "late_round_te_watch",
+      "round5_insulation_risk",
+      "depth_chart_path_uncertain",
+      "delayed_te_translation_watch"
+    ],
+    "positive_context_tags": [
+      "data_savvy_org_validation",
+      "late_round_te_watch"
+    ],
+    "risk_context_tags": [
+      "round5_insulation_risk",
+      "depth_chart_path_uncertain",
+      "delayed_te_translation_watch"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "KC",
+    "team_name": "Kansas City Chiefs",
+    "context_tags": [
+      "high_powered_offense",
+      "passing_down_role_path",
+      "late_round_role_uncertainty",
+      "depth_chart_dependency"
+    ],
+    "positive_context_tags": [
+      "high_powered_offense",
+      "passing_down_role_path"
+    ],
+    "risk_context_tags": [
+      "late_round_role_uncertainty",
+      "depth_chart_dependency"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "BUF",
+    "team_name": "Buffalo Bills",
+    "context_tags": [
+      "high_value_passing_environment",
+      "wr2_wr3_path",
+      "role_competition_risk",
+      "low_draft_capital_insulation"
+    ],
+    "positive_context_tags": [
+      "high_value_passing_environment",
+      "wr2_wr3_path"
+    ],
+    "risk_context_tags": [
+      "role_competition_risk",
+      "low_draft_capital_insulation"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "NYG",
+    "team_name": "New York Giants",
+    "context_tags": [
+      "year1_route_path",
+      "improved_offense_watch",
+      "role_competition_risk",
+      "profile_translation_risk"
+    ],
+    "positive_context_tags": [
+      "year1_route_path",
+      "improved_offense_watch"
+    ],
+    "risk_context_tags": [
+      "role_competition_risk",
+      "profile_translation_risk"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
@@ -194,7 +263,6 @@
     "team_name": "Miami Dolphins",
     "context_tags": [
       "speed_space_environment",
-      "dolphins_multi_pass_catcher_investment",
       "target_competition_cluster",
       "role_assignment_uncertainty"
     ],
@@ -202,121 +270,216 @@
       "speed_space_environment"
     ],
     "risk_context_tags": [
-      "dolphins_multi_pass_catcher_investment",
       "target_competition_cluster",
       "role_assignment_uncertainty"
     ],
-    "notes": "Initial 2026 seed for rookie post-draft landing interpretation.",
-    "source_status": "operator_seeded"
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
     "team": "CHI",
     "team_name": "Chicago Bears",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "CAR",
-    "team_name": "Carolina Panthers",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "TB",
-    "team_name": "Tampa Bay Buccaneers",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "BAL",
-    "team_name": "Baltimore Ravens",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "NYG",
-    "team_name": "New York Giants",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "WAS",
-    "team_name": "Washington Commanders",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "ATL",
-    "team_name": "Atlanta Falcons",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
-  },
-  {
-    "season": 2026,
-    "team": "JAX",
-    "team_name": "Jacksonville Jaguars",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
+    "context_tags": [
+      "young_qb_growth_environment",
+      "target_hierarchy_uncertainty",
+      "role_competition_risk"
+    ],
+    "positive_context_tags": [
+      "young_qb_growth_environment"
+    ],
+    "risk_context_tags": [
+      "target_hierarchy_uncertainty",
+      "role_competition_risk"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
     "team": "HOU",
     "team_name": "Houston Texans",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
+    "context_tags": [
+      "improved_offense_watch",
+      "offensive_line_dependency",
+      "play_caller_transfer_uncertainty"
+    ],
+    "positive_context_tags": [
+      "improved_offense_watch"
+    ],
+    "risk_context_tags": [
+      "offensive_line_dependency",
+      "play_caller_transfer_uncertainty"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "NO",
+    "team_name": "New Orleans Saints",
+    "context_tags": [
+      "pace_boost_candidate",
+      "pass_environment_upside",
+      "qb_context_uncertainty",
+      "scheme_transition_variance"
+    ],
+    "positive_context_tags": [
+      "pace_boost_candidate",
+      "pass_environment_upside"
+    ],
+    "risk_context_tags": [
+      "qb_context_uncertainty",
+      "scheme_transition_variance"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "NYJ",
+    "team_name": "New York Jets",
+    "context_tags": [
+      "early_round_skill_investment",
+      "volume_rebound_path",
+      "offensive_stability_watch",
+      "target_competition_cluster"
+    ],
+    "positive_context_tags": [
+      "early_round_skill_investment",
+      "volume_rebound_path"
+    ],
+    "risk_context_tags": [
+      "offensive_stability_watch",
+      "target_competition_cluster"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "ATL",
+    "team_name": "Atlanta Falcons",
+    "context_tags": [
+      "play_action_efficiency_environment",
+      "red_zone_opportunity_watch",
+      "volume_balance_risk",
+      "target_concentration_ahead"
+    ],
+    "positive_context_tags": [
+      "play_action_efficiency_environment",
+      "red_zone_opportunity_watch"
+    ],
+    "risk_context_tags": [
+      "volume_balance_risk",
+      "target_concentration_ahead"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "CAR",
+    "team_name": "Carolina Panthers",
+    "context_tags": [
+      "young_offense_growth_path",
+      "playmaker_deployment_upside",
+      "qb_environment_uncertainty",
+      "overall_offense_floor_risk"
+    ],
+    "positive_context_tags": [
+      "young_offense_growth_path",
+      "playmaker_deployment_upside"
+    ],
+    "risk_context_tags": [
+      "qb_environment_uncertainty",
+      "overall_offense_floor_risk"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "TB",
+    "team_name": "Tampa Bay Buccaneers",
+    "context_tags": [
+      "stable_playcaller_continuity",
+      "vertical_passing_upside",
+      "target_competition_cluster",
+      "role_assignment_uncertainty"
+    ],
+    "positive_context_tags": [
+      "stable_playcaller_continuity",
+      "vertical_passing_upside"
+    ],
+    "risk_context_tags": [
+      "target_competition_cluster",
+      "role_assignment_uncertainty"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
+  },
+  {
+    "season": 2026,
+    "team": "BAL",
+    "team_name": "Baltimore Ravens",
+    "context_tags": [
+      "high_efficiency_rush_pass_balance",
+      "red_zone_trip_upside",
+      "low_pass_volume_risk",
+      "target_concentration_ahead"
+    ],
+    "positive_context_tags": [
+      "high_efficiency_rush_pass_balance",
+      "red_zone_trip_upside"
+    ],
+    "risk_context_tags": [
+      "low_pass_volume_risk",
+      "target_concentration_ahead"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
     "team": "NE",
     "team_name": "New England Patriots",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
+    "context_tags": [
+      "rookie_usage_runway",
+      "scheme_rebuild_opportunity",
+      "offense_environment_uncertainty",
+      "target_distribution_volatility"
+    ],
+    "positive_context_tags": [
+      "rookie_usage_runway",
+      "scheme_rebuild_opportunity"
+    ],
+    "risk_context_tags": [
+      "offense_environment_uncertainty",
+      "target_distribution_volatility"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   },
   {
     "season": 2026,
     "team": "ARI",
     "team_name": "Arizona Cardinals",
-    "context_tags": [],
-    "positive_context_tags": [],
-    "risk_context_tags": [],
-    "notes": "Team included for 2026 rookie relevance; detailed tags pending additional review.",
-    "source_status": "operator_seeded"
+    "context_tags": [
+      "creative_space_usage",
+      "year2_offense_continuity",
+      "target_concentration_ahead",
+      "role_competition_risk"
+    ],
+    "positive_context_tags": [
+      "creative_space_usage",
+      "year2_offense_continuity"
+    ],
+    "risk_context_tags": [
+      "target_concentration_ahead",
+      "role_competition_risk"
+    ],
+    "notes": "Operator-seeded 2026 rookie landing tags derived from Teamstate context v0.",
+    "source_status": "operator_seeded_unknown"
   }
 ]

@@ -19,29 +19,10 @@ REQUIRED_FIELDS = {
     "source_status",
 }
 
-SOURCE_STATUS_ENUM = {"operator_seeded", "public_data_pending", "validated_public_data"}
+SOURCE_STATUS_ENUM = {"operator_seeded", "operator_seeded_unknown"}
 EXPECTED_TEAMS = {
-    "SF",
-    "CLE",
-    "TEN",
-    "NO",
-    "LAR",
-    "PHI",
-    "NYJ",
-    "SEA",
-    "PIT",
-    "MIA",
-    "CHI",
-    "CAR",
-    "TB",
-    "BAL",
-    "NYG",
-    "WAS",
-    "ATL",
-    "JAX",
-    "HOU",
-    "NE",
-    "ARI",
+    "SF", "CLE", "TEN", "PHI", "LAR", "SEA", "PIT", "WAS", "JAX", "KC", "BUF", "NYG",
+    "MIA", "CHI", "HOU", "NO", "NYJ", "ATL", "CAR", "TB", "BAL", "NE", "ARI",
 }
 
 
