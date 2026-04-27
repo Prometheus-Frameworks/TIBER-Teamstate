@@ -521,27 +521,39 @@
       "operator_seeded_unknown"
     ],
     "personnel_usage_tags": [
-      "operator_seeded_unknown"
+      "operator_seeded_unknown",
+      "personnel_usage_needs_verification"
     ],
     "pace_pass_environment_tags": [
-      "operator_seeded_unknown"
+      "operator_seeded_unknown",
+      "pass_volume_projection_needs_verification"
     ],
     "positive_team_context_tags": [
       "pace_boost_candidate",
-      "pass_environment_upside"
+      "pass_environment_upside",
+      "kellen_moore_environment_watch"
     ],
     "risk_team_context_tags": [
       "qb_context_uncertainty",
-      "scheme_transition_variance"
+      "scheme_transition_variance",
+      "shough_stability_needs_verification",
+      "target_hierarchy_needs_verification",
+      "heavy_personnel_consolidation_needs_verification"
     ],
     "rookie_landing_context_tags": [
       "pace_boost_candidate",
       "pass_environment_upside",
       "qb_context_uncertainty",
-      "scheme_transition_variance"
+      "scheme_transition_variance",
+      "kellen_moore_environment_watch",
+      "shough_stability_needs_verification",
+      "target_hierarchy_needs_verification",
+      "heavy_personnel_consolidation_needs_verification",
+      "personnel_usage_needs_verification",
+      "pass_volume_projection_needs_verification"
     ],
     "source_status": "operator_seeded_unknown",
-    "notes": "Operator-seeded 2026 team context v0 for inspect-only downstream joins."
+    "notes": "Current artifacts support Saints pass-environment upside as an operator-seeded watch, but Kellen Moore-specific pass volume, heavy-personnel consolidation, Shough stability, and Olave/Tyson target hierarchy require sourcing before promotion."
   },
   {
     "season": 2026,
