@@ -1,6 +1,6 @@
 # TIBER-Teamstate
 
-TIBER-Teamstate is a deterministic TypeScript backend/library for modeling **team-level NFL environments** from team-week source data.
+TIBER-Teamstate is a deterministic TypeScript backend/library for modeling **team-level NFL environments** from governed inputs. It is an interpretation layer, not the owner of raw source truth.
 
 PR4 extends the PR3 reporting layer with downstream-ready ingestion and contract artifacts:
 
@@ -8,6 +8,38 @@ PR4 extends the PR3 reporting layer with downstream-ready ingestion and contract
 - optional season/week filtering during pipeline runs
 - explicit pipeline metadata artifact (`pipeline_metadata.json`)
 - compact current-state contract artifacts (`current_*.json`) for downstream repos
+
+## May TIBER-Data Alignment: Team-Environment Interpretation Layer
+
+After the May TIBER-Data milestone, Teamstate is the **team-environment interpretation layer** in the TIBER ecosystem. Teamstate should consume governed, source-backed TIBER-Data artifacts and translate them into auditable team context. It should not own raw source truth, copy evidence values by hand, or fabricate derived football context when upstream provenance is not present.
+
+System boundary:
+
+- **TIBER-Data proves what happened**: governed source/provenance truth for source-backed GOBLIN evidence, GOBLIN research candidates, play-caller PROE scaffolds/input validation, and Receiving Role Integrity / route participation proxy scaffolds.
+- **Teamstate explains team environment**: pace, pass tendency, play-calling environment, red-zone tendency, stability, volatility, and other team-level context once those inputs are governed upstream.
+- **Role-and-opportunity explains player role**: player-level usage, role, and opportunity context.
+- **GOBLIN finds ugly-output legitimate-signal candidates**: candidate discovery and evidence spine, not default Teamstate scoring.
+- **FORGE grades fantasy signal**: fantasy-specific signal grading.
+- **TIBER-Fantasy becomes the cockpit**: the operating surface that can assemble governed signals from the ecosystem.
+
+Future Teamstate inputs from TIBER-Data should include:
+
+- play-caller PROE, once source-backed
+- team pass tendency
+- pass-play environment
+- red-zone tendencies
+- Receiving Role Integrity proxy aggregates, once source-backed
+- GOBLIN candidate context as read-only signal, not a scoring input by default
+
+Guardrails for this repository:
+
+- do not fabricate team tendencies
+- do not copy values out of screenshots
+- do not make proprietary route claims
+- do not mutate TIBER-Data artifacts
+- do not change scoring or ranking behavior as part of this docs-only alignment
+
+See `docs/teamstate-boundary-may-tiber-data.md` for the detailed boundary note.
 
 ## Teamstate Offensive Environment v0 (2026)
 
