@@ -8,6 +8,12 @@ This artifact is an inspectable, operator-seeded team environment layer for 2026
 - This is intentionally conservative and inspect-only.
 - Unknowns are explicit via `operator_seeded_unknown` rather than implied certainty.
 
+## May TIBER-Data Boundary Alignment
+
+Teamstate context rows are interpretation artifacts, not raw evidence stores. After the May TIBER-Data milestone, governed source/provenance truth for play-caller PROE scaffolds, Receiving Role Integrity proxy scaffolds, GOBLIN evidence, and GOBLIN research candidates should live upstream in TIBER-Data.
+
+For this v0 context artifact, operator-seeded unknowns remain placeholders until source-backed TIBER-Data artifacts are available. Teamstate may later consume those governed inputs to explain team environment, but this document does not authorize fabricated tendencies, copied screenshot values, proprietary route claims, mutation of TIBER-Data artifacts, or scoring/ranking changes.
+
 ## Artifacts
 
 - `data/processed/2026_teamstate_context_v0.json`
