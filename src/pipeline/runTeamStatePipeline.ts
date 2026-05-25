@@ -5,6 +5,7 @@ import { loadRawTeamWeekRows } from '../ingest/loadRawTeamWeekRows.js';
 import { validateTeamWeekInputRow } from '../ingest/loadTeamWeekInputs.js';
 import { buildCurrentSnapshotArtifacts } from './currentArtifacts.js';
 import { parsePipelineArgs } from './parsePipelineArgs.js';
+import { buildTeamEnvironmentProfilesV0 } from './teamEnvironmentProfiles.js';
 import { buildLatestWeekReports } from '../reports/buildLatestWeekReports.js';
 import { buildSeasonToDateReports } from '../reports/buildSeasonToDateReports.js';
 import type { LatestWeekReports, SeasonToDateReports } from '../reports/types.js';
@@ -157,6 +158,9 @@ export const runTeamStatePipeline = (rawInputPath: string, outputDir: string, fi
   writeJsonFile(path.join(outputDir, 'current_snapshot.json'), currentArtifacts.currentSnapshot);
   writeJsonFile(path.join(outputDir, 'current_offense_environments.json'), currentArtifacts.currentOffenseEnvironments);
   writeJsonFile(path.join(outputDir, 'current_matchup_environments.json'), currentArtifacts.currentMatchupEnvironments);
+
+  const teamEnvironmentProfiles = buildTeamEnvironmentProfilesV0(seasonToDateReports, generatedAt, currentArtifacts.currentSnapshot.generatedAt);
+  writeJsonFile(path.join(outputDir, 'team_environment_profiles_v0.json'), teamEnvironmentProfiles);
 
   return { teamStates, rankings, latestWeekReports, seasonToDateReports, metadata };
 };
