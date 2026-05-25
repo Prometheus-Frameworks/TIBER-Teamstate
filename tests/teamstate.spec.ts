@@ -243,7 +243,8 @@ describe('teamstate pipeline', () => {
       'season_to_date.qb_matchups.json',
       'season_to_date.rb_matchups.json',
       'season_to_date.wr_matchups.json',
-      'season_to_date.te_matchups.json'
+      'season_to_date.te_matchups.json',
+      'team_environment_profiles_v0.json'
     ];
 
     for (const fileName of expectedFiles) {
