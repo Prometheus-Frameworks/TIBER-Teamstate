@@ -1,8 +1,9 @@
 {
   "artifact": "team_environment_profiles_v0",
-  "generatedAt": "2026-05-25T14:19:37.880Z",
+  "generatedAt": "2026-05-25T16:51:57.542Z",
   "sourceArtifacts": [
     "season_to_date.fantasy_environment.json",
+    "season_to_date.team_power.json",
     "teamstate_weekly.json"
   ],
   "profiles": [
@@ -11,8 +12,8 @@
       "teamId": "DET",
       "teamAbbr": "DET",
       "season": 2025,
-      "generatedAt": "2026-05-25T14:19:37.880Z",
-      "sourceSnapshotAt": "2026-05-25T14:19:37.880Z",
+      "generatedAt": "2026-05-25T16:51:57.542Z",
+      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
       "marketTier": "unknown",
       "offenseTier": "strong",
       "passEnvironmentTier": "pass_heavy",
@@ -27,17 +28,17 @@
         {
           "name": "neutralPassRate",
           "value": 0.6,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "secondsPerPlay",
           "value": 25.7,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "volatilityScore",
           "value": 35.07,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         }
       ],
       "warnings": [
@@ -49,8 +50,8 @@
       "teamId": "MIA",
       "teamAbbr": "MIA",
       "season": 2025,
-      "generatedAt": "2026-05-25T14:19:37.880Z",
-      "sourceSnapshotAt": "2026-05-25T14:19:37.880Z",
+      "generatedAt": "2026-05-25T16:51:57.542Z",
+      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
       "marketTier": "unknown",
       "offenseTier": "average",
       "passEnvironmentTier": "pass_heavy",
@@ -65,17 +66,17 @@
         {
           "name": "neutralPassRate",
           "value": 0.64,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "secondsPerPlay",
           "value": 26.3,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "volatilityScore",
           "value": 43.12,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         }
       ],
       "warnings": [
@@ -87,8 +88,8 @@
       "teamId": "PIT",
       "teamAbbr": "PIT",
       "season": 2025,
-      "generatedAt": "2026-05-25T14:19:37.880Z",
-      "sourceSnapshotAt": "2026-05-25T14:19:37.880Z",
+      "generatedAt": "2026-05-25T16:51:57.542Z",
+      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
       "marketTier": "unknown",
       "offenseTier": "weak",
       "passEnvironmentTier": "balanced",
@@ -103,17 +104,17 @@
         {
           "name": "neutralPassRate",
           "value": 0.47,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "secondsPerPlay",
           "value": 30.8,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "volatilityScore",
           "value": 59.44,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         }
       ],
       "warnings": [
@@ -126,8 +127,8 @@
       "teamId": "TEN",
       "teamAbbr": "TEN",
       "season": 2025,
-      "generatedAt": "2026-05-25T14:19:37.880Z",
-      "sourceSnapshotAt": "2026-05-25T14:19:37.880Z",
+      "generatedAt": "2026-05-25T16:51:57.542Z",
+      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
       "marketTier": "unknown",
       "offenseTier": "weak",
       "passEnvironmentTier": "balanced",
@@ -142,17 +143,17 @@
         {
           "name": "neutralPassRate",
           "value": 0.53,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "secondsPerPlay",
           "value": 28.9,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         },
         {
           "name": "volatilityScore",
           "value": 41.47,
-          "source": "season_to_date.team_power_aggregates"
+          "source": "season_to_date.team_power.json"
         }
       ],
       "warnings": [

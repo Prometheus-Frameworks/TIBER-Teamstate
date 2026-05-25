@@ -70,9 +70,9 @@ const buildProfile = (aggregate: TeamSeasonAggregate, generatedAt: string, sourc
     volatilityTier,
     signals: [
       { name: 'fantasyEnvironmentScore', value: toRoundedSignalValue(aggregate.averages.fantasyEnvironmentScore, 2), source: 'season_to_date.fantasy_environment.json' },
-      { name: 'neutralPassRate', value: toRoundedSignalValue(aggregate.averages.neutralPassRate, 4), source: 'season_to_date.team_power_aggregates' },
-      { name: 'secondsPerPlay', value: toRoundedSignalValue(aggregate.averages.secondsPerPlay, 3), source: 'season_to_date.team_power_aggregates' },
-      { name: 'volatilityScore', value: toRoundedSignalValue(aggregate.averages.volatilityScore, 2), source: 'season_to_date.team_power_aggregates' }
+      { name: 'neutralPassRate', value: toRoundedSignalValue(aggregate.averages.neutralPassRate, 4), source: 'season_to_date.team_power.json' },
+      { name: 'secondsPerPlay', value: toRoundedSignalValue(aggregate.averages.secondsPerPlay, 3), source: 'season_to_date.team_power.json' },
+      { name: 'volatilityScore', value: toRoundedSignalValue(aggregate.averages.volatilityScore, 2), source: 'season_to_date.team_power.json' }
     ],
     warnings
   };
@@ -85,7 +85,7 @@ export const buildTeamEnvironmentProfilesV0 = (
 ): TeamEnvironmentProfileArtifactV0 => ({
   artifact: 'team_environment_profiles_v0',
   generatedAt,
-  sourceArtifacts: ['season_to_date.fantasy_environment.json', 'teamstate_weekly.json'],
+  sourceArtifacts: ['season_to_date.fantasy_environment.json', 'season_to_date.team_power.json', 'teamstate_weekly.json'],
   profiles: [...reports.aggregates]
     .sort((a, b) => (a.season === b.season ? a.team.localeCompare(b.team) : b.season - a.season))
     .map((aggregate) => buildProfile(aggregate, generatedAt, sourceSnapshotAt))
