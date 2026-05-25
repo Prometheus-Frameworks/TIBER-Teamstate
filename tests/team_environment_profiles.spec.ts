@@ -58,5 +58,19 @@ describe('team environment profiles v0', () => {
     expect(profile?.paceTier).toBe('unknown');
     expect(profile?.volatilityTier).toBe('unknown');
     expect(profile?.warnings.length).toBeGreaterThan(1);
+    const signalByName = new Map((profile?.signals ?? []).map((signal) => [signal.name, signal.value]));
+    expect(signalByName.get('fantasyEnvironmentScore')).toBeNull();
+    expect(signalByName.get('neutralPassRate')).toBeNull();
+    expect(signalByName.get('secondsPerPlay')).toBeNull();
+  });
+
+  it('marks non-finite numeric signals as null', () => {
+    const unknownReports = structuredClone(reports);
+    unknownReports.aggregates[0].averages.volatilityScore = Number.POSITIVE_INFINITY;
+
+    const artifact = buildTeamEnvironmentProfilesV0(unknownReports, '2026-05-25T00:00:00.000Z', null);
+    const profile = artifact.profiles.find((row) => row.teamAbbr === 'AAA');
+    const signalByName = new Map((profile?.signals ?? []).map((signal) => [signal.name, signal.value]));
+    expect(signalByName.get('volatilityScore')).toBeNull();
   });
 });

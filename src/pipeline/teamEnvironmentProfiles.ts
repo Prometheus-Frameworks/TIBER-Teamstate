@@ -7,8 +7,15 @@ const PACE_THRESHOLDS = { fast: 27, slow: 29 } as const;
 const VOLATILITY_STABLE_MAX = 45;
 const VOLATILITY_VOLATILE_MIN = 60;
 
+const isFiniteNumber = (value: number | null | undefined): value is number => typeof value === 'number' && Number.isFinite(value);
+
+const toRoundedSignalValue = (value: number | null | undefined, digits: number): number | null => {
+  if (!isFiniteNumber(value)) return null;
+  return Number(value.toFixed(digits));
+};
+
 const toOffenseTier = (score: number | null | undefined): TeamEnvironmentProfileV0['offenseTier'] => {
-  if (typeof score !== 'number' || Number.isNaN(score)) return 'unknown';
+  if (!isFiniteNumber(score)) return 'unknown';
   if (score >= OFFENSE_THRESHOLDS.elite) return 'elite';
   if (score >= OFFENSE_THRESHOLDS.strong) return 'strong';
   if (score >= OFFENSE_THRESHOLDS.average) return 'average';
@@ -16,21 +23,21 @@ const toOffenseTier = (score: number | null | undefined): TeamEnvironmentProfile
 };
 
 const toPassEnvironmentTier = (neutralPassRate: number | null | undefined): TeamEnvironmentProfileV0['passEnvironmentTier'] => {
-  if (typeof neutralPassRate !== 'number' || Number.isNaN(neutralPassRate)) return 'unknown';
+  if (!isFiniteNumber(neutralPassRate)) return 'unknown';
   if (neutralPassRate >= PASS_THRESHOLDS.passHeavy) return 'pass_heavy';
   if (neutralPassRate <= PASS_THRESHOLDS.runHeavy) return 'run_heavy';
   return 'balanced';
 };
 
 const toPaceTier = (secondsPerPlay: number | null | undefined): TeamEnvironmentProfileV0['paceTier'] => {
-  if (typeof secondsPerPlay !== 'number' || Number.isNaN(secondsPerPlay)) return 'unknown';
+  if (!isFiniteNumber(secondsPerPlay)) return 'unknown';
   if (secondsPerPlay <= PACE_THRESHOLDS.fast) return 'fast';
   if (secondsPerPlay >= PACE_THRESHOLDS.slow) return 'slow';
   return 'neutral';
 };
 
 const toVolatilityTier = (volatilityScore: number | null | undefined): TeamEnvironmentProfileV0['volatilityTier'] => {
-  if (typeof volatilityScore !== 'number' || Number.isNaN(volatilityScore)) return 'unknown';
+  if (!isFiniteNumber(volatilityScore)) return 'unknown';
   if (volatilityScore <= VOLATILITY_STABLE_MAX) return 'stable';
   if (volatilityScore >= VOLATILITY_VOLATILE_MIN) return 'volatile';
   return 'unknown';
@@ -62,10 +69,10 @@ const buildProfile = (aggregate: TeamSeasonAggregate, generatedAt: string, sourc
     paceTier,
     volatilityTier,
     signals: [
-      { name: 'fantasyEnvironmentScore', value: Number(aggregate.averages.fantasyEnvironmentScore.toFixed(2)), source: 'season_to_date.fantasy_environment.json' },
-      { name: 'neutralPassRate', value: Number(aggregate.averages.neutralPassRate.toFixed(4)), source: 'season_to_date.team_power_aggregates' },
-      { name: 'secondsPerPlay', value: Number(aggregate.averages.secondsPerPlay.toFixed(3)), source: 'season_to_date.team_power_aggregates' },
-      { name: 'volatilityScore', value: Number(aggregate.averages.volatilityScore.toFixed(2)), source: 'current_snapshot.json' }
+      { name: 'fantasyEnvironmentScore', value: toRoundedSignalValue(aggregate.averages.fantasyEnvironmentScore, 2), source: 'season_to_date.fantasy_environment.json' },
+      { name: 'neutralPassRate', value: toRoundedSignalValue(aggregate.averages.neutralPassRate, 4), source: 'season_to_date.team_power_aggregates' },
+      { name: 'secondsPerPlay', value: toRoundedSignalValue(aggregate.averages.secondsPerPlay, 3), source: 'season_to_date.team_power_aggregates' },
+      { name: 'volatilityScore', value: toRoundedSignalValue(aggregate.averages.volatilityScore, 2), source: 'season_to_date.team_power_aggregates' }
     ],
     warnings
   };
@@ -78,7 +85,7 @@ export const buildTeamEnvironmentProfilesV0 = (
 ): TeamEnvironmentProfileArtifactV0 => ({
   artifact: 'team_environment_profiles_v0',
   generatedAt,
-  sourceArtifacts: ['season_to_date.fantasy_environment.json', 'current_snapshot.json', 'teamstate_weekly.json'],
+  sourceArtifacts: ['season_to_date.fantasy_environment.json', 'teamstate_weekly.json'],
   profiles: [...reports.aggregates]
     .sort((a, b) => (a.season === b.season ? a.team.localeCompare(b.team) : b.season - a.season))
     .map((aggregate) => buildProfile(aggregate, generatedAt, sourceSnapshotAt))
