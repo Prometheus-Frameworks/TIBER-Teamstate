@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { TeamEnvironmentProfileArtifactV0, TeamEnvironmentProfileV0, TeamstateArtifactInputSource, TeamstateArtifactMetadataV0, TeamstateProvenanceStatus } from '../contracts/teamEnvironmentProfile.js';
 import type { SeasonToDateReports, TeamSeasonAggregate } from '../reports/types.js';
 
@@ -87,7 +88,8 @@ export const buildTeamEnvironmentProfilesV0 = (
   reports: SeasonToDateReports,
   generatedAt: string,
   sourceSnapshotAt: string | null,
-  sourceInputPath?: string
+  sourceInputPath?: string,
+  repositoryRootPath: string = process.cwd()
 ): TeamEnvironmentProfileArtifactV0 => {
   const profiles = [...reports.aggregates]
     .sort((a, b) => (a.season === b.season ? a.team.localeCompare(b.team) : b.season - a.season))
@@ -99,8 +101,21 @@ export const buildTeamEnvironmentProfilesV0 = (
   const seasons = [...new Set(reports.aggregates.map((aggregate) => aggregate.season))].sort((a, b) => a - b);
   const gamesPerTeam = reports.aggregates.map((aggregate) => aggregate.games);
 
+  const normalizedSourceInputPath = (() => {
+    if (!sourceInputPath) {
+      return undefined;
+    }
+
+    const relative = path.relative(repositoryRootPath, sourceInputPath);
+    if (relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative)) {
+      return relative;
+    }
+
+    return sourceInputPath;
+  })();
+
   const inputSourceType: TeamstateArtifactInputSource['type'] =
-    sourceInputPath === undefined ? 'unknown' : sourceInputPath.includes('sample') ? 'sample' : sourceInputPath.includes('fixture') ? 'fixture' : 'unknown';
+    normalizedSourceInputPath === undefined ? 'unknown' : normalizedSourceInputPath.includes('sample') ? 'sample' : normalizedSourceInputPath.includes('fixture') ? 'fixture' : 'unknown';
 
   const provenanceStatus: TeamstateProvenanceStatus =
     inputSourceType === 'fixture' ? 'fixture_scaffold'
@@ -115,6 +130,9 @@ export const buildTeamEnvironmentProfilesV0 = (
   if (inputSourceType === 'unknown') {
     provenanceNotes.push('Input source path was not available or did not match sample/fixture/governed patterns.');
   }
+  if (normalizedSourceInputPath !== undefined && path.isAbsolute(normalizedSourceInputPath)) {
+    provenanceNotes.push('Input source path is outside repository root and is stored as absolute path.');
+  }
   if (presentTeams.length < EXPECTED_NFL_TEAM_COUNT) {
     provenanceNotes.push('Coverage is incomplete (<32 NFL teams); artifact cannot be governed_real_data.');
   }
@@ -123,7 +141,7 @@ export const buildTeamEnvironmentProfilesV0 = (
     provenanceStatus,
     provenanceNotes,
     generatedAt,
-    inputSources: [{ path: sourceInputPath ?? 'unknown', type: inputSourceType }],
+    inputSources: [{ path: normalizedSourceInputPath ?? 'unknown', type: inputSourceType }],
     coverage: {
       teamCount: presentTeams.length,
       expectedTeamCount: EXPECTED_NFL_TEAM_COUNT,

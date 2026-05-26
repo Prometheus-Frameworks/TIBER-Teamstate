@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import path from 'node:path';
 import { buildTeamEnvironmentProfilesV0 } from '../src/pipeline/teamEnvironmentProfiles.js';
 import type { SeasonToDateReports } from '../src/reports/types.js';
 
@@ -53,6 +54,20 @@ describe('team environment profiles v0', () => {
     expect(artifact.metadata.coverage.teamCount).toBeLessThan(artifact.metadata.coverage.expectedTeamCount);
     expect(artifact.metadata.provenanceStatus).not.toBe('governed_real_data');
     expect(artifact.metadata.provenanceNotes.some((note) => note.includes('incomplete'))).toBe(true);
+  });
+
+  it('normalizes in-repo absolute source input path to repo-relative metadata path', () => {
+    const repoRootPath = '/workspace/TIBER-Teamstate';
+    const artifact = buildTeamEnvironmentProfilesV0(
+      reports,
+      '2026-05-25T00:00:00.000Z',
+      null,
+      path.join(repoRootPath, 'data/sample/team_week_raw.sample.json'),
+      repoRootPath
+    );
+
+    expect(artifact.metadata.inputSources[0]?.path).toBe('data/sample/team_week_raw.sample.json');
+    expect(artifact.metadata.provenanceNotes.some((note) => note.includes('outside repository root'))).toBe(false);
   });
 
   it('emits unknown + warnings for missing lanes', () => {
