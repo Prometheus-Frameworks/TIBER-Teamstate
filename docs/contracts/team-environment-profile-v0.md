@@ -9,6 +9,7 @@
   - `artifact`: `team_environment_profiles_v0`
   - `generatedAt`: ISO timestamp
   - `sourceArtifacts`: source artifact names used by derivation
+  - `metadata`: provenance + coverage metadata (`TeamstateArtifactMetadataV0`)
   - `profiles`: `TeamEnvironmentProfileV0[]`
 
 ## Contract fields
@@ -57,3 +58,22 @@ Each profile row contains:
 - Consume this artifact as the canonical team environment layer per team+season.
 - Map roster players to team via TIBER-Data ownership truth, then apply Teamstate profile lanes for roster-state grouping.
 - Treat `unknown` as explicit missing/withheld information; do not fabricate replacements downstream.
+
+
+## Provenance and coverage metadata (v0)
+`metadata` exposes machine-readable safety context for downstream consumers.
+
+- `provenanceStatus`: one of `fixture_scaffold | sample | partial_real_data | governed_real_data | unknown_provenance`
+- `provenanceNotes`: conservative explanations for how status was assigned
+- `generatedAt`: artifact generation timestamp
+- `inputSources[]`: source path + type (`sample | fixture | generated | governed_artifact | unknown`) inferred from normalized repo-relative location (for example, `data/sample/` or `fixtures/`)
+- `coverage`:
+  - `teamCount`, `expectedTeamCount`, `isFullLeague`
+  - `presentTeams`, `missingTeams`, `unexpectedTeams`
+  - `seasons`, `weeks`, `latestWeek`
+  - `gamesPerTeamMin`, `gamesPerTeamMax`
+
+### Guardrails
+- Never label `governed_real_data` unless input provenance is explicit and coverage is full-league.
+- If input source cannot be proven, use `unknown_provenance`.
+- Incomplete team coverage (`teamCount < 32`) must keep `isFullLeague: false` and must not be promoted to governed production truth.

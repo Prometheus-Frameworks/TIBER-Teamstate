@@ -159,7 +159,7 @@ export const runTeamStatePipeline = (rawInputPath: string, outputDir: string, fi
   writeJsonFile(path.join(outputDir, 'current_offense_environments.json'), currentArtifacts.currentOffenseEnvironments);
   writeJsonFile(path.join(outputDir, 'current_matchup_environments.json'), currentArtifacts.currentMatchupEnvironments);
 
-  const teamEnvironmentProfiles = buildTeamEnvironmentProfilesV0(seasonToDateReports, generatedAt, currentArtifacts.currentSnapshot.generatedAt);
+  const teamEnvironmentProfiles = buildTeamEnvironmentProfilesV0(seasonToDateReports, generatedAt, currentArtifacts.currentSnapshot.generatedAt, metadata.sourceInputPath);
   writeJsonFile(path.join(outputDir, 'team_environment_profiles_v0.json'), teamEnvironmentProfiles);
 
   return { teamStates, rankings, latestWeekReports, seasonToDateReports, metadata };

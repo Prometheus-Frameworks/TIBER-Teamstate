@@ -1,19 +1,84 @@
 {
   "artifact": "team_environment_profiles_v0",
-  "generatedAt": "2026-05-25T16:51:57.542Z",
+  "generatedAt": "2026-05-26T19:24:17.409Z",
   "sourceArtifacts": [
     "season_to_date.fantasy_environment.json",
     "season_to_date.team_power.json",
     "teamstate_weekly.json"
   ],
+  "metadata": {
+    "provenanceStatus": "unknown_provenance",
+    "provenanceNotes": [
+      "Input source path was not available or did not match sample/fixture/governed patterns.",
+      "Coverage is incomplete (<32 NFL teams); artifact cannot be governed_real_data."
+    ],
+    "generatedAt": "2026-05-26T19:24:17.409Z",
+    "inputSources": [
+      {
+        "path": "/workspace/TIBER-Teamstate/data/sample/team_week_raw.sample.json",
+        "type": "unknown"
+      }
+    ],
+    "coverage": {
+      "teamCount": 4,
+      "expectedTeamCount": 32,
+      "isFullLeague": false,
+      "presentTeams": [
+        "DET",
+        "MIA",
+        "PIT",
+        "TEN"
+      ],
+      "missingTeams": [
+        "ARI",
+        "ATL",
+        "BAL",
+        "BUF",
+        "CAR",
+        "CHI",
+        "CIN",
+        "CLE",
+        "DAL",
+        "DEN",
+        "GB",
+        "HOU",
+        "IND",
+        "JAX",
+        "KC",
+        "LV",
+        "LAC",
+        "LAR",
+        "MIN",
+        "NE",
+        "NO",
+        "NYG",
+        "NYJ",
+        "PHI",
+        "SEA",
+        "SF",
+        "TB",
+        "WAS"
+      ],
+      "unexpectedTeams": [],
+      "seasons": [
+        2025
+      ],
+      "weeks": [
+        8
+      ],
+      "latestWeek": 8,
+      "gamesPerTeamMin": 1,
+      "gamesPerTeamMax": 1
+    }
+  },
   "profiles": [
     {
       "contractVersion": "team_environment_profile_v0",
       "teamId": "DET",
       "teamAbbr": "DET",
       "season": 2025,
-      "generatedAt": "2026-05-25T16:51:57.542Z",
-      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
+      "generatedAt": "2026-05-26T19:24:17.409Z",
+      "sourceSnapshotAt": "2026-05-26T19:24:17.409Z",
       "marketTier": "unknown",
       "offenseTier": "strong",
       "passEnvironmentTier": "pass_heavy",
@@ -50,8 +115,8 @@
       "teamId": "MIA",
       "teamAbbr": "MIA",
       "season": 2025,
-      "generatedAt": "2026-05-25T16:51:57.542Z",
-      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
+      "generatedAt": "2026-05-26T19:24:17.409Z",
+      "sourceSnapshotAt": "2026-05-26T19:24:17.409Z",
       "marketTier": "unknown",
       "offenseTier": "average",
       "passEnvironmentTier": "pass_heavy",
@@ -88,8 +153,8 @@
       "teamId": "PIT",
       "teamAbbr": "PIT",
       "season": 2025,
-      "generatedAt": "2026-05-25T16:51:57.542Z",
-      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
+      "generatedAt": "2026-05-26T19:24:17.409Z",
+      "sourceSnapshotAt": "2026-05-26T19:24:17.409Z",
       "marketTier": "unknown",
       "offenseTier": "weak",
       "passEnvironmentTier": "balanced",
@@ -127,8 +192,8 @@
       "teamId": "TEN",
       "teamAbbr": "TEN",
       "season": 2025,
-      "generatedAt": "2026-05-25T16:51:57.542Z",
-      "sourceSnapshotAt": "2026-05-25T16:51:57.542Z",
+      "generatedAt": "2026-05-26T19:24:17.409Z",
+      "sourceSnapshotAt": "2026-05-26T19:24:17.409Z",
       "marketTier": "unknown",
       "offenseTier": "weak",
       "passEnvironmentTier": "balanced",
