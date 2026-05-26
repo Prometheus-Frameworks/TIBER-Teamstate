@@ -1,4 +1,4 @@
-import type { TeamEnvironmentProfileArtifactV0, TeamEnvironmentProfileV0 } from '../contracts/teamEnvironmentProfile.js';
+import type { TeamEnvironmentProfileArtifactV0, TeamEnvironmentProfileV0, TeamstateArtifactInputSource, TeamstateArtifactMetadataV0, TeamstateProvenanceStatus } from '../contracts/teamEnvironmentProfile.js';
 import type { SeasonToDateReports, TeamSeasonAggregate } from '../reports/types.js';
 
 const OFFENSE_THRESHOLDS = { elite: 85, strong: 70, average: 50 } as const;
@@ -6,6 +6,11 @@ const PASS_THRESHOLDS = { passHeavy: 0.57, runHeavy: 0.43 } as const;
 const PACE_THRESHOLDS = { fast: 27, slow: 29 } as const;
 const VOLATILITY_STABLE_MAX = 45;
 const VOLATILITY_VOLATILE_MIN = 60;
+const EXPECTED_NFL_TEAM_COUNT = 32;
+const NFL_TEAM_ABBRS = [
+  'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC',
+  'LV', 'LAC', 'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 'NYJ', 'PHI', 'PIT', 'SEA', 'SF', 'TB', 'TEN', 'WAS'
+] as const;
 
 const isFiniteNumber = (value: number | null | undefined): value is number => typeof value === 'number' && Number.isFinite(value);
 
@@ -81,12 +86,63 @@ const buildProfile = (aggregate: TeamSeasonAggregate, generatedAt: string, sourc
 export const buildTeamEnvironmentProfilesV0 = (
   reports: SeasonToDateReports,
   generatedAt: string,
-  sourceSnapshotAt: string | null
-): TeamEnvironmentProfileArtifactV0 => ({
-  artifact: 'team_environment_profiles_v0',
-  generatedAt,
-  sourceArtifacts: ['season_to_date.fantasy_environment.json', 'season_to_date.team_power.json', 'teamstate_weekly.json'],
-  profiles: [...reports.aggregates]
+  sourceSnapshotAt: string | null,
+  sourceInputPath?: string
+): TeamEnvironmentProfileArtifactV0 => {
+  const profiles = [...reports.aggregates]
     .sort((a, b) => (a.season === b.season ? a.team.localeCompare(b.team) : b.season - a.season))
-    .map((aggregate) => buildProfile(aggregate, generatedAt, sourceSnapshotAt))
-});
+    .map((aggregate) => buildProfile(aggregate, generatedAt, sourceSnapshotAt));
+
+  const presentTeams = [...new Set(profiles.map((profile) => profile.teamAbbr))].sort((a, b) => a.localeCompare(b));
+  const missingTeams = NFL_TEAM_ABBRS.filter((team) => !presentTeams.includes(team));
+  const weeks = [...new Set(reports.aggregates.map((aggregate) => aggregate.latestWeek))].sort((a, b) => a - b);
+  const seasons = [...new Set(reports.aggregates.map((aggregate) => aggregate.season))].sort((a, b) => a - b);
+  const gamesPerTeam = reports.aggregates.map((aggregate) => aggregate.games);
+
+  const inputSourceType: TeamstateArtifactInputSource['type'] =
+    sourceInputPath === undefined ? 'unknown' : sourceInputPath.includes('sample') ? 'sample' : sourceInputPath.includes('fixture') ? 'fixture' : 'unknown';
+
+  const provenanceStatus: TeamstateProvenanceStatus =
+    inputSourceType === 'fixture' ? 'fixture_scaffold'
+      : inputSourceType === 'sample' ? 'fixture_scaffold'
+        : inputSourceType === 'unknown' ? 'unknown_provenance'
+          : 'partial_real_data';
+
+  const provenanceNotes: string[] = [];
+  if (inputSourceType === 'sample' || inputSourceType === 'fixture') {
+    provenanceNotes.push('Input path indicates sample/fixture scaffold data; artifact is not governed production truth.');
+  }
+  if (inputSourceType === 'unknown') {
+    provenanceNotes.push('Input source path was not available or did not match sample/fixture/governed patterns.');
+  }
+  if (presentTeams.length < EXPECTED_NFL_TEAM_COUNT) {
+    provenanceNotes.push('Coverage is incomplete (<32 NFL teams); artifact cannot be governed_real_data.');
+  }
+
+  const metadata: TeamstateArtifactMetadataV0 = {
+    provenanceStatus,
+    provenanceNotes,
+    generatedAt,
+    inputSources: [{ path: sourceInputPath ?? 'unknown', type: inputSourceType }],
+    coverage: {
+      teamCount: presentTeams.length,
+      expectedTeamCount: EXPECTED_NFL_TEAM_COUNT,
+      isFullLeague: presentTeams.length === EXPECTED_NFL_TEAM_COUNT,
+      presentTeams,
+      missingTeams,
+      seasons,
+      weeks,
+      latestWeek: weeks.length > 0 ? weeks[weeks.length - 1] : null,
+      gamesPerTeamMin: gamesPerTeam.length > 0 ? Math.min(...gamesPerTeam) : null,
+      gamesPerTeamMax: gamesPerTeam.length > 0 ? Math.max(...gamesPerTeam) : null
+    }
+  };
+
+  return {
+    artifact: 'team_environment_profiles_v0',
+    generatedAt,
+    sourceArtifacts: ['season_to_date.fantasy_environment.json', 'season_to_date.team_power.json', 'teamstate_weekly.json'],
+    metadata,
+    profiles
+  };
+};

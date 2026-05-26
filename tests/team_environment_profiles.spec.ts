@@ -28,10 +28,15 @@ const reports: SeasonToDateReports = {
 
 describe('team environment profiles v0', () => {
   it('builds deterministic artifact shape and tier mappings', () => {
-    const one = buildTeamEnvironmentProfilesV0(reports, '2026-05-25T00:00:00.000Z', '2026-05-25T00:00:00.000Z');
-    const two = buildTeamEnvironmentProfilesV0(reports, '2026-05-25T00:00:00.000Z', '2026-05-25T00:00:00.000Z');
+    const one = buildTeamEnvironmentProfilesV0(reports, '2026-05-25T00:00:00.000Z', '2026-05-25T00:00:00.000Z', 'data/sample/team_week_raw.sample.json');
+    const two = buildTeamEnvironmentProfilesV0(reports, '2026-05-25T00:00:00.000Z', '2026-05-25T00:00:00.000Z', 'data/sample/team_week_raw.sample.json');
     expect(two).toEqual(one);
     expect(one.artifact).toBe('team_environment_profiles_v0');
+    expect(one.metadata.provenanceStatus).toBe('fixture_scaffold');
+    expect(one.metadata.coverage.teamCount).toBe(2);
+    expect(one.metadata.coverage.expectedTeamCount).toBe(32);
+    expect(one.metadata.coverage.isFullLeague).toBe(false);
+    expect(one.metadata.inputSources[0]?.path).toBe('data/sample/team_week_raw.sample.json');
     expect(one.profiles).toHaveLength(2);
     expect(one.profiles[0].offenseTier).toBe('elite');
     expect(one.profiles[0].passEnvironmentTier).toBe('pass_heavy');
@@ -41,6 +46,13 @@ describe('team environment profiles v0', () => {
     expect(one.profiles[1].passEnvironmentTier).toBe('run_heavy');
     expect(one.profiles[1].paceTier).toBe('slow');
     expect(one.profiles[1].volatilityTier).toBe('volatile');
+  });
+
+  it('never marks incomplete coverage as governed real data', () => {
+    const artifact = buildTeamEnvironmentProfilesV0(reports, '2026-05-25T00:00:00.000Z', null, 'data/unknown/raw.json');
+    expect(artifact.metadata.coverage.teamCount).toBeLessThan(artifact.metadata.coverage.expectedTeamCount);
+    expect(artifact.metadata.provenanceStatus).not.toBe('governed_real_data');
+    expect(artifact.metadata.provenanceNotes.some((note) => note.includes('incomplete'))).toBe(true);
   });
 
   it('emits unknown + warnings for missing lanes', () => {
