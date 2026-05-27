@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-26T22:52:18.677Z",
-  "sourceInputPath": "/workspace/TIBER-Teamstate/data/sample/team_week_raw.sample.json",
+  "generatedAt": "2026-05-27T16:16:41.049Z",
+  "sourceInputPath": "/workspace/TIBER-Teamstate/data/fixtures/team_week_raw/team_week_raw_v0.sample.json",
   "sourceFileCount": 1,
   "sourceRowCount": 4,
   "mappedRowCount": 4,

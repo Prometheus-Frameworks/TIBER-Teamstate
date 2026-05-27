@@ -159,7 +159,13 @@ export const runTeamStatePipeline = (rawInputPath: string, outputDir: string, fi
   writeJsonFile(path.join(outputDir, 'current_offense_environments.json'), currentArtifacts.currentOffenseEnvironments);
   writeJsonFile(path.join(outputDir, 'current_matchup_environments.json'), currentArtifacts.currentMatchupEnvironments);
 
-  const teamEnvironmentProfiles = buildTeamEnvironmentProfilesV0(seasonToDateReports, generatedAt, currentArtifacts.currentSnapshot.generatedAt, metadata.sourceInputPath);
+  const teamEnvironmentProfiles = buildTeamEnvironmentProfilesV0(
+    seasonToDateReports,
+    generatedAt,
+    currentArtifacts.currentSnapshot.generatedAt,
+    metadata.sourceInputPath,
+    loadedRaw.provenanceStatus
+  );
   writeJsonFile(path.join(outputDir, 'team_environment_profiles_v0.json'), teamEnvironmentProfiles);
 
   return { teamStates, rankings, latestWeekReports, seasonToDateReports, metadata };
@@ -167,8 +173,11 @@ export const runTeamStatePipeline = (rawInputPath: string, outputDir: string, fi
 
 if (isDirectExecution(import.meta.url, process.argv[1])) {
   const cwd = process.cwd();
+  const envInputPath = process.env.TEAM_WEEK_RAW_V0_ARTIFACT_PATH;
   const cliArgs = parsePipelineArgs(process.argv.slice(2), {
-    defaultInputPath: path.resolve(cwd, 'data/sample/team_week_raw.sample.json'),
+    defaultInputPath: envInputPath
+      ? path.resolve(cwd, envInputPath)
+      : path.resolve(cwd, 'data/sample/team_week_raw.sample.json'),
     defaultOutputDir: path.resolve(cwd, 'output')
   });
 

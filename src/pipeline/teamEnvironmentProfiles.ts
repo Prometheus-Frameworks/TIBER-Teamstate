@@ -115,7 +115,8 @@ export const buildTeamEnvironmentProfilesV0 = (
   reports: SeasonToDateReports,
   generatedAt: string,
   sourceSnapshotAt: string | null,
-  sourceInputPath?: string
+  sourceInputPath?: string,
+  sourceProvenanceStatus?: string | null
 ): TeamEnvironmentProfileArtifactV0 => {
   const profiles = [...reports.aggregates]
     .sort((a, b) => (a.season === b.season ? a.team.localeCompare(b.team) : b.season - a.season))
@@ -131,8 +132,10 @@ export const buildTeamEnvironmentProfilesV0 = (
   const normalizedSourcePath = toNormalizedSourcePath(sourceInputPath);
   const inputSourceType: TeamstateArtifactInputSource['type'] = toInputSourceType(sourceInputPath);
 
+  const isFullLeague = missingTeams.length === 0 && unexpectedTeams.length === 0;
   const provenanceStatus: TeamstateProvenanceStatus =
-    inputSourceType === 'fixture' ? 'fixture_scaffold'
+    sourceProvenanceStatus === 'governed_real_data' && isFullLeague ? 'governed_real_data'
+      : inputSourceType === 'fixture' ? 'fixture_scaffold'
       : inputSourceType === 'sample' ? 'fixture_scaffold'
         : inputSourceType === 'unknown' ? 'unknown_provenance'
           : 'partial_real_data';
@@ -156,7 +159,7 @@ export const buildTeamEnvironmentProfilesV0 = (
     coverage: {
       teamCount: presentTeams.length,
       expectedTeamCount: EXPECTED_NFL_TEAM_COUNT,
-      isFullLeague: missingTeams.length === 0 && unexpectedTeams.length === 0,
+      isFullLeague,
       presentTeams,
       missingTeams,
       unexpectedTeams,
