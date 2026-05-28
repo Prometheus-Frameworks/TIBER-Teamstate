@@ -27,14 +27,14 @@ interface TeamWeekRawV0Row {
   sacksAllowed: number;
   pressureRateAllowed: number;
   turnovers: number;
-  fantasyPointsForQb: number;
-  fantasyPointsForRb: number;
-  fantasyPointsForWr: number;
-  fantasyPointsForTe: number;
-  fantasyPointsAllowedQb: number;
-  fantasyPointsAllowedRb: number;
-  fantasyPointsAllowedWr: number;
-  fantasyPointsAllowedTe: number;
+  fantasyPointsForQB: number;
+  fantasyPointsForRB: number;
+  fantasyPointsForWR: number;
+  fantasyPointsForTE: number;
+  fantasyPointsAllowedQB: number;
+  fantasyPointsAllowedRB: number;
+  fantasyPointsAllowedWR: number;
+  fantasyPointsAllowedTE: number;
   qbPassAllowed?: NullableNumber;
   qbRushAllowed?: NullableNumber;
   rbRushAllowed?: NullableNumber;
@@ -57,6 +57,34 @@ const toOptionalNumber = (value: NullableNumber): number | undefined => {
     throw new Error(`Invalid optional split field value: ${String(value)}`);
   }
   return value;
+};
+
+
+const REQUIRED_NUMERIC_FIELDS = [
+  'season','week','pointsFor','pointsAgainst','offensivePlays','neutralPlays','secondsPerPlay','passRate','neutralPassRate','rushRate','epaPerPlay','passEpaPerPlay','rushEpaPerPlay','successRate','explosivePlayRate','drives','pointsPerDrive','redZoneTrips','redZoneTdRate','sacksAllowed','pressureRateAllowed','turnovers','fantasyPointsForQB','fantasyPointsForRB','fantasyPointsForWR','fantasyPointsForTE','fantasyPointsAllowedQB','fantasyPointsAllowedRB','fantasyPointsAllowedWR','fantasyPointsAllowedTE'
+] as const;
+
+const validateRow = (row: unknown, index: number): TeamWeekRawV0Row => {
+  if (typeof row !== 'object' || row === null || Array.isArray(row)) {
+    throw new Error(`Invalid team_week_raw_v0 row at index ${index}: expected object.`);
+  }
+
+  const candidate = row as Record<string, unknown>;
+  if (typeof candidate.teamCode !== 'string' || candidate.teamCode.trim().length === 0) {
+    throw new Error(`Invalid team_week_raw_v0 row at index ${index}: teamCode must be a non-empty string.`);
+  }
+  if (typeof candidate.opponentCode !== 'string' || candidate.opponentCode.trim().length === 0) {
+    throw new Error(`Invalid team_week_raw_v0 row at index ${index}: opponentCode must be a non-empty string.`);
+  }
+
+  for (const field of REQUIRED_NUMERIC_FIELDS) {
+    const value = candidate[field];
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`Invalid team_week_raw_v0 row at index ${index}: ${field} must be a finite number.`);
+    }
+  }
+
+  return candidate as unknown as TeamWeekRawV0Row;
 };
 
 const mapRow = (row: TeamWeekRawV0Row): RawTeamWeekRow => ({
@@ -84,14 +112,14 @@ const mapRow = (row: TeamWeekRawV0Row): RawTeamWeekRow => ({
   sacks_allowed: row.sacksAllowed,
   pressure_rate_allowed: row.pressureRateAllowed,
   turnovers: row.turnovers,
-  fantasy_points_for_qb: row.fantasyPointsForQb,
-  fantasy_points_for_rb: row.fantasyPointsForRb,
-  fantasy_points_for_wr: row.fantasyPointsForWr,
-  fantasy_points_for_te: row.fantasyPointsForTe,
-  fantasy_points_allowed_qb: row.fantasyPointsAllowedQb,
-  fantasy_points_allowed_rb: row.fantasyPointsAllowedRb,
-  fantasy_points_allowed_wr: row.fantasyPointsAllowedWr,
-  fantasy_points_allowed_te: row.fantasyPointsAllowedTe,
+  fantasy_points_for_qb: row.fantasyPointsForQB,
+  fantasy_points_for_rb: row.fantasyPointsForRB,
+  fantasy_points_for_wr: row.fantasyPointsForWR,
+  fantasy_points_for_te: row.fantasyPointsForTE,
+  fantasy_points_allowed_qb: row.fantasyPointsAllowedQB,
+  fantasy_points_allowed_rb: row.fantasyPointsAllowedRB,
+  fantasy_points_allowed_wr: row.fantasyPointsAllowedWR,
+  fantasy_points_allowed_te: row.fantasyPointsAllowedTE,
   qb_pass_allowed: toOptionalNumber(row.qbPassAllowed),
   qb_rush_allowed: toOptionalNumber(row.qbRushAllowed),
   rb_rush_allowed: toOptionalNumber(row.rbRushAllowed),
@@ -117,12 +145,7 @@ export const adaptTeamWeekRawV0Artifact = (raw: unknown): { rows: RawTeamWeekRow
   }
 
   return {
-    rows: artifact.rows.map((row, index) => {
-      if (typeof row !== 'object' || row === null || Array.isArray(row)) {
-        throw new Error(`Invalid team_week_raw_v0 row at index ${index}: expected object.`);
-      }
-      return mapRow(row as TeamWeekRawV0Row);
-    }),
+    rows: artifact.rows.map((row, index) => mapRow(validateRow(row, index))),
     provenanceStatus: artifact.metadata?.provenanceStatus ?? null
   };
 };

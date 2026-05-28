@@ -14,9 +14,10 @@ describe('teamWeekRawV0Adapter', () => {
     expect(adapted.provenanceStatus).toBe('fixture_scaffold');
     expect(adapted.rows).toHaveLength(4);
     expect(adapted.rows.map((row) => row.team_code)).toEqual(['DET', 'PIT', 'TEN', 'MIA']);
+    expect(adapted.rows[0]?.fantasy_points_for_wr).toBe(35.1);
+    expect(adapted.rows[0]?.fantasy_points_allowed_te).toBe(8.2);
     expect(adapted.rows[2]?.te_inline_allowed).toBeUndefined();
     expect(adapted.rows[2]?.te_split_allowed).toBeUndefined();
-    expect(adapted.rows[0]?.fantasy_points_for_wr).toBe(35.1);
   });
 
   it('fails closed on invalid artifact literal', () => {
@@ -27,6 +28,24 @@ describe('teamWeekRawV0Adapter', () => {
 
   it('fails closed when rows are missing', () => {
     expect(() => adaptTeamWeekRawV0Artifact({ artifact: 'team_week_raw_v0' })).toThrow(/rows must be an array/);
+  });
+
+  it('fails closed when required numeric fields are missing', () => {
+    const parsed = JSON.parse(readFileSync(fixturePath, 'utf-8')) as {
+      artifact: string;
+      metadata: Record<string, unknown>;
+      rows: Array<Record<string, unknown>>;
+    };
+    const brokenRow = { ...parsed.rows[0] };
+    delete brokenRow.fantasyPointsAllowedTE;
+
+    expect(() =>
+      adaptTeamWeekRawV0Artifact({
+        artifact: parsed.artifact,
+        metadata: parsed.metadata,
+        rows: [brokenRow]
+      })
+    ).toThrow(/fantasyPointsAllowedTE must be a finite number/);
   });
 
   it('loadRawTeamWeekRows supports team_week_raw_v0 envelope files', () => {
