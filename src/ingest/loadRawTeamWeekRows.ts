@@ -1,11 +1,13 @@
 import { Dirent, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type { RawTeamWeekRow } from '../adapters/mapRawTeamWeekToTeamStateInput.js';
+import { adaptTeamWeekRawV0Artifact } from '../adapters/teamWeekRawV0Adapter.js';
 
 interface LoadedRawRows {
   sourceInputPath: string;
   sourceFiles: string[];
   rows: RawTeamWeekRow[];
+  provenanceStatus: string | null;
 }
 
 const REQUIRED_RAW_KEYS: Array<keyof RawTeamWeekRow> = [
@@ -43,7 +45,7 @@ const REQUIRED_RAW_KEYS: Array<keyof RawTeamWeekRow> = [
   'fantasy_points_allowed_te'
 ];
 
-const readRawRowsFile = (filePath: string): RawTeamWeekRow[] => {
+const readRawRowsFile = (filePath: string): { rows: RawTeamWeekRow[]; provenanceStatus: string | null } => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(filePath, 'utf-8')) as unknown;
@@ -52,7 +54,8 @@ const readRawRowsFile = (filePath: string): RawTeamWeekRow[] => {
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error(`Invalid raw input shape in ${filePath}: expected an array of raw team-week rows.`);
+    const adapted = adaptTeamWeekRawV0Artifact(parsed);
+    return adapted;
   }
 
   for (const [index, row] of parsed.entries()) {
@@ -68,7 +71,7 @@ const readRawRowsFile = (filePath: string): RawTeamWeekRow[] => {
     }
   }
 
-  return parsed as RawTeamWeekRow[];
+  return { rows: parsed as RawTeamWeekRow[], provenanceStatus: null };
 };
 
 const getDirectoryJsonFiles = (dirPath: string): string[] =>
@@ -88,14 +91,20 @@ export const loadRawTeamWeekRows = (inputPath: string): LoadedRawRows => {
   }
 
   const rows: RawTeamWeekRow[] = [];
+  let provenanceStatus: string | null = null;
   for (const filePath of sourceFiles) {
-    rows.push(...readRawRowsFile(filePath));
+    const loadedFile = readRawRowsFile(filePath);
+    rows.push(...loadedFile.rows);
+    if (loadedFile.provenanceStatus !== null) {
+      provenanceStatus = loadedFile.provenanceStatus;
+    }
   }
 
   return {
     sourceInputPath: resolvedInputPath,
     sourceFiles,
-    rows
+    rows,
+    provenanceStatus
   };
 };
 

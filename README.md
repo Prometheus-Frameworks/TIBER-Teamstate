@@ -162,6 +162,21 @@ Optional filters:
 
 Filtering is applied **before** state build and report generation.
 
+
+### TeamWeekRawV0 artifact adapter (TIBER-Data handoff)
+
+Teamstate can now ingest the governed-style TeamWeekRawV0 envelope from TIBER-Data (`artifact: team_week_raw_v0`) and adapt its camelCase `rows` into Teamstate's internal raw row shape.
+
+To run pipeline directly from sibling repo fixture:
+
+```bash
+TEAM_WEEK_RAW_V0_ARTIFACT_PATH=../TIBER-Data/exports/fixtures/team_week_raw/team_week_raw_v0.sample.json npm run pipeline
+```
+
+If `TEAM_WEEK_RAW_V0_ARTIFACT_PATH` is set, the CLI uses it as the default input path; `--input` still overrides it.
+
+Provenance note: when artifact metadata is scaffold/fixture (for example `metadata.provenanceStatus: fixture_scaffold`), Teamstate preserves conservative downstream provenance labeling and does not promote output to governed production truth.
+
 ## Output Artifacts
 
 ### Existing detailed artifacts
