@@ -22,4 +22,6 @@ export * from './reports/buildLatestWeekReports.js';
 export * from './reports/buildSeasonToDateReports.js';
 
 export * from './contracts/teamEnvironmentProfile.js';
+export * from './contracts/teamEnvironmentMovement.js';
 export * from './pipeline/teamEnvironmentProfiles.js';
+export * from './pipeline/teamEnvironmentMovement.js';

@@ -92,7 +92,9 @@ The architecture intentionally keeps these scores separate (no blended single sc
 - `src/reports/buildLatestWeekReports.ts` – latest-week report builders.
 - `src/reports/buildSeasonToDateReports.ts` – season aggregate + ranking builders.
 - `src/pipeline/runTeamStatePipeline.ts` – end-to-end orchestration + artifact writing.
+- `src/pipeline/teamEnvironmentMovement.ts` – temporal movement artifact builder for weekly team-state windows.
 - `src/contracts/currentSnapshot.ts` – explicit row contracts for downstream snapshot artifacts.
+- `src/contracts/teamEnvironmentMovement.ts` – explicit contract for `team_environment_movement_v0`.
 
 ## Raw Input Ingestion (PR4)
 
@@ -177,6 +179,8 @@ If `TEAM_WEEK_RAW_V0_ARTIFACT_PATH` is set, the CLI uses it as the default input
 
 Provenance note: when artifact metadata is scaffold/fixture (for example `metadata.provenanceStatus: fixture_scaffold`), Teamstate preserves conservative downstream provenance labeling and does not promote output to governed production truth.
 
+For temporal fixture smoke testing, operators can point the same environment variable at a multi-week TeamWeekRawV0 fixture before running `npm run pipeline`; Teamstate will generate both the season-to-date profile artifact and the movement artifact described below.
+
 ## Output Artifacts
 
 ### Existing detailed artifacts
@@ -200,6 +204,34 @@ Provenance note: when artifact metadata is scaffold/fixture (for example `metada
 - `latestWeekBySeason`
 - `selectedSeason` (nullable)
 - `selectedWeek` (nullable)
+
+### Team environment movement artifact
+
+`output/team_environment_movement_v0.json` exposes how each team-season moved across deterministic early and late windows instead of collapsing all weeks into a season-to-date profile. It is generated from the weekly team states during `npm run pipeline` and does **not** change `output/team_environment_profiles_v0.json` semantics.
+
+Windowing rules for v0:
+
+- 6+ weeks: early window is the first 3 weeks; late window is the last 3 weeks.
+- 4-5 weeks: early window is the first 2 weeks; late window is the last 2 weeks.
+- fewer than 4 weeks: movement labels and verdict are `insufficient_data`.
+
+Each team entry includes:
+
+- `earlyWindow` / `lateWindow` week lists and metric averages
+- `deltas` for offensive efficiency, pressure, pace, pass rate, and fantasy points by position
+- conservative `movement` labels for offense, pass environment, pace, pressure, volatility, and a readable verdict
+- `warnings` when deterministic movement cannot be emitted
+
+The movement artifact preserves TeamWeekRawV0 source provenance. Fixture-scaffold inputs remain `fixture_scaffold` in movement metadata and are not promoted to real-data provenance.
+
+Example fixture smoke command on Windows PowerShell:
+
+```powershell
+$env:TEAM_WEEK_RAW_V0_ARTIFACT_PATH = "C:\Users\deebr\TIBER-Data\exports\fixtures\team_week_raw\team_week_raw_v0.tampa_bay_temporal.sample.json"
+npm run pipeline
+Select-String -Path output\team_environment_movement_v0.json -Pattern "fixture_scaffold","TB","declining","pressure"
+Remove-Item Env:\TEAM_WEEK_RAW_V0_ARTIFACT_PATH
+```
 
 ### New current snapshot contract artifacts (PR4)
 
