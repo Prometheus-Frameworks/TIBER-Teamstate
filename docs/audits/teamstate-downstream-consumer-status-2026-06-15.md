@@ -121,5 +121,3 @@ these artifacts.
 | Point-prediction-model | **Not consumed.** Zero references. |
 | Any other promoted TIBER consumer | **None.** |
 | Phase 4 readiness | Profiles → Management roster-state wiring is clean to plan as a new Phase 4 issue; movement default artifact path needs a produce/commit decision. |
-</content>
-</invoke>
