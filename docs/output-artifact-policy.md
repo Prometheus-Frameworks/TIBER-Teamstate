@@ -68,6 +68,16 @@ these are the only two `output/` artifacts with a downstream consumer, and both 
 > Note: the legacy fantasy-point fields inside `team_environment_movement_v0.json` are a separate
 > v0 contract concern tracked in #34 — **out of scope here**.
 
+> Note on `sourceArtifacts` references: `team_environment_profiles_v0.json` lists generated
+> intermediate artifact names in its `sourceArtifacts` (e.g. `season_to_date.fantasy_environment.json`,
+> `season_to_date.team_power.json`, `teamstate_weekly.json`) — some of which are part of the
+> generated clutter this policy stops tracking. Those intermediates are **not required to remain
+> tracked in git**: the field records the derivation lineage, not a tracked-file dependency. The
+> artifact is retained as a representative downstream contract fixture and is reproducible from the
+> committed source fixtures under `data/fixtures/` via local pipeline generation (which writes the
+> full `output/` tree, intermediates included). No artifact or schema change is implied — the
+> `sourceArtifacts` values are left exactly as generated.
+
 ### Generated/demo clutter — no downstream consumer (candidates for exclusion/regeneration)
 These 30 files are internal diagnostics produced by the pipeline with **no** downstream consumer
 identified in the audit. Under this policy they should not accumulate in git:
