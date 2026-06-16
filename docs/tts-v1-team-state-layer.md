@@ -230,7 +230,7 @@ risk of demo data being mistaken for governed truth.
 | Required decision | Resolution |
 | --- | --- |
 | 1. Combined vs separate v1 artifacts | **Separate** — `team_offensive_environment_v1`, `team_state_profile_v1`, `team_environment_movement_v1`. |
-| 2. Movement v0 committed fixture vs operator-supplied | **Commit a labeled `fixture_scaffold` movement artifact** at the default path (follow-up hygiene task). |
+| 2. Movement v0 committed fixture vs operator-supplied | **Done** — committed a labeled `fixture_scaffold` movement artifact at the default path in #31 / #33. |
 | 3. Committed `output/` tree policy | **Commit only labeled representative fixtures; regenerate/ignore full output** (follow-up hygiene task). |
 | 4. Allowed provenance states | `fixture_scaffold`, `source_backed`, `governed`, `stale`, `unavailable`. |
 | 5. Phase 4 Fantasy consumption | **Read-only diagnostic / evidence / Team Direction context only**; no scoring/advice/weighting without a later explicit gate. |
