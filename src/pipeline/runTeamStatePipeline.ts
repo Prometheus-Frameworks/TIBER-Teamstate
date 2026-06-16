@@ -7,10 +7,12 @@ import { buildCurrentSnapshotArtifacts } from './currentArtifacts.js';
 import { parsePipelineArgs } from './parsePipelineArgs.js';
 import { buildTeamEnvironmentProfilesV0 } from './teamEnvironmentProfiles.js';
 import { buildTeamEnvironmentMovementV0 } from './teamEnvironmentMovement.js';
+import { buildTeamEnvironmentMovementV1 } from './teamEnvironmentMovementV1.js';
 import { buildLatestWeekReports } from '../reports/buildLatestWeekReports.js';
 import { buildSeasonToDateReports } from '../reports/buildSeasonToDateReports.js';
 import type { LatestWeekReports, SeasonToDateReports } from '../reports/types.js';
 import type { TeamEnvironmentMovementArtifactV0 } from '../contracts/teamEnvironmentMovement.js';
+import type { TeamEnvironmentMovementArtifactV1 } from '../contracts/teamEnvironmentMovementV1.js';
 import type { TeamWeekInputRow } from '../types/teamstate.js';
 import { buildTeamWeekStates } from '../transform/buildTeamWeekState.js';
 import { writeJsonFile } from '../utils/writeJsonFile.js';
@@ -41,6 +43,7 @@ export interface TeamStatePipelineResult {
   seasonToDateReports: SeasonToDateReports;
   metadata: PipelineMetadataArtifact;
   teamEnvironmentMovement: TeamEnvironmentMovementArtifactV0;
+  teamEnvironmentMovementV1: TeamEnvironmentMovementArtifactV1;
 }
 
 const buildLatestWeekBySeasonFromRows = (rows: TeamWeekInputRow[]): Record<number, number> => {
@@ -179,7 +182,15 @@ export const runTeamStatePipeline = (rawInputPath: string, outputDir: string, fi
   );
   writeJsonFile(path.join(outputDir, 'team_environment_movement_v0.json'), teamEnvironmentMovement);
 
-  return { teamStates, rankings, latestWeekReports, seasonToDateReports, metadata, teamEnvironmentMovement };
+  const teamEnvironmentMovementV1 = buildTeamEnvironmentMovementV1(
+    teamStates,
+    generatedAt,
+    metadata.sourceInputPath,
+    loadedRaw.provenanceStatus
+  );
+  writeJsonFile(path.join(outputDir, 'team_environment_movement_v1.json'), teamEnvironmentMovementV1);
+
+  return { teamStates, rankings, latestWeekReports, seasonToDateReports, metadata, teamEnvironmentMovement, teamEnvironmentMovementV1 };
 };
 
 if (isDirectExecution(import.meta.url, process.argv[1])) {

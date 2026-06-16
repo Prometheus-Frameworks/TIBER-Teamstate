@@ -81,6 +81,11 @@ pass-rate, scoring-environment, defensive-strength, volatility, team-efficiency.
 > `team_environment_movement_v0`) remain the current shipped surface. The v1 families are the
 > forward target; this doc does not migrate or rename v0 artifacts.
 
+> Status (issue #34): `team_environment_movement_v1` now exists **producer-side** — a team-state-only
+> movement artifact with the legacy fantasy-point fields removed. v0 is left unchanged for the live
+> Fantasy consumer; the Fantasy → v1 migration is a separate follow-up PR. See
+> [`contracts/team-environment-movement-v1.md`](contracts/team-environment-movement-v1.md).
+
 ---
 
 ## 4. Score vs. confidence semantics
@@ -207,11 +212,19 @@ fantasy-point fields (`fantasyPointsForQB/RB/WR/TE`) inside `earlyWindow.average
 `team_environment_movement_v0` contract** (`TeamEnvironmentMovementWindowAveragesV0`, with deltas
 derived via `Omit<…, 'volatilityScore'>`), they are always emitted by the movement builder
 (`MOVEMENT_METRICS`), and the upstream input adapter lists them in `REQUIRED_NUMERIC_FIELDS`. They
-are also part of the shape the live TIBER-Fantasy consumer validates. Per the TTS v1 boundary
-(Teamstate does not own fantasy outputs), these fields should not exist on a team-state movement
-artifact. They are **not silently removed here** because that would be a contract/adapter/builder
-change with a live downstream consumer — out of scope for this fixture-only PR. Removal is tracked
-as a v0 → v1 boundary-cleanup follow-up (issue #34).
+are present in the shape the live TIBER-Fantasy consumer reads (though, as the #34 audit
+confirmed, Fantasy passes the window/deltas through and never references the fantasy-point fields).
+Per the TTS v1 boundary (Teamstate does not own fantasy outputs), these fields should not exist on
+a team-state movement artifact.
+
+**Status (issue #34): resolved producer-side via additive v1.** Rather than mutate v0 in place
+(v0 stays stable for the live Fantasy consumer), a new team-state-only `team_environment_movement_v1`
+artifact was added that omits the fantasy-point fields entirely; its movement labels are identical
+to v0 because those labels were never derived from fantasy points. See
+[`contracts/team-environment-movement-v1.md`](contracts/team-environment-movement-v1.md). The
+Fantasy → v1 migration (point the consumer at the v1 literal/path) is the documented next PR in the
+TIBER-Fantasy repo; until it lands, v0 remains the committed/consumed artifact and retains the
+legacy fields as known debt.
 
 ### 7.3 Committed `output/` tree policy
 The entire `output/` tree is currently checked-in generated, fixture-scaffold data (`.gitignore`
