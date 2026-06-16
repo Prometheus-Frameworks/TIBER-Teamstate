@@ -1,0 +1,193 @@
+{
+  "artifact": "team_environment_movement_v0",
+  "generatedAt": "2026-06-16T00:32:37.853Z",
+  "metadata": {
+    "provenanceStatus": "fixture_scaffold",
+    "inputSources": [
+      {
+        "path": "fixtures/team_week_raw/team_week_raw_v0.movement_demo.sample.json",
+        "type": "fixture"
+      }
+    ],
+    "coverage": {
+      "teamCount": 2,
+      "teams": [
+        "DET",
+        "PIT"
+      ],
+      "seasons": [
+        2025
+      ],
+      "weeks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "latestWeek": 6,
+      "isFullLeague": false
+    }
+  },
+  "teams": [
+    {
+      "teamId": "DET",
+      "teamAbbr": "DET",
+      "season": 2025,
+      "weeksCovered": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "earlyWindow": {
+        "weeks": [
+          1,
+          2,
+          3
+        ],
+        "games": 3,
+        "averages": {
+          "pointsPerDrive": 2,
+          "epaPerPlay": 0.05,
+          "successRate": 0.44,
+          "explosivePlayRate": 0.0967,
+          "pressureRateAllowed": 0.28,
+          "secondsPerPlay": 27.2,
+          "neutralPassRate": 0.5567,
+          "fantasyPointsForQB": 18,
+          "fantasyPointsForRB": 20.33,
+          "fantasyPointsForWR": 25,
+          "fantasyPointsForTE": 6,
+          "volatilityScore": 43.67
+        }
+      },
+      "lateWindow": {
+        "weeks": [
+          4,
+          5,
+          6
+        ],
+        "games": 3,
+        "averages": {
+          "pointsPerDrive": 2.767,
+          "epaPerPlay": 0.1567,
+          "successRate": 0.5,
+          "explosivePlayRate": 0.14,
+          "pressureRateAllowed": 0.22,
+          "secondsPerPlay": 26.033,
+          "neutralPassRate": 0.59,
+          "fantasyPointsForQB": 23.43,
+          "fantasyPointsForRB": 28.37,
+          "fantasyPointsForWR": 33.2,
+          "fantasyPointsForTE": 10.8,
+          "volatilityScore": 36.69
+        }
+      },
+      "deltas": {
+        "pointsPerDrive": 0.767,
+        "epaPerPlay": 0.1067,
+        "successRate": 0.06,
+        "explosivePlayRate": 0.0433,
+        "pressureRateAllowed": -0.06,
+        "secondsPerPlay": -1.167,
+        "neutralPassRate": 0.0333,
+        "fantasyPointsForQB": 5.43,
+        "fantasyPointsForRB": 8.04,
+        "fantasyPointsForWR": 8.2,
+        "fantasyPointsForTE": 4.8
+      },
+      "movement": {
+        "offenseDirection": "improving",
+        "passEnvironmentDirection": "more_pass_heavy",
+        "paceDirection": "faster",
+        "pressureDirection": "improving",
+        "volatilityDirection": "falling",
+        "verdict": "offensive_environment_improving"
+      },
+      "warnings": []
+    },
+    {
+      "teamId": "PIT",
+      "teamAbbr": "PIT",
+      "season": 2025,
+      "weeksCovered": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "earlyWindow": {
+        "weeks": [
+          1,
+          2,
+          3
+        ],
+        "games": 3,
+        "averages": {
+          "pointsPerDrive": 2.4,
+          "epaPerPlay": 0.0733,
+          "successRate": 0.4733,
+          "explosivePlayRate": 0.13,
+          "pressureRateAllowed": 0.25,
+          "secondsPerPlay": 29,
+          "neutralPassRate": 0.54,
+          "fantasyPointsForQB": 19.67,
+          "fantasyPointsForRB": 23.33,
+          "fantasyPointsForWR": 26.33,
+          "fantasyPointsForTE": 8,
+          "volatilityScore": 42.6
+        }
+      },
+      "lateWindow": {
+        "weeks": [
+          4,
+          5,
+          6
+        ],
+        "games": 3,
+        "averages": {
+          "pointsPerDrive": 1.733,
+          "epaPerPlay": -0.0367,
+          "successRate": 0.42,
+          "explosivePlayRate": 0.09,
+          "pressureRateAllowed": 0.3267,
+          "secondsPerPlay": 30.4,
+          "neutralPassRate": 0.4867,
+          "fantasyPointsForQB": 14.2,
+          "fantasyPointsForRB": 18.33,
+          "fantasyPointsForWR": 19.47,
+          "fantasyPointsForTE": 4.57,
+          "volatilityScore": 52.56
+        }
+      },
+      "deltas": {
+        "pointsPerDrive": -0.667,
+        "epaPerPlay": -0.11,
+        "successRate": -0.0533,
+        "explosivePlayRate": -0.04,
+        "pressureRateAllowed": 0.0767,
+        "secondsPerPlay": 1.4,
+        "neutralPassRate": -0.0533,
+        "fantasyPointsForQB": -5.47,
+        "fantasyPointsForRB": -5,
+        "fantasyPointsForWR": -6.86,
+        "fantasyPointsForTE": -3.43
+      },
+      "movement": {
+        "offenseDirection": "declining",
+        "passEnvironmentDirection": "less_pass_heavy",
+        "paceDirection": "slower",
+        "pressureDirection": "worsening",
+        "volatilityDirection": "rising",
+        "verdict": "offensive_environment_declining_pressure_worsening"
+      },
+      "warnings": []
+    }
+  ]
+}

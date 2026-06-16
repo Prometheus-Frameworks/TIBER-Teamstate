@@ -180,7 +180,38 @@ does not "make a missing artifact look governed" because its provenance stays `f
 
 - Alternative considered: document the path as strictly operator-supplied and leave it absent.
   Rejected as the default because it leaves the shipped default path broken-by-design.
-- This commit is a **follow-up hygiene task**, kept out of this documentation-only PR.
+
+**Status: done (issue #31).** `output/team_environment_movement_v0.json` is now committed as a
+representative `fixture_scaffold` artifact. It carries the `team_environment_movement_v0` literal,
+`metadata.provenanceStatus: fixture_scaffold`, and `coverage.isFullLeague: false` (2 teams,
+DET/PIT, weeks 1–6) so it cannot be confused with governed or full-league truth. It is generated
+deterministically from the committed source fixture
+`data/fixtures/team_week_raw/team_week_raw_v0.movement_demo.sample.json`. To regenerate **only**
+this artifact without rewriting the rest of `output/`, run the pipeline into a scratch directory
+and copy the single file back:
+
+```bash
+npm run build
+node dist/src/pipeline/runTeamStatePipeline.js \
+  data/fixtures/team_week_raw/team_week_raw_v0.movement_demo.sample.json /tmp/tts-movement
+cp /tmp/tts-movement/team_environment_movement_v0.json output/team_environment_movement_v0.json
+```
+
+(The fixture is multi-week so the demo shows real directional movement — DET improving, PIT
+declining with worsening pressure — rather than `insufficient_data`. Only `generatedAt` changes
+between runs.)
+
+**Known v0 boundary debt — legacy fantasy-point fields.** The committed v0 artifact still exposes
+fantasy-point fields (`fantasyPointsForQB/RB/WR/TE`) inside `earlyWindow.averages`,
+`lateWindow.averages`, and `deltas`. These are **required, non-optional fields of the current
+`team_environment_movement_v0` contract** (`TeamEnvironmentMovementWindowAveragesV0`, with deltas
+derived via `Omit<…, 'volatilityScore'>`), they are always emitted by the movement builder
+(`MOVEMENT_METRICS`), and the upstream input adapter lists them in `REQUIRED_NUMERIC_FIELDS`. They
+are also part of the shape the live TIBER-Fantasy consumer validates. Per the TTS v1 boundary
+(Teamstate does not own fantasy outputs), these fields should not exist on a team-state movement
+artifact. They are **not silently removed here** because that would be a contract/adapter/builder
+change with a live downstream consumer — out of scope for this fixture-only PR. Removal is tracked
+as a v0 → v1 boundary-cleanup follow-up (issue #34).
 
 ### 7.3 Committed `output/` tree policy
 The entire `output/` tree is currently checked-in generated, fixture-scaffold data (`.gitignore`
@@ -199,7 +230,7 @@ risk of demo data being mistaken for governed truth.
 | Required decision | Resolution |
 | --- | --- |
 | 1. Combined vs separate v1 artifacts | **Separate** — `team_offensive_environment_v1`, `team_state_profile_v1`, `team_environment_movement_v1`. |
-| 2. Movement v0 committed fixture vs operator-supplied | **Commit a labeled `fixture_scaffold` movement artifact** at the default path (follow-up hygiene task). |
+| 2. Movement v0 committed fixture vs operator-supplied | **Done** — committed a labeled `fixture_scaffold` movement artifact at the default path in #31 / #33. |
 | 3. Committed `output/` tree policy | **Commit only labeled representative fixtures; regenerate/ignore full output** (follow-up hygiene task). |
 | 4. Allowed provenance states | `fixture_scaffold`, `source_backed`, `governed`, `stale`, `unavailable`. |
 | 5. Phase 4 Fantasy consumption | **Read-only diagnostic / evidence / Team Direction context only**; no scoring/advice/weighting without a later explicit gate. |
