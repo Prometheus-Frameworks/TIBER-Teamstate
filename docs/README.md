@@ -4,6 +4,7 @@
 
 - [`tts-v1-team-state-layer.md`](tts-v1-team-state-layer.md) — TTS v1 identity: what Teamstate owns / does not own, v1 artifact families, score vs. confidence, the Phase 4 consumption boundary, and artifact-hygiene decisions.
 - [`teamstate-boundary-may-tiber-data.md`](teamstate-boundary-may-tiber-data.md) — TTS as the interpretation layer over governed TIBER-Data truth.
+- [`output-artifact-policy.md`](output-artifact-policy.md) — what may be committed under `output/`: representative `fixture_scaffold` artifacts vs. generated/demo clutter.
 
 ## Future TIBER-Data `roster_snapshot_v0` Consumption
 
