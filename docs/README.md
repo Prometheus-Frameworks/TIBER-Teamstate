@@ -1,5 +1,10 @@
 # Teamstate Docs
 
+## Key boundary documents
+
+- [`tts-v1-team-state-layer.md`](tts-v1-team-state-layer.md) — TTS v1 identity: what Teamstate owns / does not own, v1 artifact families, score vs. confidence, the Phase 4 consumption boundary, and artifact-hygiene decisions.
+- [`teamstate-boundary-may-tiber-data.md`](teamstate-boundary-may-tiber-data.md) — TTS as the interpretation layer over governed TIBER-Data truth.
+
 ## Future TIBER-Data `roster_snapshot_v0` Consumption
 
 Teamstate does **not** own roster truth. TIBER-Teamstate consumes roster truth from TIBER-Data and produces deterministic team-environment interpretation from that upstream artifact context.
