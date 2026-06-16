@@ -8,5 +8,5 @@ coverage/
 # but keep the two representative fixture_scaffold contract artifacts that downstream
 # consumers read at these exact paths. The pipeline still writes the full tree locally.
 output/*
-!output/team_environment_movement_v0.json
+!output/team_environment_movement_v1.json
 !output/team_environment_profiles_v0.json
