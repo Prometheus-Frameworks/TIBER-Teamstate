@@ -223,6 +223,12 @@ risk of demo data being mistaken for governed truth.
 - This is a **follow-up hygiene task** (separate PR); it changes repo artifact policy and is out
   of scope for this docs-only decision PR.
 
+**Status: policy defined (issue #32).** The repo-level `output/` commit policy and a full
+classification of the current tree (2 representative `fixture_scaffold` contract artifacts to keep
+vs. 30 generated/demo files to stop committing) now live in
+[`output-artifact-policy.md`](output-artifact-policy.md). The actual exclusion/removal of the
+generated clutter remains a separately-scoped follow-up cleanup.
+
 ---
 
 ## Decision summary
