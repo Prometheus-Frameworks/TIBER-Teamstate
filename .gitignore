@@ -2,3 +2,11 @@ node_modules/
 dist/
 .DS_Store
 coverage/
+
+# Generated pipeline output — see docs/output-artifact-policy.md.
+# Ignore the broad generated tree so demo/diagnostic artifacts do not reaccumulate in git,
+# but keep the two representative fixture_scaffold contract artifacts that downstream
+# consumers read at these exact paths. The pipeline still writes the full tree locally.
+output/*
+!output/team_environment_movement_v0.json
+!output/team_environment_profiles_v0.json
