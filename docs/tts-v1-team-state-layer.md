@@ -201,6 +201,18 @@ cp /tmp/tts-movement/team_environment_movement_v0.json output/team_environment_m
 declining with worsening pressure — rather than `insufficient_data`. Only `generatedAt` changes
 between runs.)
 
+**Known v0 boundary debt — legacy fantasy-point fields.** The committed v0 artifact still exposes
+fantasy-point fields (`fantasyPointsForQB/RB/WR/TE`) inside `earlyWindow.averages`,
+`lateWindow.averages`, and `deltas`. These are **required, non-optional fields of the current
+`team_environment_movement_v0` contract** (`TeamEnvironmentMovementWindowAveragesV0`, with deltas
+derived via `Omit<…, 'volatilityScore'>`), they are always emitted by the movement builder
+(`MOVEMENT_METRICS`), and the upstream input adapter lists them in `REQUIRED_NUMERIC_FIELDS`. They
+are also part of the shape the live TIBER-Fantasy consumer validates. Per the TTS v1 boundary
+(Teamstate does not own fantasy outputs), these fields should not exist on a team-state movement
+artifact. They are **not silently removed here** because that would be a contract/adapter/builder
+change with a live downstream consumer — out of scope for this fixture-only PR. Removal is tracked
+as a v0 → v1 boundary-cleanup follow-up (issue #34).
+
 ### 7.3 Committed `output/` tree policy
 The entire `output/` tree is currently checked-in generated, fixture-scaffold data (`.gitignore`
 does not exclude `output/`). **Decision (issue #29, required decision 3): move toward a policy
