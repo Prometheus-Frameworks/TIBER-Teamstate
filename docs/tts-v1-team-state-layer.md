@@ -180,7 +180,26 @@ does not "make a missing artifact look governed" because its provenance stays `f
 
 - Alternative considered: document the path as strictly operator-supplied and leave it absent.
   Rejected as the default because it leaves the shipped default path broken-by-design.
-- This commit is a **follow-up hygiene task**, kept out of this documentation-only PR.
+
+**Status: done (issue #31).** `output/team_environment_movement_v0.json` is now committed as a
+representative `fixture_scaffold` artifact. It carries the `team_environment_movement_v0` literal,
+`metadata.provenanceStatus: fixture_scaffold`, and `coverage.isFullLeague: false` (2 teams,
+DET/PIT, weeks 1–6) so it cannot be confused with governed or full-league truth. It is generated
+deterministically from the committed source fixture
+`data/fixtures/team_week_raw/team_week_raw_v0.movement_demo.sample.json`. To regenerate **only**
+this artifact without rewriting the rest of `output/`, run the pipeline into a scratch directory
+and copy the single file back:
+
+```bash
+npm run build
+node dist/src/pipeline/runTeamStatePipeline.js \
+  data/fixtures/team_week_raw/team_week_raw_v0.movement_demo.sample.json /tmp/tts-movement
+cp /tmp/tts-movement/team_environment_movement_v0.json output/team_environment_movement_v0.json
+```
+
+(The fixture is multi-week so the demo shows real directional movement — DET improving, PIT
+declining with worsening pressure — rather than `insufficient_data`. Only `generatedAt` changes
+between runs.)
 
 ### 7.3 Committed `output/` tree policy
 The entire `output/` tree is currently checked-in generated, fixture-scaffold data (`.gitignore`
