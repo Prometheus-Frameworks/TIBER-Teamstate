@@ -17,9 +17,14 @@ problems the TTS v1 boundary work flagged:
    diffs and merge friction for data that has no downstream consumer.
 
 At the same time, issue #31 (merged in #33) intentionally committed **one** representative
-`fixture_scaffold` artifact — `team_environment_movement_v0.json` — at TIBER-Fantasy's default
-consumer path. That is legitimate and must remain allowed. This policy draws the line between the
-two cases.
+`fixture_scaffold` artifact at TIBER-Fantasy's default consumer path. That is legitimate and must
+remain allowed. This policy draws the line between the two cases.
+
+> **#34 transition update:** the committed representative movement fixture is now
+> `team_environment_movement_v1.json` (the team-state-only successor that drops the legacy
+> fantasy-point fields), not `team_environment_movement_v0.json`. TIBER-Fantasy (PR #225) prefers
+> the v1 artifact at its default path and only falls back to v0 if v1 is absent, so v0 is no longer
+> tracked under `output/`. See the Keep table below and `docs/contracts/team-environment-movement-v1.md`.
 
 ## Policy
 
@@ -62,11 +67,14 @@ these are the only two `output/` artifacts with a downstream consumer, and both 
 
 | Artifact | Why kept |
 | --- | --- |
-| `team_environment_movement_v0.json` | Live read-only consumer in TIBER-Fantasy (Data Lab + Management diagnostic). Committed as the representative fixture at Fantasy's default path (#31 / #33). |
+| `team_environment_movement_v1.json` | Live read-only consumer in TIBER-Fantasy (Data Lab + Management diagnostic). Committed as the representative fixture at Fantasy's default path, which prefers v1 (#31 / #33 established the path; #34 / Fantasy PR #225 moved it to v1). Team-state-only — carries no fantasy-point fields. |
 | `team_environment_profiles_v0.json` | Consumed by the TIBER-Fantasy offline dynasty-roster report script. Named downstream contract artifact (`docs/contracts/team-environment-profile-v0.md`). |
 
-> Note: the legacy fantasy-point fields inside `team_environment_movement_v0.json` are a separate
-> v0 contract concern tracked in #34 — **out of scope here**.
+> **#34 resolution:** `team_environment_movement_v0.json` is no longer tracked under `output/`. The
+> legacy fantasy-point fields (`fantasyPointsForQB/RB/WR/TE`) that were v0 boundary debt do not
+> exist in the v1 artifact. Fantasy's consumer (PR #225) still *accepts* a v0 literal for transition
+> safety but resolves v1 first; since v1 is now the committed fixture, the v0 fallback is dormant.
+> Removing Fantasy's v0 acceptance is a later, separately-scoped cleanup — not done here.
 
 > Note on `sourceArtifacts` references: `team_environment_profiles_v0.json` lists generated
 > intermediate artifact names in its `sourceArtifacts` (e.g. `season_to_date.fantasy_environment.json`,

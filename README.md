@@ -207,7 +207,7 @@ For temporal fixture smoke testing, operators can point the same environment var
 
 ### Team environment movement artifact
 
-`output/team_environment_movement_v0.json` exposes how each team-season moved across deterministic early and late windows instead of collapsing all weeks into a season-to-date profile. It is generated from the weekly team states during `npm run pipeline` and does **not** change `output/team_environment_profiles_v0.json` semantics.
+The Team Environment Movement artifact exposes how each team-season moved across deterministic early and late windows instead of collapsing all weeks into a season-to-date profile. It is generated from the weekly team states during `npm run pipeline` and does **not** change `output/team_environment_profiles_v0.json` semantics. The committed representative fixture is now the team-state-only `output/team_environment_movement_v1.json` (see the v1 subsection below); the legacy `team_environment_movement_v0.json` is still emitted locally by the pipeline but is no longer tracked in git.
 
 Windowing rules for v0:
 
@@ -226,14 +226,14 @@ The movement artifact preserves TeamWeekRawV0 source provenance. Fixture-scaffol
 
 #### Team-state-only `team_environment_movement_v1` (issue #34)
 
-`output/team_environment_movement_v1.json` is the team-state-only successor to the v0 movement artifact: it is identical in movement semantics but **omits the legacy fantasy-point fields** (`fantasyPointsForQB/RB/WR/TE`) from window averages and deltas, keeping the artifact within the TTS v1 boundary. It is generated alongside v0 during `npm run pipeline` (and is git-ignored under the `output/` policy, since it has no downstream consumer yet). v0 is unchanged for the current TIBER-Fantasy consumer; the Fantasy → v1 migration is a separate follow-up. See `docs/contracts/team-environment-movement-v1.md`.
+`output/team_environment_movement_v1.json` is the team-state-only successor to the v0 movement artifact: it is identical in movement semantics but **omits the legacy fantasy-point fields** (`fantasyPointsForQB/RB/WR/TE`) from window averages and deltas, keeping the artifact within the TTS v1 boundary. It is generated alongside v0 during `npm run pipeline` and is the **committed representative `fixture_scaffold` fixture** under `output/` (tracked via the `output/` policy allow-list). TIBER-Fantasy (PR #225) consumes it: its default path resolves v1 first and falls back to v0 only for transition safety. See `docs/contracts/team-environment-movement-v1.md` and `docs/output-artifact-policy.md`.
 
 Example fixture smoke command on Windows PowerShell:
 
 ```powershell
 $env:TEAM_WEEK_RAW_V0_ARTIFACT_PATH = "C:\Users\deebr\TIBER-Data\exports\fixtures\team_week_raw\team_week_raw_v0.tampa_bay_temporal.sample.json"
 npm run pipeline
-Select-String -Path output\team_environment_movement_v0.json -Pattern "fixture_scaffold","TB","declining","pressure"
+Select-String -Path output\team_environment_movement_v1.json -Pattern "fixture_scaffold","TB","declining","pressure"
 Remove-Item Env:\TEAM_WEEK_RAW_V0_ARTIFACT_PATH
 ```
 

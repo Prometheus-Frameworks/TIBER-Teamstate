@@ -1,6 +1,6 @@
 {
-  "artifact": "team_environment_movement_v0",
-  "generatedAt": "2026-06-16T00:32:37.853Z",
+  "artifact": "team_environment_movement_v1",
+  "generatedAt": "2026-06-16T13:27:50.134Z",
   "metadata": {
     "provenanceStatus": "fixture_scaffold",
     "inputSources": [
@@ -58,10 +58,6 @@
           "pressureRateAllowed": 0.28,
           "secondsPerPlay": 27.2,
           "neutralPassRate": 0.5567,
-          "fantasyPointsForQB": 18,
-          "fantasyPointsForRB": 20.33,
-          "fantasyPointsForWR": 25,
-          "fantasyPointsForTE": 6,
           "volatilityScore": 43.67
         }
       },
@@ -80,10 +76,6 @@
           "pressureRateAllowed": 0.22,
           "secondsPerPlay": 26.033,
           "neutralPassRate": 0.59,
-          "fantasyPointsForQB": 23.43,
-          "fantasyPointsForRB": 28.37,
-          "fantasyPointsForWR": 33.2,
-          "fantasyPointsForTE": 10.8,
           "volatilityScore": 36.69
         }
       },
@@ -94,11 +86,7 @@
         "explosivePlayRate": 0.0433,
         "pressureRateAllowed": -0.06,
         "secondsPerPlay": -1.167,
-        "neutralPassRate": 0.0333,
-        "fantasyPointsForQB": 5.43,
-        "fantasyPointsForRB": 8.04,
-        "fantasyPointsForWR": 8.2,
-        "fantasyPointsForTE": 4.8
+        "neutralPassRate": 0.0333
       },
       "movement": {
         "offenseDirection": "improving",
@@ -137,10 +125,6 @@
           "pressureRateAllowed": 0.25,
           "secondsPerPlay": 29,
           "neutralPassRate": 0.54,
-          "fantasyPointsForQB": 19.67,
-          "fantasyPointsForRB": 23.33,
-          "fantasyPointsForWR": 26.33,
-          "fantasyPointsForTE": 8,
           "volatilityScore": 42.6
         }
       },
@@ -159,10 +143,6 @@
           "pressureRateAllowed": 0.3267,
           "secondsPerPlay": 30.4,
           "neutralPassRate": 0.4867,
-          "fantasyPointsForQB": 14.2,
-          "fantasyPointsForRB": 18.33,
-          "fantasyPointsForWR": 19.47,
-          "fantasyPointsForTE": 4.57,
           "volatilityScore": 52.56
         }
       },
@@ -173,11 +153,7 @@
         "explosivePlayRate": -0.04,
         "pressureRateAllowed": 0.0767,
         "secondsPerPlay": 1.4,
-        "neutralPassRate": -0.0533,
-        "fantasyPointsForQB": -5.47,
-        "fantasyPointsForRB": -5,
-        "fantasyPointsForWR": -6.86,
-        "fantasyPointsForTE": -3.43
+        "neutralPassRate": -0.0533
       },
       "movement": {
         "offenseDirection": "declining",

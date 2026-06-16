@@ -206,6 +206,12 @@ cp /tmp/tts-movement/team_environment_movement_v0.json output/team_environment_m
 declining with worsening pressure — rather than `insufficient_data`. Only `generatedAt` changes
 between runs.)
 
+> **Superseded by #34 (transition complete):** the committed representative fixture is now
+> `output/team_environment_movement_v1.json` (same DET/PIT demo, team-state-only, no fantasy-point
+> fields), and `team_environment_movement_v0.json` is no longer tracked. Regenerate the v1 file with
+> the same command, copying `team_environment_movement_v1.json` instead. See §7.2 status below and
+> `docs/output-artifact-policy.md`.
+
 **Known v0 boundary debt — legacy fantasy-point fields.** The committed v0 artifact still exposes
 fantasy-point fields (`fantasyPointsForQB/RB/WR/TE`) inside `earlyWindow.averages`,
 `lateWindow.averages`, and `deltas`. These are **required, non-optional fields of the current
@@ -221,10 +227,15 @@ a team-state movement artifact.
 (v0 stays stable for the live Fantasy consumer), a new team-state-only `team_environment_movement_v1`
 artifact was added that omits the fantasy-point fields entirely; its movement labels are identical
 to v0 because those labels were never derived from fantasy points. See
-[`contracts/team-environment-movement-v1.md`](contracts/team-environment-movement-v1.md). The
-Fantasy → v1 migration (point the consumer at the v1 literal/path) is the documented next PR in the
-TIBER-Fantasy repo; until it lands, v0 remains the committed/consumed artifact and retains the
-legacy fields as known debt.
+[`contracts/team-environment-movement-v1.md`](contracts/team-environment-movement-v1.md).
+
+**Migration complete (both repos).** TIBER-Fantasy (PR #225, merged) now accepts the v1 literal and
+prefers the v1 default path (falling back to v0 only if v1 is absent). On the Teamstate side, the
+committed representative `output/` fixture is now `team_environment_movement_v1.json` and
+`team_environment_movement_v0.json` is no longer tracked — so a fresh checkout exposes only the
+team-state-only artifact with no fantasy-point fields. The remaining v0 boundary debt is therefore
+retired from the committed fixture set. Removing Fantasy's residual v0 acceptance is a later,
+separately-scoped cleanup and is intentionally not bundled here.
 
 ### 7.3 Committed `output/` tree policy
 The entire `output/` tree is currently checked-in generated, fixture-scaffold data (`.gitignore`
