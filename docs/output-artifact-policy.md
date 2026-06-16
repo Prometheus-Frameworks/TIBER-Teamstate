@@ -31,7 +31,9 @@ A generated artifact may be committed **only if all** of the following hold:
 2. **It is a single representative sample**, not a full generated sweep.
 3. **It is explicitly labeled fixture/demo provenance** — `metadata.provenanceStatus:
    fixture_scaffold` (or another non-governed label) and, where the shape supports it,
-   `coverage.isFullLeague: false`.
+   `metadata.coverage.isFullLeague: false` (the contracted path — see
+   `TeamEnvironmentMovementMetadataV0` / `TeamstateArtifactMetadataV0`; there is no top-level
+   `coverage` field).
 4. **It does not claim full-league, governed, or production truth** unless the input is actually
    governed and full-league (which today it is not).
 5. **It is reproducible** from a committed source fixture under `data/fixtures/` (so the artifact
