@@ -77,7 +77,7 @@ identified in the audit. Under this policy they should not accumulate in git:
 - Latest-week reports (7): `latest_week.team_power.json`, `latest_week.fantasy_environment.json`,
   `latest_week.matchup_environment.json`, `latest_week.qb_matchups.json`,
   `latest_week.rb_matchups.json`, `latest_week.wr_matchups.json`, `latest_week.te_matchups.json`
-- Rankings (8): `rankings.team_power.json`, `rankings.fantasy_environment.json`,
+- Rankings (7): `rankings.team_power.json`, `rankings.fantasy_environment.json`,
   `rankings.matchup_environment.json`, `rankings.qb_matchups.json`, `rankings.rb_matchups.json`,
   `rankings.wr_matchups.json`, `rankings.te_matchups.json`
 - Season-to-date reports (11): `season_to_date.team_power.json`,
