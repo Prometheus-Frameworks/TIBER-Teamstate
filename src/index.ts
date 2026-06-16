@@ -23,5 +23,7 @@ export * from './reports/buildSeasonToDateReports.js';
 
 export * from './contracts/teamEnvironmentProfile.js';
 export * from './contracts/teamEnvironmentMovement.js';
+export * from './contracts/teamEnvironmentMovementV1.js';
 export * from './pipeline/teamEnvironmentProfiles.js';
 export * from './pipeline/teamEnvironmentMovement.js';
+export * from './pipeline/teamEnvironmentMovementV1.js';
