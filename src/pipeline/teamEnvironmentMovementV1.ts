@@ -79,22 +79,37 @@ const buildGovernance = (
   generatedAt: string,
   sourceProvenanceStatus: string | null | undefined
 ): TeamEnvironmentMovementGovernanceV1 => {
+  const governanceStatus = toGovernanceStatus(provenanceStatus);
   const hasExplicitMarker =
     typeof sourceProvenanceStatus === 'string' && EXPLICIT_PROVENANCE_MARKERS.has(sourceProvenanceStatus);
-  const governanceSource: TeamEnvironmentMovementGovernanceSource = hasExplicitMarker
-    ? 'explicit_marker'
-    : 'path_inference';
+
+  // Without an explicit producer marker the status is at best inferred from the input path. When
+  // even the path yields no usable signal — status resolves to `unknown` — there is no basis at
+  // all, so the source is `unknown`, not `path_inference`. A bare `/promoted/` path is this case:
+  // it is unrecognized provenance, so on its own it yields unknown/unknown, never a governed claim.
+  let governanceSource: TeamEnvironmentMovementGovernanceSource;
+  if (hasExplicitMarker) {
+    governanceSource = 'explicit_marker';
+  } else if (governanceStatus === 'unknown') {
+    governanceSource = 'unknown';
+  } else {
+    governanceSource = 'path_inference';
+  }
 
   const governance: TeamEnvironmentMovementGovernanceV1 = {
-    governanceStatus: toGovernanceStatus(provenanceStatus),
+    governanceStatus,
     governanceSource,
     contractVersion: 'team_environment_movement_v1',
     generatedAt
   };
 
-  if (!hasExplicitMarker) {
+  if (governanceSource === 'path_inference') {
     governance.promotionNotes = [
       'Governance status inferred from input path; no explicit producer marker was supplied. Path location (e.g. /promoted/) is a weak hint and is not, on its own, governance proof.'
+    ];
+  } else if (governanceSource === 'unknown') {
+    governance.promotionNotes = [
+      'No explicit producer marker was supplied and the input path yielded no usable provenance signal; governance could not be established.'
     ];
   }
 

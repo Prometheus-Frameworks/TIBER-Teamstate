@@ -131,7 +131,7 @@ describe('team environment movement v1', () => {
     expect(artifact.governance.governanceSource).toBe('explicit_marker');
   });
 
-  it('falls back to path inference and records that /promoted/ is only a weak hint', () => {
+  it('treats a bare /promoted/ path as no governance basis (unknown), never governed or inferred', () => {
     const states = buildTeamWeekStates(buildTemporalRows());
     const artifact = buildTeamEnvironmentMovementV1(
       states,
@@ -139,10 +139,36 @@ describe('team environment movement v1', () => {
       'output/promoted/team_environment_movement_v1.json'
     );
 
-    // No explicit marker supplied: status is inferred, never governed from the path alone.
+    // A /promoted/ path is unrecognized provenance: on its own it establishes nothing.
+    expect(artifact.governance.governanceStatus).toBe('unknown');
+    expect(artifact.governance.governanceSource).toBe('unknown');
+    expect(artifact.governance.governanceStatus).not.toBe('governed');
+    expect(artifact.governance.promotionNotes?.[0]).toContain('governance could not be established');
+  });
+
+  it('preserves the unknown source when no marker and no usable path are supplied', () => {
+    const states = buildTeamWeekStates(buildTemporalRows());
+    const artifact = buildTeamEnvironmentMovementV1(states, '2026-06-16T00:00:00.000Z');
+
+    // No marker and no source path at all → no basis, distinct from path inference.
+    expect(artifact.governance.governanceStatus).toBe('unknown');
+    expect(artifact.governance.governanceSource).toBe('unknown');
+  });
+
+  it('falls back to path inference for a recognized fixture/sample path and flags the weak hint', () => {
+    const states = buildTeamWeekStates(buildTemporalRows());
+    const artifact = buildTeamEnvironmentMovementV1(
+      states,
+      '2026-06-16T00:00:00.000Z',
+      'data/sample/team_week_raw.sample.json'
+    );
+
+    // A recognized sample path yields a usable signal, so the source is path_inference (not unknown),
+    // but it is still never enough to claim governed.
+    expect(artifact.governance.governanceStatus).toBe('fixture');
     expect(artifact.governance.governanceSource).toBe('path_inference');
     expect(artifact.governance.governanceStatus).not.toBe('governed');
-    expect(artifact.governance.promotionNotes?.[0]).toContain('/promoted/');
+    expect(artifact.governance.promotionNotes?.[0]).toContain('weak hint');
   });
 
   it('uses insufficient-data labels when fewer than four weeks are available', () => {

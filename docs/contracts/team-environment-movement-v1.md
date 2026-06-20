@@ -69,10 +69,18 @@ The status is the explicit projection of the resolved dataset `metadata.provenan
 | `partial_real_data` | `ungoverned` |
 | `unknown_provenance` | `unknown` |
 
-`governanceSource` is `explicit_marker` only when the producer supplied a recognized provenance
-marker for the run; otherwise it is `path_inference` and a `promotionNotes` entry records that the
-path is a weak hint. Because `governed_real_data` only resolves to a governed status when coverage
-is full-league, a `/promoted/` path can never, on its own, make an artifact `governed`.
+`governanceSource` is resolved in three ways:
+- `explicit_marker` — the producer supplied a recognized provenance marker for the run.
+- `path_inference` — no marker, but the input path yields a usable provenance signal (e.g. a
+  `data/sample/` or `fixtures/` path); a `promotionNotes` entry records that the path is only a weak
+  hint.
+- `unknown` — no marker and the path yields no usable signal (status resolves to `unknown`); a
+  `promotionNotes` entry records that governance could not be established. This is kept distinct from
+  `path_inference` so consumers can tell "no basis at all" from "inferred from a weak path".
+
+Because `governed_real_data` only resolves to a governed status when coverage is full-league, a
+`/promoted/` path can never, on its own, make an artifact `governed` — a bare `/promoted/` path is
+unrecognized provenance, so on its own it yields `unknown`/`unknown`.
 
 > Scope note: this is provenance/governance metadata only. It adds **no** fantasy scoring, point
 > prediction, rankings, dynasty, recommendation/start-sit/trade/waiver semantics, Team Direction
