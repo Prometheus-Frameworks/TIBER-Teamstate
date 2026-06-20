@@ -93,6 +93,58 @@ describe('team environment movement v1', () => {
     expect(v1.teams[0].earlyWindow.averages.volatilityScore).toBe(v0.teams[0].earlyWindow.averages.volatilityScore);
   });
 
+  it('emits explicit governance metadata: fixture scaffold marked from an explicit producer marker', () => {
+    const states = buildTeamWeekStates(buildTemporalRows());
+    const artifact = buildTeamEnvironmentMovementV1(
+      states,
+      '2026-06-16T00:00:00.000Z',
+      'output/promoted/team_environment_movement_v1.json',
+      'fixture_scaffold'
+    );
+
+    expect(artifact.governance.governanceStatus).toBe('fixture');
+    expect(artifact.governance.governanceSource).toBe('explicit_marker');
+    // Dataset-level contract literal is explicit and exact.
+    expect(artifact.governance.contractVersion).toBe('team_environment_movement_v1');
+    // Dataset-level generatedAt remains available and mirrors the artifact timestamp.
+    expect(artifact.governance.generatedAt).toBe(artifact.generatedAt);
+    // An explicit marker means no path-inference fallback note.
+    expect(artifact.governance.promotionNotes).toBeUndefined();
+    // A /promoted/ path is never sufficient on its own to claim governed.
+    expect(artifact.governance.governanceStatus).not.toBe('governed');
+  });
+
+  it('marks a governed run as governed only from an explicit producer marker', () => {
+    const states = buildTeamWeekStates(buildTemporalRows());
+    const artifact = buildTeamEnvironmentMovementV1(
+      states,
+      '2026-06-16T00:00:00.000Z',
+      'output/promoted/team_environment_movement_v1.json',
+      'governed_real_data'
+    );
+
+    // governed_real_data on a partial (2-team) league resolves to partial_real_data → ungoverned,
+    // proving governance is not granted by the /promoted/ path. Full-league governed coverage is
+    // what would yield 'governed'.
+    expect(artifact.metadata.provenanceStatus).toBe('partial_real_data');
+    expect(artifact.governance.governanceStatus).toBe('ungoverned');
+    expect(artifact.governance.governanceSource).toBe('explicit_marker');
+  });
+
+  it('falls back to path inference and records that /promoted/ is only a weak hint', () => {
+    const states = buildTeamWeekStates(buildTemporalRows());
+    const artifact = buildTeamEnvironmentMovementV1(
+      states,
+      '2026-06-16T00:00:00.000Z',
+      'output/promoted/team_environment_movement_v1.json'
+    );
+
+    // No explicit marker supplied: status is inferred, never governed from the path alone.
+    expect(artifact.governance.governanceSource).toBe('path_inference');
+    expect(artifact.governance.governanceStatus).not.toBe('governed');
+    expect(artifact.governance.promotionNotes?.[0]).toContain('/promoted/');
+  });
+
   it('uses insufficient-data labels when fewer than four weeks are available', () => {
     const states = buildTeamWeekStates([baseRow(1), baseRow(2), baseRow(3)]);
     const artifact = buildTeamEnvironmentMovementV1(states, '2026-06-16T00:00:00.000Z', 'data/sample/team_week_raw.sample.json');

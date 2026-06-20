@@ -58,9 +58,48 @@ export interface TeamEnvironmentMovementTeamV1 {
   warnings: string[];
 }
 
+/**
+ * Explicit, producer-owned governance metadata for `team_environment_movement_v1`.
+ *
+ * This lets a downstream consumer distinguish a governed promoted production artifact from a
+ * fixture/scaffold, an ungoverned/local artifact, or an unknown/missing-governance artifact —
+ * without inferring trust from a path such as `/promoted/`. A `/promoted/` location is at most a
+ * weak hint; it is never the sole governance proof. See issue #40 and
+ * docs/contracts/team-environment-movement-v1.md.
+ *
+ * - `governed`   — a governed, promoted production artifact.
+ * - `fixture`    — a fixture/scaffold/sample artifact (demo data, not production truth).
+ * - `ungoverned` — a real-but-ungoverned artifact (e.g. partial/local/dev output).
+ * - `unknown`    — governance could not be established.
+ */
+export type TeamEnvironmentMovementGovernanceStatus = 'governed' | 'fixture' | 'ungoverned' | 'unknown';
+
+/**
+ * How the `governanceStatus` was established.
+ *
+ * - `explicit_marker` — the producer explicitly set the provenance/governance marker for the run.
+ * - `path_inference`  — status was inferred from the input path only (a weak hint, not proof).
+ * - `unknown`         — no basis for a governance determination was available.
+ */
+export type TeamEnvironmentMovementGovernanceSource = 'explicit_marker' | 'path_inference' | 'unknown';
+
+export interface TeamEnvironmentMovementGovernanceV1 {
+  governanceStatus: TeamEnvironmentMovementGovernanceStatus;
+  governanceSource: TeamEnvironmentMovementGovernanceSource;
+  /** Dataset-level contract literal. Always exactly `team_environment_movement_v1`. */
+  contractVersion: 'team_environment_movement_v1';
+  /** Dataset-level timestamp, mirrors the artifact's top-level `generatedAt`. */
+  generatedAt: string;
+  /** Optional promotion timestamp, only present when distinct and meaningful. */
+  promotedAt?: string;
+  /** Optional, non-advisory provenance notes (e.g. flagging path-only inference). */
+  promotionNotes?: string[];
+}
+
 export interface TeamEnvironmentMovementArtifactV1 {
   artifact: 'team_environment_movement_v1';
   generatedAt: string;
   metadata: TeamEnvironmentMovementMetadataV0;
+  governance: TeamEnvironmentMovementGovernanceV1;
   teams: TeamEnvironmentMovementTeamV1[];
 }

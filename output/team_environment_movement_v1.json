@@ -1,6 +1,6 @@
 {
   "artifact": "team_environment_movement_v1",
-  "generatedAt": "2026-06-16T13:27:50.134Z",
+  "generatedAt": "2026-06-20T02:24:56.093Z",
   "metadata": {
     "provenanceStatus": "fixture_scaffold",
     "inputSources": [
@@ -29,6 +29,12 @@
       "latestWeek": 6,
       "isFullLeague": false
     }
+  },
+  "governance": {
+    "governanceStatus": "fixture",
+    "governanceSource": "explicit_marker",
+    "contractVersion": "team_environment_movement_v1",
+    "generatedAt": "2026-06-20T02:24:56.093Z"
   },
   "teams": [
     {

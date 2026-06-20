@@ -31,7 +31,52 @@ TIBER-Fantasy consumer; v1 is the cleaned boundary. See "Migration" below.
 - `artifact`: `team_environment_movement_v1`
 - `generatedAt`: ISO timestamp
 - `metadata`: provenance + coverage metadata (shared structurally with v0)
+- `governance`: explicit, producer-owned governance metadata (see "Governance metadata" below)
 - `teams`: per team-season movement entries
+
+## Governance metadata (`governance`)
+Producer-side resolution of issue #40. This block lets a downstream consumer distinguish a governed
+promoted production artifact from a fixture/scaffold, an ungoverned/local artifact, or an
+unknown/missing-governance artifact — **without inferring trust from a path**. A `/promoted/`
+location is at most a weak hint; it is never the sole governance proof.
+
+It is additive: the existing `metadata`, window averages, deltas, and movement labels are unchanged.
+Only a new top-level `governance` object is appended to the artifact.
+
+### Fields
+- `governanceStatus`: one of
+  - `governed` — a governed, promoted production artifact.
+  - `fixture` — a fixture/scaffold/sample artifact (demo data, not production truth).
+  - `ungoverned` — a real-but-ungoverned artifact (e.g. partial/local/dev output).
+  - `unknown` — governance could not be established.
+- `governanceSource`: how the status was established —
+  - `explicit_marker` — the producer supplied a recognized provenance/governance marker for the run.
+  - `path_inference` — status was inferred from the input path only (a weak hint, not proof).
+  - `unknown` — no basis for a governance determination was available.
+- `contractVersion`: the dataset-level contract literal, always exactly `team_environment_movement_v1`.
+- `generatedAt`: dataset-level timestamp, mirrors the artifact's top-level `generatedAt`.
+- `promotedAt` (optional): a promotion timestamp, only present when distinct and meaningful.
+- `promotionNotes` (optional): non-advisory provenance notes. Present when the status was inferred
+  from the path, recording that the path (e.g. `/promoted/`) is only a weak hint.
+
+### How status and source are derived
+The status is the explicit projection of the resolved dataset `metadata.provenanceStatus`:
+
+| `metadata.provenanceStatus` | `governanceStatus` |
+| --- | --- |
+| `governed_real_data` | `governed` |
+| `fixture_scaffold`, `sample` | `fixture` |
+| `partial_real_data` | `ungoverned` |
+| `unknown_provenance` | `unknown` |
+
+`governanceSource` is `explicit_marker` only when the producer supplied a recognized provenance
+marker for the run; otherwise it is `path_inference` and a `promotionNotes` entry records that the
+path is a weak hint. Because `governed_real_data` only resolves to a governed status when coverage
+is full-league, a `/promoted/` path can never, on its own, make an artifact `governed`.
+
+> Scope note: this is provenance/governance metadata only. It adds **no** fantasy scoring, point
+> prediction, rankings, dynasty, recommendation/start-sit/trade/waiver semantics, Team Direction
+> semantics, or any consumer-side activation. Downstream consumption is intentionally out of scope.
 
 ### Window averages (`earlyWindow.averages`, `lateWindow.averages`)
 Team-state fields only:
