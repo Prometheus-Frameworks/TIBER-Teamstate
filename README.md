@@ -228,6 +228,8 @@ The movement artifact preserves TeamWeekRawV0 source provenance. Fixture-scaffol
 
 `output/team_environment_movement_v1.json` is the team-state-only successor to the v0 movement artifact: it is identical in movement semantics but **omits the legacy fantasy-point fields** (`fantasyPointsForQB/RB/WR/TE`) from window averages and deltas, keeping the artifact within the TTS v1 boundary. It is generated alongside v0 during `npm run pipeline` and is the **committed representative `fixture_scaffold` fixture** under `output/` (tracked via the `output/` policy allow-list). TIBER-Fantasy (PR #225) consumes it: its default path resolves v1 first and falls back to v0 only for transition safety. See `docs/contracts/team-environment-movement-v1.md` and `docs/output-artifact-policy.md`.
 
+The v1 artifact also carries an explicit, producer-owned `governance` block (issue #40) so downstream consumers can distinguish `governed` / `fixture` / `ungoverned` / `unknown` artifacts without inferring trust from a `/promoted/` path. See the "Governance metadata" section of `docs/contracts/team-environment-movement-v1.md`.
+
 Example fixture smoke command on Windows PowerShell:
 
 ```powershell
