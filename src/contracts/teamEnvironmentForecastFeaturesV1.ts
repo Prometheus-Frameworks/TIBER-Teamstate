@@ -176,6 +176,36 @@ export interface TeamEnvironmentForecastFeaturesArtifactV1 {
  */
 const FORBIDDEN_FANTASY_KEY_FRAGMENTS = ['fantasypoint', 'fantasy_point'];
 
+/**
+ * Canonical per-feature value rules for v1. The `type` is the declared `featureDefinitions[].type`
+ * each canonical feature must use; `allowed` is the closed set of permitted categorical values for
+ * direction/tier features. Numeric features carry no `allowed` set — they accept a finite `number`
+ * or `null` only. This is the single source of truth the validator uses to reject malformed feature
+ * columns (e.g. `points_per_drive: "n/a"` or `offense_direction: "up"`).
+ */
+const FEATURE_VALUE_RULES: Record<
+  TeamEnvironmentForecastFeatureName,
+  { type: ForecastFeatureType; allowed?: readonly string[] }
+> = {
+  points_per_drive: { type: 'number' },
+  epa_per_play: { type: 'number' },
+  success_rate: { type: 'number' },
+  explosive_play_rate: { type: 'number' },
+  pressure_rate_allowed: { type: 'number' },
+  seconds_per_play: { type: 'number' },
+  neutral_pass_rate: { type: 'number' },
+  volatility_score: { type: 'number' },
+  offense_direction: { type: 'direction', allowed: ['improving', 'declining', 'stable', 'insufficient_data', 'unknown'] },
+  pass_environment_direction: { type: 'direction', allowed: ['more_pass_heavy', 'less_pass_heavy', 'stable', 'insufficient_data', 'unknown'] },
+  pace_direction: { type: 'direction', allowed: ['faster', 'slower', 'stable', 'insufficient_data', 'unknown'] },
+  pressure_direction: { type: 'direction', allowed: ['improving', 'worsening', 'stable', 'insufficient_data', 'unknown'] },
+  volatility_direction: { type: 'direction', allowed: ['rising', 'falling', 'stable', 'insufficient_data', 'unknown'] },
+  offense_tier: { type: 'tier', allowed: ['elite', 'strong', 'average', 'weak', 'unknown'] },
+  pass_environment_tier: { type: 'tier', allowed: ['pass_heavy', 'balanced', 'run_heavy', 'unknown'] },
+  pace_tier: { type: 'tier', allowed: ['fast', 'neutral', 'slow', 'unknown'] },
+  volatility_tier: { type: 'tier', allowed: ['stable', 'volatile', 'unknown'] }
+};
+
 export interface ForecastValidationResult {
   valid: boolean;
   errors: string[];
@@ -202,9 +232,12 @@ function collectKeysDeep(value: unknown, keys: string[]): void {
  * Deterministic, fail-closed validator for the `team_environment_forecast_features_v1` contract.
  *
  * It verifies the safety envelope every PPM-facing artifact must carry — cutoff, governance,
- * coverage, feature definitions, and one well-formed row per team — and refuses (fails closed) on
- * any missing/invalid required field, any fantasy-point field, and any team whose `features` keys
- * do not exactly match the declared `featureDefinitions`. It does not assert that values are
+ * coverage, feature definitions, and one well-formed row per team — and refuses (fails closed) on:
+ * any missing/invalid required field; any fantasy-point field; coverage metadata that disagrees
+ * with the actual team rows (e.g. a subset claiming `isFullLeague: true`); a `featureDefinitions`
+ * manifest that is not exactly the canonical V1 feature set; any team whose `features` keys do not
+ * match that manifest; and any feature value that violates its canonical type (a non-finite/string
+ * numeric, or an out-of-vocabulary direction/tier). It does not assert that values are predictively
  * "good"; it asserts the artifact is shaped safely enough to even be considered by PPM.
  */
 export function validateTeamEnvironmentForecastFeaturesV1(value: unknown): ForecastValidationResult {
@@ -251,8 +284,9 @@ export function validateTeamEnvironmentForecastFeaturesV1(value: unknown): Forec
     errors.push('outputKind must be "model-legible-team-context"');
   }
 
+  const teamRowCount = Array.isArray(value.teams) ? value.teams.length : null;
   validateGovernance(value.governance, errors);
-  validateCoverage(value.coverage, errors);
+  validateCoverage(value.coverage, teamRowCount, errors);
   const declaredFeatureNames = validateFeatureDefinitions(value.featureDefinitions, errors);
   validateTeams(value.teams, declaredFeatureNames, errors);
 
@@ -277,7 +311,7 @@ function validateGovernance(governance: unknown, errors: string[]): void {
   }
 }
 
-function validateCoverage(coverage: unknown, errors: string[]): void {
+function validateCoverage(coverage: unknown, teamRowCount: number | null, errors: string[]): void {
   if (!isObject(coverage)) {
     errors.push('coverage must be an object');
     return;
@@ -293,6 +327,22 @@ function validateCoverage(coverage: unknown, errors: string[]): void {
   for (const field of ['seasons', 'weeks'] as const) {
     if (!Array.isArray(coverage[field])) {
       errors.push(`coverage.${field} must be an array`);
+    }
+  }
+
+  // Coverage metadata must be derivable from the actual rows — it cannot be self-asserted. A
+  // producer that ships a subset of teams but claims teamCount: 32 / isFullLeague: true must fail
+  // closed, because full-league coverage is the PPM eligibility gate.
+  const { teamCount, expectedTeamCount, isFullLeague } = coverage;
+  if (typeof teamCount === 'number' && teamRowCount !== null && teamCount !== teamRowCount) {
+    errors.push(`coverage.teamCount (${teamCount}) must equal the number of team rows (${teamRowCount})`);
+  }
+  if (typeof teamCount === 'number' && typeof expectedTeamCount === 'number' && typeof isFullLeague === 'boolean') {
+    const derivedFullLeague = teamCount === expectedTeamCount;
+    if (isFullLeague !== derivedFullLeague) {
+      errors.push(
+        `coverage.isFullLeague (${isFullLeague}) must be ${derivedFullLeague} when teamCount=${teamCount} and expectedTeamCount=${expectedTeamCount}`
+      );
     }
   }
 }
@@ -312,8 +362,16 @@ function validateFeatureDefinitions(featureDefinitions: unknown, errors: string[
       errors.push(`featureDefinitions[${index}].name must be a non-empty string`);
       continue;
     }
+    if (declared.has(definition.name)) {
+      errors.push(`featureDefinitions declares "${definition.name}" more than once`);
+    }
     declared.add(definition.name);
-    if (!['number', 'direction', 'tier'].includes(definition.type as string)) {
+    // Each canonical feature must be declared with its canonical type; the value rules below depend
+    // on this so a manifest can't, e.g., declare neutral_pass_rate as a tier.
+    const rule = (FEATURE_VALUE_RULES as Record<string, { type: ForecastFeatureType } | undefined>)[definition.name];
+    if (rule && definition.type !== rule.type) {
+      errors.push(`featureDefinitions[${index}].type for "${definition.name}" must be "${rule.type}"`);
+    } else if (!['number', 'direction', 'tier'].includes(definition.type as string)) {
       errors.push(`featureDefinitions[${index}].type must be one of number, direction, tier`);
     }
     if (typeof definition.description !== 'string' || definition.description.length === 0) {
@@ -323,6 +381,20 @@ function validateFeatureDefinitions(featureDefinitions: unknown, errors: string[
       if (typeof definition[flag] !== 'boolean') {
         errors.push(`featureDefinitions[${index}].${flag} must be a boolean`);
       }
+    }
+  }
+
+  // The declared manifest must be exactly the canonical V1 feature set — no missing canonical
+  // features, no unknown extras. The exported contract fixes these names, so an artifact that drops
+  // or invents a feature column must fail closed rather than reach PPM as "valid".
+  for (const name of TEAM_ENVIRONMENT_FORECAST_FEATURE_NAMES_V1) {
+    if (!declared.has(name)) {
+      errors.push(`featureDefinitions is missing canonical feature "${name}"`);
+    }
+  }
+  for (const name of declared) {
+    if (!(TEAM_ENVIRONMENT_FORECAST_FEATURE_NAMES_V1 as readonly string[]).includes(name)) {
+      errors.push(`featureDefinitions declares unknown feature "${name}"`);
     }
   }
   return declared;
@@ -365,7 +437,8 @@ function validateTeams(teams: unknown, declaredFeatureNames: Set<string>, errors
     }
     // Every team's features must exactly match the declared featureDefinitions — no missing keys,
     // no undeclared extras. This keeps the manifest and the data provably aligned.
-    const featureKeys = new Set(Object.keys(team.features));
+    const features = team.features;
+    const featureKeys = new Set(Object.keys(features));
     for (const declaredName of declaredFeatureNames) {
       if (!featureKeys.has(declaredName)) {
         errors.push(`teams[${index}].features is missing declared feature "${declaredName}"`);
@@ -375,6 +448,31 @@ function validateTeams(teams: unknown, declaredFeatureNames: Set<string>, errors
       if (!declaredFeatureNames.has(key)) {
         errors.push(`teams[${index}].features has undeclared feature "${key}"`);
       }
+      // Validate the value against its canonical type so malformed columns (a string in a numeric
+      // feature, an out-of-vocabulary categorical) fail closed rather than reach PPM as "valid".
+      const rule = (FEATURE_VALUE_RULES as Record<string, { type: ForecastFeatureType; allowed?: readonly string[] } | undefined>)[key];
+      if (rule) {
+        validateFeatureValue(`teams[${index}].features.${key}`, features[key], rule, errors);
+      }
     }
+  }
+}
+
+function validateFeatureValue(
+  path: string,
+  value: unknown,
+  rule: { type: ForecastFeatureType; allowed?: readonly string[] },
+  errors: string[]
+): void {
+  if (rule.type === 'number') {
+    // null is an explicit "no signal"; otherwise a finite number only (no NaN/Infinity/strings).
+    if (value !== null && !(typeof value === 'number' && Number.isFinite(value))) {
+      errors.push(`${path} must be a finite number or null`);
+    }
+    return;
+  }
+  // direction / tier: a string drawn from the feature's closed vocabulary.
+  if (typeof value !== 'string' || !(rule.allowed ?? []).includes(value)) {
+    errors.push(`${path} must be one of ${(rule.allowed ?? []).join(', ')}`);
   }
 }

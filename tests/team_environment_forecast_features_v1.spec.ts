@@ -113,4 +113,53 @@ describe('team environment forecast features v1 — validator fails closed', () 
     expect(result.valid).toBe(false);
     expect(result.errors.some((error) => error.includes('confidence'))).toBe(true);
   });
+
+  it('rejects a featureDefinitions manifest that drops a canonical feature from every row', () => {
+    const artifact = loadFixture();
+    artifact.featureDefinitions = artifact.featureDefinitions.filter(
+      (definition) => definition.name !== 'neutral_pass_rate'
+    );
+    for (const team of artifact.teams) {
+      delete (team.features as unknown as Record<string, unknown>).neutral_pass_rate;
+    }
+    const result = validateTeamEnvironmentForecastFeaturesV1(artifact);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.includes('missing canonical feature "neutral_pass_rate"'))).toBe(true);
+  });
+
+  it('rejects a featureDefinitions manifest that declares an unknown feature', () => {
+    const artifact = loadFixture();
+    artifact.featureDefinitions = [
+      ...artifact.featureDefinitions,
+      { name: 'team_spirit', type: 'number', description: 'x', allowedInModel: true, allowedInPosthocExplanation: true }
+    ] as typeof artifact.featureDefinitions;
+    const result = validateTeamEnvironmentForecastFeaturesV1(artifact);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.includes('unknown feature "team_spirit"'))).toBe(true);
+  });
+
+  it('rejects coverage that overstates teamCount / isFullLeague vs the actual rows', () => {
+    const artifact = loadFixture();
+    artifact.coverage.teamCount = 32;
+    artifact.coverage.isFullLeague = true;
+    const result = validateTeamEnvironmentForecastFeaturesV1(artifact);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.includes('must equal the number of team rows'))).toBe(true);
+  });
+
+  it('rejects a malformed numeric feature value', () => {
+    const artifact = loadFixture();
+    (artifact.teams[0].features as unknown as Record<string, unknown>).points_per_drive = 'n/a';
+    const result = validateTeamEnvironmentForecastFeaturesV1(artifact);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.includes('points_per_drive must be a finite number or null'))).toBe(true);
+  });
+
+  it('rejects an out-of-vocabulary direction feature value', () => {
+    const artifact = loadFixture();
+    (artifact.teams[0].features as unknown as Record<string, unknown>).offense_direction = 'up';
+    const result = validateTeamEnvironmentForecastFeaturesV1(artifact);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.includes('offense_direction must be one of'))).toBe(true);
+  });
 });

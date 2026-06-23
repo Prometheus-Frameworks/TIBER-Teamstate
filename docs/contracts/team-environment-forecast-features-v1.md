@@ -108,7 +108,11 @@ object, `featureCoverageStatus` (`complete | partial | unavailable`), a `confide
 `warnings[]`, and `sourceDatasetRefs[]` for auditable provenance.
 
 Each `features` object must contain **exactly** the keys declared in `featureDefinitions[].name` —
-no missing keys, no undeclared extras. The validator enforces this alignment.
+no missing keys, no undeclared extras. The validator enforces this alignment, and additionally
+fails closed when each feature value violates its canonical type: a numeric feature must be a finite
+`number` or `null` (never a string, `NaN`, or `Infinity`), and a direction/tier feature must be a
+string drawn from that feature's closed vocabulary (see the type unions in
+`src/contracts/teamEnvironmentForecastFeaturesV1.ts`).
 
 ## Cutoff semantics
 
@@ -134,8 +138,11 @@ and never, on its own, proof of governance.
 
 ## Feature definitions
 
-`featureDefinitions` is a self-describing manifest. Each entry has `name`, `type`
-(`number | direction | tier`), `description`, and two PPM-facing usage gates:
+`featureDefinitions` is a self-describing manifest. For v1 it must declare **exactly** the canonical
+feature set (`TEAM_ENVIRONMENT_FORECAST_FEATURE_NAMES_V1`) — no missing canonical features, no
+unknown extras, no duplicates, and each declared with its canonical `type` — or the validator fails
+closed. Each entry has `name`, `type` (`number | direction | tier`), `description`, and two
+PPM-facing usage gates:
 
 - `allowedInModel` — may PPM use this feature as a model input?
 - `allowedInPosthocExplanation` — may PPM surface it as a post-hoc explanation field?
@@ -180,7 +187,10 @@ any appears:
 
 `coverage` carries `teamCount`, `expectedTeamCount` (32), `isFullLeague`, `seasons[]`, `weeks[]`.
 
-- `isFullLeague` is `true` only when all 32 teams are present.
+- `isFullLeague` is `true` only when all 32 teams are present. Coverage metadata is **not**
+  self-asserted: the validator fails closed when `teamCount` disagrees with the actual number of
+  team rows, or when `isFullLeague` disagrees with `teamCount === expectedTeamCount`. A subset of
+  teams cannot claim full-league coverage.
 - An artifact that is not full-league must not be promoted to `governed`.
 - Source provenance for any populated row is recorded per-row in `sourceDatasetRefs[]` and at the
   governance level — never inferred from path alone.
