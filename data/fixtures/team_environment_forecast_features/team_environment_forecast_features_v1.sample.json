@@ -1,0 +1,211 @@
+{
+  "artifact": "team_environment_forecast_features_v1",
+  "contractVersion": "team_environment_forecast_features_v1",
+  "generatedAt": "2026-06-22T00:00:00.000Z",
+  "cutoffAt": "2025-09-01T00:00:00.000Z",
+  "featureSeason": 2024,
+  "targetSeason": 2025,
+  "owningRepo": "TIBER-Teamstate",
+  "intendedConsumer": "Point-prediction-model",
+  "outputKind": "model-legible-team-context",
+  "governance": {
+    "governanceStatus": "fixture",
+    "governanceSource": "explicit_marker",
+    "generatedAt": "2026-06-22T00:00:00.000Z",
+    "promotionNotes": [
+      "Shape-only fixture_scaffold. Feature values are null/unknown placeholders proving the v1 envelope; they are not source-backed and must not be treated as production truth or PPM training/evaluation input."
+    ]
+  },
+  "coverage": {
+    "teamCount": 2,
+    "expectedTeamCount": 32,
+    "isFullLeague": false,
+    "seasons": [2024],
+    "weeks": [1, 2, 3, 4, 5, 6]
+  },
+  "featureDefinitions": [
+    {
+      "name": "points_per_drive",
+      "type": "number",
+      "description": "Pre-cutoff team points scored per offensive drive.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "epa_per_play",
+      "type": "number",
+      "description": "Pre-cutoff team offensive EPA per play.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "success_rate",
+      "type": "number",
+      "description": "Pre-cutoff team offensive success rate.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "explosive_play_rate",
+      "type": "number",
+      "description": "Pre-cutoff team explosive-play rate.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pressure_rate_allowed",
+      "type": "number",
+      "description": "Pre-cutoff rate of pressures allowed by the team offense.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "seconds_per_play",
+      "type": "number",
+      "description": "Pre-cutoff team pace, in seconds per offensive play.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "neutral_pass_rate",
+      "type": "number",
+      "description": "Pre-cutoff team neutral-script pass rate.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "volatility_score",
+      "type": "number",
+      "description": "Pre-cutoff Teamstate stability/volatility score (team-state metric, not a fantasy output).",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "offense_direction",
+      "type": "direction",
+      "description": "Directional change in the team's offensive environment across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pass_environment_direction",
+      "type": "direction",
+      "description": "Directional change in the team's pass-script lean across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pace_direction",
+      "type": "direction",
+      "description": "Directional change in the team's pace across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pressure_direction",
+      "type": "direction",
+      "description": "Directional change in pressure allowed by the team offense across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "volatility_direction",
+      "type": "direction",
+      "description": "Directional change in the team's volatility across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "offense_tier",
+      "type": "tier",
+      "description": "Candidate categorical offensive-environment tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pass_environment_tier",
+      "type": "tier",
+      "description": "Candidate categorical pass-environment tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pace_tier",
+      "type": "tier",
+      "description": "Candidate categorical pace tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "volatility_tier",
+      "type": "tier",
+      "description": "Candidate categorical volatility tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    }
+  ],
+  "teams": [
+    {
+      "teamId": "DET",
+      "teamAbbr": "DET",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": null,
+        "epa_per_play": null,
+        "success_rate": null,
+        "explosive_play_rate": null,
+        "pressure_rate_allowed": null,
+        "seconds_per_play": null,
+        "neutral_pass_rate": null,
+        "volatility_score": null,
+        "offense_direction": "unknown",
+        "pass_environment_direction": "unknown",
+        "pace_direction": "unknown",
+        "pressure_direction": "unknown",
+        "volatility_direction": "unknown",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "unavailable",
+      "confidence": 0,
+      "warnings": [
+        "Shape-only placeholder. No source-backed pre-cutoff feature values are populated for this team yet."
+      ],
+      "sourceDatasetRefs": []
+    },
+    {
+      "teamId": "PIT",
+      "teamAbbr": "PIT",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": null,
+        "epa_per_play": null,
+        "success_rate": null,
+        "explosive_play_rate": null,
+        "pressure_rate_allowed": null,
+        "seconds_per_play": null,
+        "neutral_pass_rate": null,
+        "volatility_score": null,
+        "offense_direction": "unknown",
+        "pass_environment_direction": "unknown",
+        "pace_direction": "unknown",
+        "pressure_direction": "unknown",
+        "volatility_direction": "unknown",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "unavailable",
+      "confidence": 0,
+      "warnings": [
+        "Shape-only placeholder. No source-backed pre-cutoff feature values are populated for this team yet."
+      ],
+      "sourceDatasetRefs": []
+    }
+  ]
+}
