@@ -135,6 +135,19 @@ describe('team_week_raw_v0 full-league coverage validator — fails closed', () 
     expect(result.errors.some((e) => e.includes('duplicate row'))).toBe(true);
   });
 
+  it('fails closed on an unexpected week (out-of-window row, e.g. week 7)', () => {
+    const rows = [...adaptedRows(), { team_code: 'ARI', week: 7, season: 2024 }] as Parameters<
+      typeof validateTeamWeekFullLeagueCoverage
+    >[0];
+    const result = validateTeamWeekFullLeagueCoverage(rows, {
+      expectedTeams: NFL_TEAM_CODES_32,
+      expectedWeeks: SCAFFOLD_WEEKS
+    });
+    expect(result.valid).toBe(false);
+    expect(result.isFullLeague).toBe(false);
+    expect(result.errors.some((e) => e.includes('team "ARI" has unexpected week 7'))).toBe(true);
+  });
+
   it('fails closed on an unexpected team', () => {
     const rows = [...adaptedRows(), { team_code: 'XXX', week: 1, season: 2024 }] as Parameters<
       typeof validateTeamWeekFullLeagueCoverage

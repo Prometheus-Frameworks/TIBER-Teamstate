@@ -42,6 +42,7 @@ export function validateTeamWeekFullLeagueCoverage(
   const expectedTeams = [...expectation.expectedTeams];
   const expectedWeeks = [...expectation.expectedWeeks];
   const expectedTeamSet = new Set(expectedTeams);
+  const expectedWeekSet = new Set(expectedWeeks);
 
   // Map each team -> set of weeks seen, flagging duplicate (team, week) pairs.
   const weeksByTeam = new Map<string, Set<number>>();
@@ -74,6 +75,17 @@ export function validateTeamWeekFullLeagueCoverage(
   for (const team of weeksByTeam.keys()) {
     if (!expectedTeamSet.has(team)) {
       errors.push(`unexpected team "${team}" not in expected set`);
+    }
+  }
+
+  // No unexpected weeks. Rows outside the expected window (e.g. a week 7 row in a weeks 1-6 gate)
+  // must fail closed, otherwise post-window data could leak into downstream feature generation while
+  // coverage still reports full-league.
+  for (const [team, weeks] of weeksByTeam) {
+    for (const week of weeks) {
+      if (!expectedWeekSet.has(week)) {
+        errors.push(`team "${team}" has unexpected week ${week} (outside expected weeks)`);
+      }
     }
   }
 
