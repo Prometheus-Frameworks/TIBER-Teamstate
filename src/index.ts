@@ -21,6 +21,9 @@ export * from './reports/positionalEnvironment.js';
 export * from './reports/buildLatestWeekReports.js';
 export * from './reports/buildSeasonToDateReports.js';
 
+export * from './fixtures/teamWeekRawV0FullLeagueScaffold.js';
+export * from './validation/teamWeekRawV0Coverage.js';
+
 export * from './contracts/teamEnvironmentProfile.js';
 export * from './contracts/teamEnvironmentMovement.js';
 export * from './contracts/teamEnvironmentMovementV1.js';

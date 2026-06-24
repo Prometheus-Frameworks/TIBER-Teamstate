@@ -2,7 +2,7 @@ import type { RawTeamWeekRow } from './mapRawTeamWeekToTeamStateInput.js';
 
 type NullableNumber = number | null | undefined;
 
-interface TeamWeekRawV0Row {
+export interface TeamWeekRawV0Row {
   season: number;
   week: number;
   teamCode: string;
