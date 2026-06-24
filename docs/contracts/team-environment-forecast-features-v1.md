@@ -16,6 +16,31 @@ It bridges Teamstate's existing team-environment outputs (`team_environment_move
 `team_environment_profiles_v0`) toward PPM issue #59's feature-manifest boundary, **without**
 turning TTS into a fantasy-point model or a source-of-truth repo.
 
+## Relationship to the #44 audit/spec
+
+This contract is **downstream of the #44 audit/spec**
+(`docs/audits/teamstate-ppm-2024-artifact-audit-2026-06-23.md`, merged), which inventoried the
+current Teamstate artifact surface and specified the 2024 full-league target. This slice is the
+**contract-shape + validator** step that #44 feeds; it deliberately does **not** finalize coverage,
+generate real 2024 data, or promote any artifact. The audit's facts hold here:
+
+- the current movement artifact (`output/team_environment_movement_v1.json`) is a **2025 fixture
+  scaffold** (DET/PIT, weeks 1–6, `fixture_scaffold`), **not** real 2024 full-league data;
+- **no 2024 full-league movement artifact is committed today**, so the fixture shipped with this
+  contract is shape-only and carries no source-backed values.
+
+### Leakage boundary (from #44 §4)
+
+Per-feature eligibility depends on **window alignment relative to the prediction target**, not on the
+field itself:
+
+- **Predictive-input-eligible:** 2024 (pre-cutoff) Teamstate context → feature for a **2025** PPR
+  target. This is the alignment this artifact is shaped for (`featureSeason: 2024`,
+  `targetSeason: 2025`, all features strictly pre-`cutoffAt`).
+- **Explanation/eval only (leakage if used as a within-season predictive feature):** 2024
+  full-season Teamstate used to **explain 2024 PPR after the fact**. The `allowedInModel` /
+  `allowedInPosthocExplanation` flags exist to keep these two uses distinct per feature.
+
 ## Ownership boundary (the one rule that matters)
 
 TTS describes **team environment context only**. It never describes player outcomes.
@@ -26,6 +51,10 @@ TTS describes **team environment context only**. It never describes player outco
 
 PPM — not TTS — decides whether the team-context features improve forecast accuracy. This artifact
 is an input offer, not a prediction.
+
+**Consumer boundary:** the only authorized consumer at this stage is the Point-prediction-model
+(PPM). There is **no authorized Product/Management consumption** of this surface — no UI, rankings,
+or fantasy advice may read it. This mirrors the #44 handoff boundary (PPM-only).
 
 ## Artifact
 
