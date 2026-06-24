@@ -72,8 +72,13 @@ export interface BuildForecastFeaturesOptions {
   featureSeason: number;
   /** Season PPM forecasts into (e.g. 2025). Carried for join/audit only. */
   targetSeason: number;
-  /** Expected league size; defaults to 32. */
+  /** Expected league size; defaults to 32 (or `expectedTeams.length` when provided). */
   expectedTeamCount?: number;
+  /**
+   * Canonical expected team set for the feature season. When provided, the builder fails closed on
+   * any team outside this set, and full-league coverage is derived against it.
+   */
+  expectedTeams?: readonly string[];
   /** Auditable lineage refs attached to every row. */
   sourceDatasetRefs?: string[];
   /** Per-row coverage status; defaults to `partial` (scaffold / weeks-subset). */
@@ -112,21 +117,56 @@ const toFeatureValues = (team: TeamEnvironmentMovementTeamV1): TeamEnvironmentFo
 
 /**
  * Build a `team_environment_forecast_features_v1` artifact from a `team_environment_movement_v1`
- * artifact. Output teams are sorted deterministically by `teamId` then `teamAbbr`. Coverage is
- * derived from the actual rows (weeks from the union of `weeksCovered`); `isFullLeague` is true only
- * when the team count equals `expectedTeamCount`.
+ * artifact. Fails closed on cross-season rows (leakage guard), duplicate teams, and — when
+ * `expectedTeams` is given — unexpected teams, so coverage reflects a clean one-row-per-team set.
+ * Output teams are sorted deterministically by `teamId` then `teamAbbr`. Coverage is derived from
+ * the actual rows (weeks from the union of `weeksCovered`); `isFullLeague` is true only when the
+ * (now-unique) team count equals `expectedTeamCount`.
  */
 export function buildTeamEnvironmentForecastFeaturesV1(
   movement: TeamEnvironmentMovementArtifactV1,
   options: BuildForecastFeaturesOptions
 ): TeamEnvironmentForecastFeaturesArtifactV1 {
-  const expectedTeamCount = options.expectedTeamCount ?? 32;
+  const expectedTeamCount = options.expectedTeams?.length ?? options.expectedTeamCount ?? 32;
   const featureCoverageStatus = options.featureCoverageStatus ?? 'partial';
   const confidence = options.confidence ?? 0;
   const rowWarnings = options.rowWarnings ?? [];
   const sourceDatasetRefs = options.sourceDatasetRefs ?? [];
   const governance: ForecastFeaturesGovernanceInput =
     options.governance ?? { governanceStatus: 'fixture', governanceSource: 'explicit_marker' };
+
+  // Fail closed on input that cannot be honestly expressed in this single-feature-season,
+  // one-row-per-team envelope. These guards keep coverage derivable from a clean unique team set
+  // rather than a raw row count, and prevent cross-season (post-cutoff/target-season) leakage.
+  const offSeason = movement.teams.filter((team) => team.season !== options.featureSeason);
+  if (offSeason.length > 0) {
+    const seasons = Array.from(new Set(offSeason.map((team) => team.season)))
+      .sort((a, b) => a - b)
+      .join(', ');
+    throw new Error(
+      `buildTeamEnvironmentForecastFeaturesV1: movement contains season(s) ${seasons} not matching ` +
+        `featureSeason ${options.featureSeason}; refusing to publish cross-season rows under one ` +
+        `feature-season envelope.`
+    );
+  }
+  const seenTeamIds = new Set<string>();
+  for (const team of movement.teams) {
+    if (seenTeamIds.has(team.teamId)) {
+      throw new Error(`buildTeamEnvironmentForecastFeaturesV1: duplicate team "${team.teamId}" in movement input.`);
+    }
+    seenTeamIds.add(team.teamId);
+  }
+  if (options.expectedTeams) {
+    const expectedSet = new Set(options.expectedTeams);
+    for (const teamId of seenTeamIds) {
+      if (!expectedSet.has(teamId)) {
+        throw new Error(
+          `buildTeamEnvironmentForecastFeaturesV1: unexpected team "${teamId}" not in the expected ` +
+            `team set for season ${options.featureSeason}.`
+        );
+      }
+    }
+  }
 
   const teams: TeamEnvironmentForecastFeatureTeamV1[] = movement.teams
     .map((team) => ({

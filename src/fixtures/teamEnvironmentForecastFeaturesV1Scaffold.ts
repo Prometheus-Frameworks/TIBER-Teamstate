@@ -4,7 +4,7 @@ import { validateTeamWeekInputRow } from '../ingest/loadTeamWeekInputs.js';
 import { buildTeamWeekStates } from '../transform/buildTeamWeekState.js';
 import { buildTeamEnvironmentMovementV1 } from '../pipeline/teamEnvironmentMovementV1.js';
 import { buildTeamEnvironmentForecastFeaturesV1 } from '../pipeline/teamEnvironmentForecastFeaturesV1.js';
-import { buildTeamWeekRawV0FullLeagueScaffold } from './teamWeekRawV0FullLeagueScaffold.js';
+import { buildTeamWeekRawV0FullLeagueScaffold, NFL_TEAM_CODES_32 } from './teamWeekRawV0FullLeagueScaffold.js';
 import type { TeamEnvironmentForecastFeaturesArtifactV1 } from '../contracts/teamEnvironmentForecastFeaturesV1.js';
 
 /**
@@ -64,7 +64,7 @@ export function buildAll32ForecastFeaturesScaffold(): TeamEnvironmentForecastFea
     cutoffAt: FORECAST_FEATURES_SCAFFOLD_CUTOFF_AT,
     featureSeason: FORECAST_FEATURES_SCAFFOLD_FEATURE_SEASON,
     targetSeason: FORECAST_FEATURES_SCAFFOLD_TARGET_SEASON,
-    expectedTeamCount: 32,
+    expectedTeams: NFL_TEAM_CODES_32,
     sourceDatasetRefs: [FORECAST_FEATURES_SCAFFOLD_INPUT_PATH, 'team_environment_movement_v1'],
     featureCoverageStatus: 'partial',
     confidence: 0,
