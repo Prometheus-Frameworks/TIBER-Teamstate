@@ -42,9 +42,10 @@ The repo's stated architecture is unambiguous and is preserved here:
 documented TIBER-Data provenance lane and is out of the Teamstate boundary. A change to this
 architecture would require its own explicit issue; it is **not** in scope here.
 
-**Companion issue required:** the TIBER-Data acquisition/normalization lane needs a separate issue in
-the **TIBER-Data** repo (see §7 PR C and the recommendation at the end). This spec defines only the
-**consumption contract** Teamstate expects from that lane.
+**Companion issue:** the TIBER-Data acquisition/normalization lane is tracked by
+**`Prometheus-Frameworks/TIBER-Data#162`** ("Spec: governed 2024 all-32 team-week source artifact for
+Teamstate"; see §7 PR C). This spec defines only the **consumption contract** Teamstate expects from
+that lane.
 
 > Interim fallback (honest, non-governed): if TIBER-Data cannot yet provide the source artifact, a
 > Teamstate-owned narrow adapter may consume a clearly-labeled `partial_real_data` / `ungoverned`
@@ -223,7 +224,7 @@ should be confirmed with PPM before the real artifact is generated.
 | --- | --- | --- | --- |
 | **PR A** | TIBER-Teamstate | **This docs-only source-path audit/spec.** | No code/data. |
 | **PR B** | TIBER-Teamstate | Adapter relaxation (fantasy-point fields optional, §4) + **dry-run read-only consumer** for a future TIBER-Data artifact. **No ingestion.** | No real artifact committed. |
-| **PR C** | **TIBER-Data** | Source **acquisition/normalization**: produce the real 2024 all-32 team-week source artifact with source refs + retrieval date. | Governed source owned by TIBER-Data. |
+| **PR C** | **TIBER-Data** | Source **acquisition/normalization** (`Prometheus-Frameworks/TIBER-Data#162`): produce the real 2024 all-32 team-week source artifact with source refs + retrieval date. | Governed source owned by TIBER-Data. |
 | **PR D** | TIBER-Teamstate | Consume the real source → `partial_real_data` / `ungoverned` real 2024 artifact **with validation report**. | Honest non-governed status; no promotion. |
 | **PR E** | TIBER-Teamstate | **Promote to `governed`** only after explicit-marker governance + full §5 checklist. | First PPM-eligible artifact. |
 | **PR F** | (rehearsal) | **PPM ingestion rehearsal only**, after a governed (or explicitly allowed) source status exists. | No production PPM run. |
@@ -243,7 +244,7 @@ path-inference governance; no #259/#265/#277 implementation; freshness only ment
 
 ## Future work (not in scope here)
 
-- The TIBER-Data acquisition/normalization issue (PR C) — **must be opened in the TIBER-Data repo**.
+- The TIBER-Data acquisition/normalization issue (PR C) — tracked by `Prometheus-Frameworks/TIBER-Data#162`.
 - Adapter relaxation + dry-run consumer (PR B).
 - Real ingestion, validation report, and governance promotion (PRs D–E).
 - Freshness/staleness enforcement on the real 2024 artifact (mentioned only; not designed here).
