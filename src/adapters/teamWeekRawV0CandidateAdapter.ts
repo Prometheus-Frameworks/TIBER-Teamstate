@@ -150,7 +150,45 @@ const validateRow = (row: unknown, index: number): TeamWeekRawCandidateRow => {
     }
   }
 
-  return candidate as unknown as TeamWeekRawCandidateRow;
+  // Construct a fresh, whitelisted row rather than casting `candidate` directly: the upstream
+  // artifact may carry extra keys (e.g. `gameId`, `isByeWeek`, or in principle a future `score`/
+  // `ranking`/`advice` field) that must never leak into the documented candidate row shape.
+  const whitelistedRow: TeamWeekRawCandidateRow = {
+    season: candidate.season as number,
+    week: candidate.week as number,
+    teamCode: candidate.teamCode as string,
+    opponentCode: candidate.opponentCode as string,
+    pointsFor: candidate.pointsFor as NullableNumber,
+    pointsAgainst: candidate.pointsAgainst as NullableNumber,
+    offensivePlays: candidate.offensivePlays as NullableNumber,
+    neutralPlays: candidate.neutralPlays as NullableNumber,
+    secondsPerPlay: candidate.secondsPerPlay as NullableNumber,
+    passRate: candidate.passRate as NullableNumber,
+    neutralPassRate: candidate.neutralPassRate as NullableNumber,
+    rushRate: candidate.rushRate as NullableNumber,
+    epaPerPlay: candidate.epaPerPlay as NullableNumber,
+    passEpaPerPlay: candidate.passEpaPerPlay as NullableNumber,
+    rushEpaPerPlay: candidate.rushEpaPerPlay as NullableNumber,
+    successRate: candidate.successRate as NullableNumber,
+    explosivePlayRate: candidate.explosivePlayRate as NullableNumber,
+    drives: candidate.drives as NullableNumber,
+    pointsPerDrive: candidate.pointsPerDrive as NullableNumber,
+    redZoneTrips: candidate.redZoneTrips as NullableNumber,
+    redZoneTdRate: candidate.redZoneTdRate as NullableNumber,
+    sacksAllowed: candidate.sacksAllowed as NullableNumber,
+    pressureRateAllowed: candidate.pressureRateAllowed as NullableNumber,
+    turnovers: candidate.turnovers as NullableNumber,
+    fantasyPointsForQB: candidate.fantasyPointsForQB as NullableNumber,
+    fantasyPointsForRB: candidate.fantasyPointsForRB as NullableNumber,
+    fantasyPointsForWR: candidate.fantasyPointsForWR as NullableNumber,
+    fantasyPointsForTE: candidate.fantasyPointsForTE as NullableNumber,
+    fantasyPointsAllowedQB: candidate.fantasyPointsAllowedQB as NullableNumber,
+    fantasyPointsAllowedRB: candidate.fantasyPointsAllowedRB as NullableNumber,
+    fantasyPointsAllowedWR: candidate.fantasyPointsAllowedWR as NullableNumber,
+    fantasyPointsAllowedTE: candidate.fantasyPointsAllowedTE as NullableNumber
+  };
+
+  return whitelistedRow;
 };
 
 interface CandidateMetadataGovernance {

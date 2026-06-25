@@ -84,6 +84,57 @@ describe('teamWeekRawV0CandidateAdapter', () => {
     expect(Object.keys(result).sort()).toEqual(['rows', 'upstream']);
   });
 
+  it('does not leak extra upstream row keys (gameId, isByeWeek, or a hypothetical score field)', () => {
+    const fixture = loadFixture() as { rows: Array<Record<string, unknown>> } & Record<string, unknown>;
+    const rowWithExtraKeys: Record<string, unknown> = {
+      ...fixture.rows[0],
+      score: 99,
+      ranking: 1,
+      advice: 'start him'
+    };
+    expect(rowWithExtraKeys.gameId).toBeDefined();
+    expect(rowWithExtraKeys.isByeWeek).toBeDefined();
+
+    const result = adaptTeamWeekRawV0Candidate({ ...fixture, rows: [rowWithExtraKeys] }, fixturePath);
+
+    const expectedKeys = [
+      'season',
+      'week',
+      'teamCode',
+      'opponentCode',
+      'pointsFor',
+      'pointsAgainst',
+      'offensivePlays',
+      'neutralPlays',
+      'secondsPerPlay',
+      'passRate',
+      'neutralPassRate',
+      'rushRate',
+      'epaPerPlay',
+      'passEpaPerPlay',
+      'rushEpaPerPlay',
+      'successRate',
+      'explosivePlayRate',
+      'drives',
+      'pointsPerDrive',
+      'redZoneTrips',
+      'redZoneTdRate',
+      'sacksAllowed',
+      'pressureRateAllowed',
+      'turnovers',
+      'fantasyPointsForQB',
+      'fantasyPointsForRB',
+      'fantasyPointsForWR',
+      'fantasyPointsForTE',
+      'fantasyPointsAllowedQB',
+      'fantasyPointsAllowedRB',
+      'fantasyPointsAllowedWR',
+      'fantasyPointsAllowedTE'
+    ].sort();
+
+    expect(Object.keys(result.rows[0]!).sort()).toEqual(expectedKeys);
+  });
+
   it('fails closed on governed_real_data provenance status', () => {
     const governedArtifact = withMetadata({ provenanceStatus: 'governed_real_data' });
     expect(() => adaptTeamWeekRawV0Candidate(governedArtifact, fixturePath)).toThrow(
