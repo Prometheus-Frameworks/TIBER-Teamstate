@@ -130,6 +130,9 @@ A concrete blocker exists between the real-source field set (§3) and the curren
 > - Keep the adapter **fail-closed** on the genuinely-required team-state numeric fields (§3).
 > - Tests cover: real-shape row without fantasy-point fields → adapts cleanly; existing
 >   fantasy-bearing fixture → unchanged.
+> - Add a **bye-aware coverage check** (or bye-aware mode of `validateTeamWeekFullLeagueCoverage`)
+>   for the real lane: validate per-team game count over the chosen window instead of a dense
+>   team × week grid (see §6). The dense-grid validator remains correct for the scaffold lane.
 
 ---
 
@@ -145,7 +148,8 @@ An artifact may be marked `governanceStatus: governed` / `provenanceStatus: gove
       as the scaffold chain already is);
 - [ ] a **validation report**;
 - [ ] **all 32 teams present**;
-- [ ] **expected weeks present** (per the §6 window decision);
+- [ ] **bye-aware coverage** — each team has its schedule-correct **game count** (17 for the full
+      2024 regular season), with byes explicit-by-absence and **not** fabricated as rows (per §6);
 - [ ] explicit **missing-field policy** applied (fail-closed or documented null — never silent
       fabrication);
 - [ ] an **explicit governance marker** set by the producer (`governanceSource: explicit_marker`);
@@ -182,8 +186,34 @@ Constraints regardless of choice:
   - **Explanation / eval only (leakage if used as a within-season predictive feature):** 2024
     full-season context used to explain/predict **2024** PPR after the fact.
 
-This decision is an input to PR C/PR D and should be confirmed with PPM before the real artifact is
-generated.
+### Bye weeks & expected game count (coverage-model change required for the real lane)
+
+The scaffold lane (#47/#49) uses a **dense team × week grid** — all 32 teams appear in every week
+1–6 — and `validateTeamWeekFullLeagueCoverage` (#47) accordingly checks "each expected team for each
+expected week." **A real 2024 game-row source is not dense:** the 2024 regular season runs weeks
+1–18, every team has **exactly one bye**, so each team has **17 game rows**, not 18. A team is simply
+**absent** in its bye week — there is no game, no `opponentCode`, and no game stats.
+
+This breaks the dense-grid assumption, so the policy must be fixed **before PR C/D generation**:
+
+- **No fabricated bye rows.** A bye must **not** be represented as a zero-filled or placeholder game
+  row — that is invented data and would distort window aggregates. A bye is an absent row.
+- **Coverage is validated by expected *game count per team*, not team × week presence.** For the
+  full 18-week regular season, the expected count is **17 games per team** (each within weeks 1–18);
+  for a fantasy-aligned weeks 1–17 window, the per-team expected count is **16 or 17** depending on
+  whether that team's bye falls in week 18 — this must be derived from the real schedule, not
+  assumed uniform.
+- **`validateTeamWeekFullLeagueCoverage` must gain a bye-aware mode** (or a sibling validator) for
+  the real lane: assert all 32 teams present, each with its schedule-correct game count and no
+  duplicate (team, week), and every game week within the chosen window — **without** requiring a row
+  for every team in every week. The current dense-grid validator stays correct for the scaffold lane;
+  the real lane needs the bye-aware check. This is a **PR B / PR D acceptance item**, not a PR A code
+  change.
+- The artifact should record, per team, the **played weeks** and **expected game count**, so coverage
+  is auditable and byes are explicit-by-absence rather than inferred.
+
+This decision (window + bye handling + per-team expected game count) is an input to PR C/PR D and
+should be confirmed with PPM before the real artifact is generated.
 
 ---
 
