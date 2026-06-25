@@ -1,0 +1,1246 @@
+{
+  "artifact": "team_environment_forecast_features_v1",
+  "contractVersion": "team_environment_forecast_features_v1",
+  "generatedAt": "2026-06-24T00:00:00.000Z",
+  "cutoffAt": "2025-09-01T00:00:00.000Z",
+  "featureSeason": 2024,
+  "targetSeason": 2025,
+  "owningRepo": "TIBER-Teamstate",
+  "intendedConsumer": "Point-prediction-model",
+  "outputKind": "model-legible-team-context",
+  "governance": {
+    "governanceStatus": "fixture",
+    "governanceSource": "explicit_marker",
+    "generatedAt": "2026-06-24T00:00:00.000Z",
+    "promotionNotes": [
+      "Shape/coverage scaffold derived from a neutral-placeholder upstream input. Proves the v1 envelope at full-league width; not source-backed, not governed, not PPM-training-ready."
+    ]
+  },
+  "coverage": {
+    "teamCount": 32,
+    "expectedTeamCount": 32,
+    "isFullLeague": true,
+    "seasons": [
+      2024
+    ],
+    "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "featureDefinitions": [
+    {
+      "name": "points_per_drive",
+      "type": "number",
+      "description": "Pre-cutoff team points scored per offensive drive.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "epa_per_play",
+      "type": "number",
+      "description": "Pre-cutoff team offensive EPA per play.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "success_rate",
+      "type": "number",
+      "description": "Pre-cutoff team offensive success rate.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "explosive_play_rate",
+      "type": "number",
+      "description": "Pre-cutoff team explosive-play rate.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pressure_rate_allowed",
+      "type": "number",
+      "description": "Pre-cutoff rate of pressures allowed by the team offense.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "seconds_per_play",
+      "type": "number",
+      "description": "Pre-cutoff team pace, in seconds per offensive play.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "neutral_pass_rate",
+      "type": "number",
+      "description": "Pre-cutoff team neutral-script pass rate.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "volatility_score",
+      "type": "number",
+      "description": "Pre-cutoff Teamstate stability/volatility score (team-state metric, not a fantasy output).",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "offense_direction",
+      "type": "direction",
+      "description": "Directional change in the team's offensive environment across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pass_environment_direction",
+      "type": "direction",
+      "description": "Directional change in the team's pass-script lean across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pace_direction",
+      "type": "direction",
+      "description": "Directional change in the team's pace across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pressure_direction",
+      "type": "direction",
+      "description": "Directional change in pressure allowed by the team offense across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "volatility_direction",
+      "type": "direction",
+      "description": "Directional change in the team's volatility across the pre-cutoff window.",
+      "allowedInModel": true,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "offense_tier",
+      "type": "tier",
+      "description": "Candidate categorical offensive-environment tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pass_environment_tier",
+      "type": "tier",
+      "description": "Candidate categorical pass-environment tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "pace_tier",
+      "type": "tier",
+      "description": "Candidate categorical pace tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    },
+    {
+      "name": "volatility_tier",
+      "type": "tier",
+      "description": "Candidate categorical volatility tier (from team_environment_profiles_v0).",
+      "allowedInModel": false,
+      "allowedInPosthocExplanation": true
+    }
+  ],
+  "teams": [
+    {
+      "teamId": "ARI",
+      "teamAbbr": "ARI",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "ATL",
+      "teamAbbr": "ATL",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "BAL",
+      "teamAbbr": "BAL",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "BUF",
+      "teamAbbr": "BUF",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "CAR",
+      "teamAbbr": "CAR",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "CHI",
+      "teamAbbr": "CHI",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "CIN",
+      "teamAbbr": "CIN",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "CLE",
+      "teamAbbr": "CLE",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "DAL",
+      "teamAbbr": "DAL",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "DEN",
+      "teamAbbr": "DEN",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "DET",
+      "teamAbbr": "DET",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "GB",
+      "teamAbbr": "GB",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "HOU",
+      "teamAbbr": "HOU",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "IND",
+      "teamAbbr": "IND",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "JAX",
+      "teamAbbr": "JAX",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "KC",
+      "teamAbbr": "KC",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "LAC",
+      "teamAbbr": "LAC",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "LAR",
+      "teamAbbr": "LAR",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "LV",
+      "teamAbbr": "LV",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "MIA",
+      "teamAbbr": "MIA",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "MIN",
+      "teamAbbr": "MIN",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "NE",
+      "teamAbbr": "NE",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "NO",
+      "teamAbbr": "NO",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "NYG",
+      "teamAbbr": "NYG",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "NYJ",
+      "teamAbbr": "NYJ",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "PHI",
+      "teamAbbr": "PHI",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "PIT",
+      "teamAbbr": "PIT",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "SEA",
+      "teamAbbr": "SEA",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "SF",
+      "teamAbbr": "SF",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "TB",
+      "teamAbbr": "TB",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "TEN",
+      "teamAbbr": "TEN",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    },
+    {
+      "teamId": "WAS",
+      "teamAbbr": "WAS",
+      "season": 2024,
+      "cutoffAt": "2025-09-01T00:00:00.000Z",
+      "features": {
+        "points_per_drive": 2,
+        "epa_per_play": 0,
+        "success_rate": 0.45,
+        "explosive_play_rate": 0.1,
+        "pressure_rate_allowed": 0.28,
+        "seconds_per_play": 28,
+        "neutral_pass_rate": 0.5,
+        "volatility_score": 42.89,
+        "offense_direction": "stable",
+        "pass_environment_direction": "stable",
+        "pace_direction": "stable",
+        "pressure_direction": "stable",
+        "volatility_direction": "stable",
+        "offense_tier": "unknown",
+        "pass_environment_tier": "unknown",
+        "pace_tier": "unknown",
+        "volatility_tier": "unknown"
+      },
+      "featureCoverageStatus": "partial",
+      "confidence": 0,
+      "warnings": [
+        "Scaffold-derived from the all-32 weeks 1-6 team_week_raw_v0 fixture-scaffold (#47), whose inputs are identical neutral placeholders. Feature values carry no real per-team signal; not source-backed, not PPM-training-ready."
+      ],
+      "sourceDatasetRefs": [
+        "data/fixtures/team_week_raw/team_week_raw_v0.all32_weeks1to6.scaffold.json",
+        "team_environment_movement_v1"
+      ]
+    }
+  ]
+}

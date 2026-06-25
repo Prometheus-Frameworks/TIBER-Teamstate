@@ -22,6 +22,7 @@ export * from './reports/buildLatestWeekReports.js';
 export * from './reports/buildSeasonToDateReports.js';
 
 export * from './fixtures/teamWeekRawV0FullLeagueScaffold.js';
+export * from './fixtures/teamEnvironmentForecastFeaturesV1Scaffold.js';
 export * from './validation/teamWeekRawV0Coverage.js';
 
 export * from './contracts/teamEnvironmentProfile.js';
@@ -31,3 +32,4 @@ export * from './contracts/teamEnvironmentForecastFeaturesV1.js';
 export * from './pipeline/teamEnvironmentProfiles.js';
 export * from './pipeline/teamEnvironmentMovement.js';
 export * from './pipeline/teamEnvironmentMovementV1.js';
+export * from './pipeline/teamEnvironmentForecastFeaturesV1.js';
