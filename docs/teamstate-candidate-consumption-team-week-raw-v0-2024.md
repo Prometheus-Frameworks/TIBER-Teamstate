@@ -81,6 +81,55 @@ interface TeamWeekRawCandidateConsumption {
 A test locks `Object.keys(result)` to exactly `['rows', 'upstream']` — no ranking, advice, or score
 fields are produced by this adapter.
 
+## Dry-run coverage lane (issue [#58](https://github.com/Prometheus-Frameworks/TIBER-Teamstate/issues/58))
+
+The next bounded slice after the bye-aware validator (#56/#57) connects this read-only candidate
+intake path to that validator, with no promotion, governance, scoring, or PPM work. It is a **dry-run
+check only**.
+
+| File | Purpose |
+| --- | --- |
+| `src/dryrun/teamWeekRawV0CandidateDryRun.ts` | Pure `dryRunTeamWeekRawV0CandidateCoverage(consumption, expectation?)` + file wrapper `dryRunTeamWeekRawV0CandidateFile(path, expectation?)`. Maps candidate rows to the `(team_code, week, season)` coverage shape and explicitly invokes `validateTeamWeekByeAwareCoverage`. Exports `REAL_2024_CANDIDATE_COVERAGE_EXPECTATION` (32 teams, Weeks 1-18, 17 games/team, season 2024). |
+| `src/dryrun/runTeamWeekRawV0CandidateDryRun.ts` | Thin read-only CLI: loads a candidate file, prints the dry-run report JSON, exits non-zero only if coverage failed (usable as a CI gate). Run via `npm run dryrun:candidate -- <artifact.json>`. |
+| `tests/teamWeekRawV0CandidateDryRun.spec.ts` | Proves the behaviors below on a generated 544-row shape and on the committed 4-row sample. |
+
+The dry-run report echoes the artifact's declared candidate status and pins promotion/governance off:
+
+```ts
+interface TeamWeekRawV0CandidateDryRunReport {
+  sourceArtifactPath: string;
+  provenanceStatus: string;   // echoed, e.g. "partial_real_data"
+  governanceStatus: string;   // echoed, e.g. "ungoverned"
+  governanceSource: string;   // echoed, e.g. "not_set"
+  promoted: false;            // pinned literal — this path never promotes
+  governed: false;            // pinned literal — this path never governs
+  rowCount: number;
+  deferredFields: string[];
+  pressurePosture: 'insufficient_data';            // #55 posture, fixed label, never read
+  coverage: ByeAwareCoverageValidationResult;       // from validateTeamWeekByeAwareCoverage
+}
+```
+
+What this lane deliberately does **not** do:
+
+- **No dense-grid change.** The scaffold/dense-grid validator (`validateTeamWeekFullLeagueCoverage`)
+  is untouched; the real candidate lane invokes only the bye-aware validator. A test asserts the
+  result carries the bye-aware-only `totalRowCount` field and accepts 544 (=32×17) rows without
+  requiring a row every week (no `"is missing week N"` error).
+- **No governance inference.** Coverage success never upgrades status — a valid 544-row dry-run still
+  reports `ungoverned` / `promoted: false` / `governed: false`.
+- **No synthesized byes, no fabricated fields.** The dry-run reads only `team_code`/`week`/`season`;
+  it never touches metric values. Missing teams/rows fail closed in `coverage.errors` rather than
+  being invented (the 4-row sample reports invalid coverage **without throwing** and stays
+  ungoverned).
+- **No fantasy-source pollution.** This lane runs through the candidate adapter, which already
+  accepts the eight deferred-null `fantasyPoints*` fields as `null`. The finite-number requirement
+  that the non-candidate `teamWeekRawV0Adapter` imposes is simply not on this path, so no fantasy
+  field is added to or required of the team-state source contract — the narrow real-lane relaxation
+  already lives in the separate candidate adapter.
+- **No scoring / PPM / Product / ranking / advice.** `Object.keys(report)` is locked in tests; no
+  score, ranking, or advice field is produced, and nothing routes through `src/score/`.
+
 ## Verified against the real artifact
 
 Spot-checked against TIBER-Data's `team_week_raw_v0_2024_real_source_candidate.json` (544 rows, 32
