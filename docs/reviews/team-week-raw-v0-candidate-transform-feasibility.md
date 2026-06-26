@@ -89,6 +89,7 @@ Transform / scoring path (the impedance — "where null becomes zero"):
 - `src/score/scoreStability.ts`
 - `src/score/scoreTeamPower.ts`
 - `src/score/scoreFantasyEnvironment.ts`
+- `src/score/scoreMatchupEnvironment.ts`
 
 Movement / forecast features (the output surface):
 
@@ -134,6 +135,7 @@ into `TeamWeekInputRow`.** Enumerated null→zero sites:
 | L5 | `src/score/scoreStability.ts:14-19, 27` | `pressureRateAllowed` and `redZoneTdRate` flow through `normalize()` (L1). |
 | L6 | `src/score/scoreTeamPower.ts:11, 13-18` | `redZoneTdRate` and `pressureRateAllowed` flow through `normalize()` (L1). |
 | L7 | `src/score/scoreFantasyEnvironment.ts:15, 17-36` | `redZoneTdRate` + four `fantasyPointsFor*` fields flow through `normalize()` (L1). |
+| L8 | `src/score/scoreMatchupEnvironment.ts:22-41` (reached via `src/transform/buildTeamWeekState.ts:12`) | All four `fantasyPointsAllowed*` fields flow through `normalize()` (L1). L7 covers only the four `fantasyPointsFor*` fields; this is the *allowed* half, so together L7+L8 cover all eight deferred fantasy fields. (`scoreMatchupEnvironment.ts:17-19` also defaults the absent optional `*Allowed` split fields to a `0` boost, a related but distinct absent→zero default.) |
 
 Net effect if wired naïvely: a `null` pressure becomes `pressureAvoidance: 0` (the *worst possible*
 pressure score), a fabricated football claim. This is the core hazard the plan must design around by
@@ -245,9 +247,10 @@ situation.
 
 - **No null→zero laundering is reachable today** — the candidate path does not connect to the scoring
   pipeline (Q8).
-- **Seven latent laundering sites (L1–L7, Q2)** would activate the instant a candidate `null` is
-  coerced into `TeamWeekInputRow`. They are all in `src/score/` and all stem from the scoring path's
-  design choice to **fail open to zero** for non-finite inputs.
+- **Eight latent laundering sites (L1–L8, Q2)** would activate the instant a candidate `null` is
+  coerced into `TeamWeekInputRow`. They are all in `src/score/` (reached through
+  `buildTeamWeekState`, which fans out to all four scorers including `scoreMatchupEnvironment`) and
+  all stem from the scoring path's design choice to **fail open to zero** for non-finite inputs.
 - **One contamination channel (Q3):** `volatilityScore` carries laundered pressure/redZone zeros into
   the otherwise-null-safe movement averages.
 - **One exposure channel (Q5):** a laundered `0` pressure could reach the **model-allowed**
