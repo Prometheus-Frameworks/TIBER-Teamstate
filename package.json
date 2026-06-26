@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "check": "tsc -p tsconfig.json --noEmit",
-    "pipeline": "npm run build && node dist/src/pipeline/runTeamStatePipeline.js"
+    "pipeline": "npm run build && node dist/src/pipeline/runTeamStatePipeline.js",
+    "dryrun:candidate": "npm run build && node dist/src/dryrun/runTeamWeekRawV0CandidateDryRun.js"
   },
   "keywords": [
     "nfl",
