@@ -114,6 +114,13 @@ export interface ByeAwareCoverageExpectation {
   expectedWeeks: readonly number[];
   /** Expected game rows per team within the window (e.g. 17 for an 18-week season with one bye). */
   expectedGamesPerTeam: number;
+  /**
+   * The single season this candidate must represent (e.g. 2024). Required and checked against every
+   * row's `season`: without this, a row from a different season sharing a `(team_code, week)` pair
+   * with a missing 2024 row would satisfy the team/week/count checks and let a mixed-season artifact
+   * report `isFullLeague: true`.
+   */
+  expectedSeason: number;
 }
 
 export interface ByeAwareCoverageValidationResult {
@@ -137,6 +144,10 @@ export interface ByeAwareCoverageValidationResult {
  * message: a missing bye week is never itself an error here, so failures are phrased in terms of a
  * team's total game-row count (e.g. `"has 16 game row(s), expected exactly 17"`), not a specific
  * missing week.
+ *
+ * Every row's `season` is also checked against `expectedSeason`: without this, a row from a
+ * different season sharing a `(team_code, week)` pair with a missing expected-season row would
+ * satisfy the team/week/count checks and let a mixed-season artifact report `isFullLeague: true`.
  */
 export function validateTeamWeekByeAwareCoverage(
   rows: readonly TeamWeekCoverageRow[],
@@ -146,6 +157,7 @@ export function validateTeamWeekByeAwareCoverage(
   const expectedTeams = [...expectation.expectedTeams];
   const expectedWeeks = [...expectation.expectedWeeks];
   const expectedGamesPerTeam = expectation.expectedGamesPerTeam;
+  const expectedSeason = expectation.expectedSeason;
   const expectedTeamSet = new Set(expectedTeams);
   const expectedWeekSet = new Set(expectedWeeks);
   const sortedExpectedWeeks = [...expectedWeekSet].sort((a, b) => a - b).join(', ');
@@ -165,6 +177,15 @@ export function validateTeamWeekByeAwareCoverage(
       errors.push(`duplicate row for team "${row.team_code}" week ${row.week}`);
     }
     weeks.add(row.week);
+
+    // A row from another season sharing this team/week could otherwise stand in for a missing
+    // expectedSeason row and still satisfy every other check, so season is checked per-row.
+    if (row.season !== expectedSeason) {
+      errors.push(
+        `team "${row.team_code}" week ${row.week} has season ${row.season ?? 'undefined'}, ` +
+          `expected season ${expectedSeason}`
+      );
+    }
   }
 
   // Every expected team must be present with exactly expectedGamesPerTeam rows. A bye week is an

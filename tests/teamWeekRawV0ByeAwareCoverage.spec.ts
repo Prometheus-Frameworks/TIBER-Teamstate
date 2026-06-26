@@ -33,7 +33,8 @@ const buildByeAwareFixtureRows = (season = 2024): TeamWeekCoverageRow[] => {
 const baseExpectation = {
   expectedTeams: NFL_TEAM_CODES_32,
   expectedWeeks: REGULAR_SEASON_WEEKS_2024,
-  expectedGamesPerTeam: EXPECTED_GAMES_PER_TEAM
+  expectedGamesPerTeam: EXPECTED_GAMES_PER_TEAM,
+  expectedSeason: 2024
 };
 
 describe('team_week_raw_v0 bye-aware coverage validator', () => {
@@ -134,5 +135,27 @@ describe('team_week_raw_v0 bye-aware coverage validator', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('team "ARI" has out-of-window week 19'))).toBe(true);
     expect(result.errors.some((e) => e.includes('expected exactly 17'))).toBe(false);
+  });
+
+  it('fails on a row from another season standing in for a missing expected-season row', () => {
+    const rows = buildByeAwareFixtureRows(2024);
+    // Drop one genuine 2024 row for KC and replace it with the same (team_code, week) sourced from
+    // a different season. Team/week/count/duplicate/window checks all still pass on their own -
+    // only the per-row season check should catch this.
+    const kcRow = rows.find((r) => r.team_code === 'KC')!;
+    const withoutKcRow = rows.filter((r) => !(r.team_code === 'KC' && r.week === kcRow.week));
+    const mutated = [...withoutKcRow, { team_code: 'KC', week: kcRow.week, season: 2023 }];
+
+    const result = validateTeamWeekByeAwareCoverage(mutated, baseExpectation);
+
+    expect(result.valid).toBe(false);
+    expect(result.isFullLeague).toBe(false);
+    expect(
+      result.errors.some((e) =>
+        e.includes(`team "KC" week ${kcRow.week} has season 2023, expected season 2024`)
+      )
+    ).toBe(true);
+    expect(result.errors.some((e) => e.includes('expected exactly 17'))).toBe(false);
+    expect(result.errors.some((e) => e.includes('out-of-window'))).toBe(false);
   });
 });
