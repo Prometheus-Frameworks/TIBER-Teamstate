@@ -7,6 +7,11 @@
  * It loads the given candidate artifact, runs the bye-aware coverage dry-run, prints the report as
  * JSON to stdout, and exits non-zero only if coverage failed — so it can double as a CI gate. It
  * never writes to or mutates the artifact, never promotes it, and never routes rows into scoring.
+ *
+ * Exit codes are set via `process.exitCode` (not `process.exit()`): when stdout/stderr are piped or
+ * redirected, `process.exit()` can terminate the process before the buffered async writes flush,
+ * truncating the report. Setting `exitCode` and returning lets Node drain stdio first, then exit
+ * with the right code (see https://nodejs.org/api/process.html#processexitcode).
  */
 
 import { dryRunTeamWeekRawV0CandidateFile } from './teamWeekRawV0CandidateDryRun.js';
@@ -17,7 +22,7 @@ const main = (): void => {
     process.stderr.write(
       'Usage: node dist/src/dryrun/runTeamWeekRawV0CandidateDryRun.js <candidate-artifact.json>\n'
     );
-    process.exit(2);
+    process.exitCode = 2;
     return;
   }
 
@@ -29,7 +34,7 @@ const main = (): void => {
     : `dry-run coverage FAILED: ${report.coverage.errors.length} error(s) (${report.provenanceStatus} / ${report.governanceStatus})`;
   process.stderr.write(`${summary}\n`);
 
-  process.exit(report.coverage.valid ? 0 : 1);
+  process.exitCode = report.coverage.valid ? 0 : 1;
 };
 
 main();
