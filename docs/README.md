@@ -6,6 +6,7 @@
 - [`teamstate-boundary-may-tiber-data.md`](teamstate-boundary-may-tiber-data.md) — TTS as the interpretation layer over governed TIBER-Data truth.
 - [`output-artifact-policy.md`](output-artifact-policy.md) — what may be committed under `output/`: representative `fixture_scaffold` artifacts vs. generated/demo clutter.
 - [`teamstate-candidate-consumption-team-week-raw-v0-2024.md`](teamstate-candidate-consumption-team-week-raw-v0-2024.md) — the candidate-ingestion boundary for the 2024 `team_week_raw_v0` source artifact: what's consumed as `partial_real_data` / `ungoverned`, the acceptance gate, and what stays out of scope (PPM/product/ranking).
+- [`reviews/team-week-raw-v0-candidate-transform-feasibility.md`](reviews/team-week-raw-v0-candidate-transform-feasibility.md) — feasibility review (#54) for transforming the 2024 `team_week_raw_v0` candidate into a derived Teamstate candidate artifact: the null→zero laundering analysis, the bounded null-aware transform plan, and why pressure stays `insufficient_data` until sourced.
 
 ## Future TIBER-Data `roster_snapshot_v0` Consumption
 
