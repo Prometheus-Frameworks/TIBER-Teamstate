@@ -130,6 +130,63 @@ What this lane deliberately does **not** do:
 - **No scoring / PPM / Product / ranking / advice.** `Object.keys(report)` is locked in tests; no
   score, ranking, or advice field is produced, and nothing routes through `src/score/`.
 
+## Rehearsal report lane (issue [#60](https://github.com/Prometheus-Frameworks/TIBER-Teamstate/issues/60))
+
+The next bounded slice after the dry-run lane is the **rehearsal/report** lane: the "Outcome 2"
+rehearsal from the [#55 feasibility review](reviews/team-week-raw-v0-candidate-transform-feasibility.md).
+It proves whether a candidate-only derived Teamstate output can be rehearsed **honestly** — without
+using the production scoring path and without laundering nulls into zeros. **It is not governance,
+not promotion, not production truth, and not a movement/forecast transform.**
+
+| File | Purpose |
+| --- | --- |
+| `src/rehearsal/teamWeekRawV0CandidateRehearsal.ts` | Pure `rehearseTeamWeekRawV0Candidate(consumption, expectation?)` + file wrapper `rehearseTeamWeekRawV0CandidateFile(path, expectation?)`. Reuses the #58/#59 dry-run coverage lane and produces a null-aware per-field readiness report. |
+| `src/rehearsal/runTeamWeekRawV0CandidateRehearsal.ts` | Thin read-only CLI: prints the rehearsal report JSON, exits non-zero when coverage is invalid (rehearsal withheld). Run via `npm run rehearsal:candidate -- <artifact.json>`. Uses `process.exitCode`, not `process.exit()`. |
+| `tests/teamWeekRawV0CandidateRehearsal.spec.ts` | Proves the guardrails below on a generated 544-row shape and the committed 4-row sample. |
+
+Rather than computing any score, the report classifies each candidate metric field by how many rows
+carry a finite value vs a null, and embeds the dry-run's bye-aware coverage result:
+
+```ts
+interface TeamWeekRawV0CandidateRehearsalReport {
+  kind: 'team_week_raw_v0_candidate_rehearsal';   // non-production label by name
+  rehearsalOnly: true;                            // pinned — never production truth
+  productionReady: false;                         // pinned
+  sourceArtifactPath: string;
+  provenanceStatus: string;                       // echoed, e.g. "partial_real_data"
+  governanceStatus: string;                       // echoed, e.g. "ungoverned"
+  governanceSource: string;                       // echoed, e.g. "not_set"
+  promoted: false;                                // pinned literal
+  governed: false;                                // pinned literal
+  rowCount: number;
+  deferredFields: string[];                       // upstream-declared, preserved verbatim
+  pressurePosture: 'insufficient_data';           // #55 posture, fixed label, never read
+  coverage: ByeAwareCoverageValidationResult;     // embedded from the reused dry-run lane
+  rehearsalStatus: 'rehearsed' | 'withheld_invalid_coverage';  // fail-closed gate
+  fieldReadiness: { field; finiteCount; nullCount; status }[]; // available | partial_nulls | deferred_insufficient_data
+  availableFields: string[];
+  deferredInsufficientFields: string[];           // incl. pressureRateAllowed + the 8 fantasy fields
+  partialNullFields: string[];                    // e.g. redZoneTdRate on zero-red-zone rows
+  notes: string[];
+}
+```
+
+What this lane deliberately does **not** do (all asserted by tests):
+
+- **No scoring path.** Imports nothing from `src/score/`; a test reads the module sources and asserts
+  the absence of any `/score/` import. No score/ranking/advice/Product/PPM output field exists — the
+  exact `Object.keys(report)` set is locked.
+- **No null laundering.** Field readiness counts finite numbers only; `null` / `undefined` / `NaN` /
+  non-finite values fall through to `nullCount` and are never coerced to `0`. Fully-null fields
+  (pressure, the eight fantasy fields) are classified `deferred_insufficient_data`, never `available`.
+- **No governance inference.** Valid coverage yields `rehearsalStatus: 'rehearsed'` but never upgrades
+  `governanceStatus` / `promoted` / `governed`. Pressure stays `insufficient_data` regardless.
+- **Fails closed as a report.** On invalid/partial coverage (e.g. the 4-row sample), it returns a
+  report with `rehearsalStatus: 'withheld_invalid_coverage'` and a withholding note — it never throws
+  and never fabricates a derived output.
+- **Production path untouched.** No change to the dense-grid validator or the scoring/movement/forecast
+  pipeline; this is net-new isolated code, not exported from the package barrel.
+
 ## Verified against the real artifact
 
 Spot-checked against TIBER-Data's `team_week_raw_v0_2024_real_source_candidate.json` (544 rows, 32
