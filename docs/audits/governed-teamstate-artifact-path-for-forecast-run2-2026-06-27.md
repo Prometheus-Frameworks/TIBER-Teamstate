@@ -222,29 +222,47 @@ validator) and adds only the **minimum** Forecast-Run-2-specific markers. For a 
 forecast the rows are **team-season** (one row per team for `featureSeason: 2024`); a future weekly
 variant would use team-week rows under the same envelope.
 
+> **Validator alignment.** The base envelope below carries the **exact** fields the existing
+> `validateTeamEnvironmentForecastFeaturesV1` already requires
+> (`src/contracts/teamEnvironmentForecastFeaturesV1.ts`): the `artifact`/`contractVersion` literals,
+> `generatedAt`, `cutoffAt`, numeric `featureSeason`/`targetSeason`, `owningRepo: "TIBER-Teamstate"`,
+> `intendedConsumer: "Point-prediction-model"`, `outputKind: "model-legible-team-context"`, the
+> `governance` block (`governanceStatus` ∈ `governed|fixture|ungoverned|unknown`, `governanceSource` ∈
+> `explicit_marker|path_inference|unknown`, `generatedAt`), and the row-derived `coverage`
+> (`teamCount`, `expectedTeamCount`, `isFullLeague`, `seasons[]`, `weeks[]`). The Run-2-specific keys
+> (`asOf`, `sourceArtifactRefs`, `pressurePosture`, `fieldReadiness`, `deferredFields`, and the
+> additive `coverage`/`governance` sub-keys) are **additive extensions** the current validator ignores
+> but a future v1.1 / Run-2 validator would enforce — so an artifact following this shape passes
+> today's v1 validation rather than failing it. The upstream candidate's `governanceSource: not_set`
+> maps to the v1 enum value `unknown` (no explicit marker), never to `explicit_marker`.
+
 ```jsonc
 {
   "artifact": "team_environment_forecast_features_v1",
   "contractVersion": "team_environment_forecast_features_v1",
-  "kind": "model-legible-team-context",
   "generatedAt": "<ISO timestamp>",
+
+  // ---- required v1 envelope literals (validator fails closed if absent/wrong) ----
+  "owningRepo": "TIBER-Teamstate",
+  "intendedConsumer": "Point-prediction-model",
+  "outputKind": "model-legible-team-context",
 
   // ---- temporal cutoff / no-leakage (§3) ----
   "featureSeason": 2024,            // season the observed features describe (never the target)
   "targetSeason": 2025,            // forecast target; join/audit only, never informs a feature
   "cutoffAt": "2025-09-01T00:00:00.000Z",   // hard boundary; no fact at/after may inform a feature
-  "asOf": { "sourceSeason": 2024, "sourceWeeks": [1, "…", 18], "validAsOf": "<ISO before cutoffAt>" },
+  "asOf": { "sourceSeason": 2024, "sourceWeeks": [1, "…", 18], "validAsOf": "<ISO before cutoffAt>" },  // additive Run-2 marker
 
   // ---- governance / provenance (§2) ----
   "governance": {
-    "provenanceStatus": "partial_real_data | governed_real_data",  // honest; never upgraded by path
-    "governanceStatus": "ungoverned | governed",
-    "governanceSource": "not_set | explicit_marker",               // 'governed' REQUIRES explicit_marker
-    "promoted": false,                                             // booleans pinned until real promotion
-    "governed": false,
-    "generatedAt": "<ISO timestamp>"
+    "governanceStatus": "ungoverned | governed",                   // v1 enum: governed|fixture|ungoverned|unknown
+    "governanceSource": "unknown | explicit_marker",               // v1 enum; 'governed' REQUIRES explicit_marker (upstream not_set -> unknown)
+    "generatedAt": "<ISO timestamp>",
+    "provenanceStatus": "partial_real_data | governed_real_data",  // additive; honest, never upgraded by path
+    "promoted": false,                                             // additive; pinned until real promotion
+    "governed": false                                              // additive; pinned until real promotion
   },
-  "sourceArtifactRefs": {
+  "sourceArtifactRefs": {                                          // additive Run-2 marker
     "sourceArtifactPath": "<TIBER-Data source artifact>",
     "sourceDatasetRefs": ["<dataset name + url/id>"],
     "sourceVersionOrRetrievedAt": "<version | retrieval date>",
@@ -255,8 +273,9 @@ variant would use team-week rows under the same envelope.
   // ---- coverage (§2.5), row-derived, never self-asserted ----
   "coverage": {
     "teamCount": 32, "expectedTeamCount": 32, "isFullLeague": true,
-    "seasons": [2024], "byeAware": true, "expectedGamesPerTeam": 17,
-    "coverageStatus": "valid | withheld_invalid_coverage"
+    "seasons": [2024], "weeks": [1, "…", 18],                      // seasons[]/weeks[] required by v1
+    "byeAware": true, "expectedGamesPerTeam": 17,                  // additive Run-2 markers
+    "coverageStatus": "valid | withheld_invalid_coverage"          // additive
   },
 
   // ---- explicit pressure posture (§1) ----
@@ -289,7 +308,9 @@ variant would use team-week rows under the same envelope.
 
 ### Minimal fields Forecast actually needs to gate on
 
-1. **kind/version** — `artifact` / `contractVersion` literal (fail closed on mismatch).
+1. **kind/version** — `artifact` / `contractVersion` / `outputKind` literals plus `owningRepo` /
+   `intendedConsumer` (fail closed on mismatch — these are the existing v1 validator's required
+   literals).
 2. **Temporal validity** — `featureSeason`, `targetSeason`, `cutoffAt`, `asOf` (§3).
 3. **Governance** — `governance.{provenanceStatus, governanceStatus, governanceSource, promoted,
    governed}`; production use requires `governed_real_data` + `explicit_marker`.
