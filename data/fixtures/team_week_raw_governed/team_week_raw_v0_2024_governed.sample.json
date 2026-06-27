@@ -59,7 +59,15 @@
       "redZoneTdRate": null,
       "sacksAllowed": 1,
       "pressureRateAllowed": null,
-      "turnovers": 1
+      "turnovers": 1,
+      "fantasyPointsForQB": null,
+      "fantasyPointsForRB": null,
+      "fantasyPointsForWR": null,
+      "fantasyPointsForTE": null,
+      "fantasyPointsAllowedQB": null,
+      "fantasyPointsAllowedRB": null,
+      "fantasyPointsAllowedWR": null,
+      "fantasyPointsAllowedTE": null
     },
     {
       "season": 2024,
@@ -87,7 +95,15 @@
       "redZoneTdRate": 0.333333,
       "sacksAllowed": 2,
       "pressureRateAllowed": null,
-      "turnovers": 1
+      "turnovers": 1,
+      "fantasyPointsForQB": null,
+      "fantasyPointsForRB": null,
+      "fantasyPointsForWR": null,
+      "fantasyPointsForTE": null,
+      "fantasyPointsAllowedQB": null,
+      "fantasyPointsAllowedRB": null,
+      "fantasyPointsAllowedWR": null,
+      "fantasyPointsAllowedTE": null
     },
     {
       "season": 2024,
@@ -115,7 +131,15 @@
       "redZoneTdRate": 0.5,
       "sacksAllowed": 2,
       "pressureRateAllowed": null,
-      "turnovers": 1
+      "turnovers": 1,
+      "fantasyPointsForQB": null,
+      "fantasyPointsForRB": null,
+      "fantasyPointsForWR": null,
+      "fantasyPointsForTE": null,
+      "fantasyPointsAllowedQB": null,
+      "fantasyPointsAllowedRB": null,
+      "fantasyPointsAllowedWR": null,
+      "fantasyPointsAllowedTE": null
     },
     {
       "season": 2024,
@@ -143,7 +167,15 @@
       "redZoneTdRate": 0.5,
       "sacksAllowed": 1,
       "pressureRateAllowed": null,
-      "turnovers": 1
+      "turnovers": 1,
+      "fantasyPointsForQB": null,
+      "fantasyPointsForRB": null,
+      "fantasyPointsForWR": null,
+      "fantasyPointsForTE": null,
+      "fantasyPointsAllowedQB": null,
+      "fantasyPointsAllowedRB": null,
+      "fantasyPointsAllowedWR": null,
+      "fantasyPointsAllowedTE": null
     }
   ]
 }

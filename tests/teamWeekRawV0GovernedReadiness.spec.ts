@@ -51,10 +51,18 @@ describe('team_week_raw_v0 governed readiness boundary', () => {
     expect(() => adaptTeamWeekRawV0Governed(missingPressureDeferral, fixturePath)).toThrow(/deferredFields must include pressureRateAllowed/);
   });
 
-  it('forbids fantasy split fields at the governed Teamstate boundary', () => {
+  it('accepts null fantasy split fields from upstream but strips them from Teamstate rows', () => {
+    const consumption = adaptTeamWeekRawV0Governed(loadFixture(), fixturePath);
+
+    expect((loadFixture() as { rows: Array<Record<string, unknown>> }).rows[0]?.fantasyPointsForQB).toBeNull();
+    expect(Object.keys(consumption.rows[0]!)).not.toContain('fantasyPointsForQB');
+    expect(Object.keys(consumption.rows[0]!)).not.toContain('fantasyPointsAllowedTE');
+  });
+
+  it('fails closed when an upstream fantasy split field has a non-null value', () => {
     const withFantasy = loadFixture() as { rows: Array<Record<string, unknown>> } & Record<string, unknown>;
-    withFantasy.rows[0] = { ...withFantasy.rows[0], fantasyPointsForQB: null };
-    expect(() => adaptTeamWeekRawV0Governed(withFantasy, fixturePath)).toThrow(/forbidden fantasy split field fantasyPointsForQB/);
+    withFantasy.rows[0] = { ...withFantasy.rows[0], fantasyPointsForQB: 12.3 };
+    expect(() => adaptTeamWeekRawV0Governed(withFantasy, fixturePath)).toThrow(/fantasy split field fantasyPointsForQB must be null/);
   });
 
   it('emits the smallest governed readiness report without scoring, training, or pressure laundering', () => {

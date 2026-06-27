@@ -3,7 +3,7 @@
  *
  * This is Teamstate downstream consumption only: it accepts governance only from explicit upstream
  * metadata markers, preserves source/validation/lineage references, keeps pressure deferred/null, and
- * rejects fantasy split fields at the boundary.
+ * accepts only null fantasy split fields and strips them at the boundary.
  */
 
 type NullableNumber = number | null;
@@ -123,7 +123,9 @@ const validateRow = (row: unknown, index: number): TeamWeekRawGovernedRow => {
 
   for (const field of TEAM_WEEK_RAW_V0_FANTASY_FIELDS) {
     if (field in candidate) {
-      throw new Error(`Invalid governed team_week_raw_v0 row at index ${index}: forbidden fantasy split field ${field}.`);
+      if (candidate[field] !== null) {
+        throw new Error(`Invalid governed team_week_raw_v0 row at index ${index}: fantasy split field ${field} must be null when present and is stripped from Teamstate output.`);
+      }
     }
   }
 

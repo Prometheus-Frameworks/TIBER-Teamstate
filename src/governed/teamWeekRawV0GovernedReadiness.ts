@@ -85,7 +85,7 @@ export const buildTeamWeekRawV0GovernedReadiness = (
       'Teamstate downstream consumption only: source governance is accepted from TIBER-Data explicit markers and is not re-governed here.',
       'pressureRateAllowed remains unavailable/insufficient_data/deferred; it is never inferred from sacks, imputed, backfilled, or zero-filled.',
       'redZoneTdRate nulls remain partial_nulls when only some rows are null.',
-      'Fantasy split fields are forbidden at this governed Teamstate boundary.'
+      'Null fantasy split fields are stripped at this governed Teamstate boundary; non-null fantasy split values fail closed.'
     ]
   };
 };

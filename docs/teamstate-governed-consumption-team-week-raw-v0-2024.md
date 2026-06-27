@@ -27,7 +27,7 @@ Teamstate emits the smallest safe governed readiness artifact: `team_week_raw_v0
 - `pressureRateAllowed` must remain `null` in every row and must be declared deferred upstream. It is reported as `deferred_insufficient_data` with posture `unavailable_insufficient_data_deferred`.
 - Pressure is never converted to zero, inferred from sacks, estimated, backfilled, or imputed.
 - Red-zone nulls, such as `redZoneTdRate` when only some rows have zero red-zone trips, are classified as `partial_nulls`; they are not zero-filled and not marked deferred.
-- Fantasy split fields (`fantasyPointsForQB/RB/WR/TE` and `fantasyPointsAllowedQB/RB/WR/TE`) are forbidden at the governed Teamstate boundary.
+- Fantasy split fields (`fantasyPointsForQB/RB/WR/TE` and `fantasyPointsAllowedQB/RB/WR/TE`) may be present in the upstream governed source only as `null`; Teamstate strips them from its row shape and fails closed on any non-null fantasy split value.
 
 ## CLI
 
