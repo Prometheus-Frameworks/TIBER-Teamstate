@@ -1,0 +1,33 @@
+{
+  "kind": "team_week_raw_v0_governed_source_mirror",
+  "issue": "TIBER-Teamstate#72",
+  "note": "Byte-identical, read-only mirror of the governed TIBER-Data 2024 team_week_raw_v0 source. Teamstate does not re-govern, mutate, or re-derive it; governance is echoed from the upstream explicit marker.",
+  "mirroredArtifactPath": "data/governed/team_week_raw_v0_2024_real_source_candidate.json",
+  "upstream": {
+    "repo": "Prometheus-Frameworks/TIBER-Data",
+    "sourceArtifactPath": "exports/candidates/team_week_raw/team_week_raw_v0_2024_real_source_candidate.json",
+    "validationReportPath": "exports/candidates/team_week_raw/team_week_raw_v0_2024_real_source_candidate.validation.json",
+    "lineageManifestPath": "data/manifests/team_week_raw_v0_2024_real_source_candidate.manifest.json",
+    "coverageAuditPath": "exports/candidates/team_week_raw/team_week_raw_v0_2024_teamstate_coverage_audit.json",
+    "refs": [
+      "TIBER-Data#181",
+      "TIBER-Data#182"
+    ]
+  },
+  "sha256": "2aed00e68c1620af10d2ea4350104f7e183ff6ee050f5d385a503ef027281de9",
+  "artifact": "team_week_raw_v0",
+  "season": 2024,
+  "generatedAt": "2026-06-27T13:42:06+00:00",
+  "rowCount": 544,
+  "teamCount": 32,
+  "governance": {
+    "governanceStatus": "governed",
+    "governanceSource": "explicit_marker",
+    "notes": "Promoted to governed_real_data by explicit human promotion review (PR D, TIBER-Data #179): the candidate satisfied the full #171/#172 promotion gate under the #173/#174 pressureRateAllowed deferral (Option B) and the #175/#176 contract revision. governanceSource is explicit_marker set by that review; governed status holds only because provenanceStatus (governed_real_data) and the explicit marker agree. pressureRateAllowed remains null/deferred (unknown, never zero).",
+    "reviewRefs": [
+      "docs/reviews/team-week-raw-v0-2024-promotion-review-pr-d.md",
+      "TIBER-Data#179"
+    ]
+  },
+  "provenanceStatus": "governed_real_data"
+}

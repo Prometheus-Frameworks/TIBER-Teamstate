@@ -13,7 +13,8 @@
     "dryrun:candidate": "npm run build && node dist/src/dryrun/runTeamWeekRawV0CandidateDryRun.js",
     "rehearsal:candidate": "npm run build && node dist/src/rehearsal/runTeamWeekRawV0CandidateRehearsal.js",
     "readiness:governed": "npm run build && node dist/src/governed/runTeamWeekRawV0GovernedReadiness.js",
-    "artifact:forecast-run2": "npm run build && node dist/src/governed/runTeamWeekRawV0ForecastRun2Artifact.js"
+    "artifact:forecast-run2": "npm run build && node dist/src/governed/runTeamWeekRawV0ForecastRun2Artifact.js",
+    "export:forecast-run2-full": "npm run build && node scripts/export_forecast_run2_full.mjs"
   },
   "keywords": [
     "nfl",
