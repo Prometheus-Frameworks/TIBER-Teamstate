@@ -40,10 +40,10 @@ The artifact records two distinct timestamps, and they must not be conflated:
 
 - **`forecastCutoff.asOf`** — the *forecast cutoff* the artifact claims: the pre-target-season time
   boundary beyond which no information may inform the 2024-input → 2025-target Run 2 setup. It is
-  validated to be a parseable timestamp **strictly before `forecastCutoff.targetSeasonStart`**
-  (`FORECAST_RUN2_TARGET_SEASON_START` = `2025-09-01T00:00:00.000Z`, the start of the 2025 target
-  season). `forecastCutoff.cutoffBeforeTargetSeason` is **computed from this validation**, never
-  hardcoded.
+  validated to be a parseable, **timezone-explicit** timestamp **strictly before
+  `forecastCutoff.targetSeasonStart`** (`FORECAST_RUN2_TARGET_SEASON_START` = `2025-09-01T00:00:00.000Z`,
+  the start of the 2025 target season). `forecastCutoff.cutoffBeforeTargetSeason` is **computed from
+  this validation**, never hardcoded.
 - **`forecastCutoff.sourceGeneratedAt`** — the source/export *build* timestamp (the governed source's
   `generatedAt`), recorded for provenance only. It is **never** used as the semantic cutoff. The
   committed sample illustrates the distinction: its `sourceGeneratedAt` is `2026-06-25` (a post-target
@@ -52,8 +52,24 @@ The artifact records two distinct timestamps, and they must not be conflated:
 The cutoff as-of must be supplied explicitly by the caller (`options.asOf`); the builder never defaults
 it to the source's build time. Callers may pass the canonical `FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF`
 (`2025-03-01T00:00:00.000Z`, after the 2024 season concludes and before the 2025 target season). A
-**missing, empty, malformed, target-season, or future-looking** as-of **fails closed** (no artifact
-emitted), as does a non-2024 governed source.
+**missing, empty, malformed, timezone-ambiguous, target-season, or future-looking** as-of **fails
+closed** (no artifact emitted), as does a non-2024 governed source.
+
+### The cutoff as-of must be timezone-explicit
+
+Because the as-of is a leakage boundary, it must denote a deterministic instant rather than depend on
+the process-local timezone. The emitter parses it through `parseTimezoneExplicitAsOf(...)`, which
+**rejects offset-less strings** (an offset-less value like `2025-09-01T00:00:00` would otherwise be
+read in local time and could slip a target-boundary string past the pre-target guard in a
+positive-offset environment).
+
+- **Valid (timezone-explicit):** `2025-03-01T00:00:00.000Z`, `2025-03-01T00:00:00+00:00`,
+  `2025-03-01T00:00:00-05:00`.
+- **Invalid (timezone-ambiguous, fails closed):** `2025-03-01T00:00:00`, `2025-09-01T00:00:00`,
+  `2025-03-01` (date-only).
+
+Comparison against the target-season boundary is therefore deterministic and identical regardless of
+the host timezone.
 
 ## Teamstate ↔ Forecast field-name mapping
 

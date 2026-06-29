@@ -10,6 +10,7 @@ import {
   FORECAST_RUN2_INPUT_SEASON,
   FORECAST_RUN2_TARGET_SEASON,
   FORECAST_RUN2_TARGET_SEASON_START,
+  parseTimezoneExplicitAsOf,
   TEAM_WEEK_GRAIN_KEYS,
   type BuildForecastRun2ArtifactOptions
 } from '../src/governed/teamWeekRawV0ForecastRun2Artifact.js';
@@ -117,6 +118,46 @@ describe('team_week_raw_v0 governed Forecast Run 2 artifact', () => {
     // The boolean tracks the validation: the only path to a returned artifact is a pre-target as-of,
     // and a non-pre-target as-of throws instead of returning cutoffBeforeTargetSeason: false.
     expect(Date.parse(artifact.forecastCutoff.asOf)).toBeLessThan(Date.parse(artifact.forecastCutoff.targetSeasonStart));
+  });
+
+  it('fails closed on a timezone-ambiguous (offset-less) as-of', () => {
+    // A target-boundary-looking offset-less string must not slip past the pre-target guard.
+    expect(() => buildFromFixture({ asOf: '2025-09-01T00:00:00' })).toThrow(/timezone-ambiguous forecast cutoff as-of/);
+    // An otherwise-valid pre-target-looking offset-less string also fails closed.
+    expect(() => buildFromFixture({ asOf: '2025-03-01T00:00:00' })).toThrow(/timezone-ambiguous forecast cutoff as-of/);
+    // Date-only (no time, no zone) is ambiguous too.
+    expect(() => buildFromFixture({ asOf: '2025-03-01' })).toThrow(/timezone-ambiguous forecast cutoff as-of/);
+  });
+
+  it('accepts Z-qualified and explicit-offset pre-target as-of values deterministically', () => {
+    const utc = buildFromFixture({ asOf: '2025-03-01T00:00:00.000Z' });
+    expect(utc.forecastCutoff.asOf).toBe('2025-03-01T00:00:00.000Z');
+    expect(utc.forecastCutoff.cutoffBeforeTargetSeason).toBe(true);
+
+    // Explicit negative and zero offsets parse to a deterministic instant regardless of host TZ.
+    const minus5 = buildFromFixture({ asOf: '2025-03-01T00:00:00-05:00' });
+    expect(minus5.forecastCutoff.cutoffBeforeTargetSeason).toBe(true);
+    const plus0 = buildFromFixture({ asOf: '2025-03-01T00:00:00+00:00' });
+    expect(plus0.forecastCutoff.cutoffBeforeTargetSeason).toBe(true);
+  });
+
+  it('fails closed on explicit-offset target-boundary / post-target as-of values', () => {
+    // Same wall-clock as the boundary but in an explicit offset that lands on/after it in UTC.
+    expect(() => buildFromFixture({ asOf: '2025-09-01T00:00:00+00:00' })).toThrow(/on\/after the 2025 target season start/);
+    // A +14:00 wall-clock string whose UTC instant is still on/after the boundary.
+    expect(() => buildFromFixture({ asOf: '2025-09-02T00:00:00+14:00' })).toThrow(/on\/after the 2025 target season start/);
+  });
+
+  it('exposes a parseTimezoneExplicitAsOf helper with deterministic, TZ-independent semantics', () => {
+    // Z and explicit offsets resolve to the same instant; offset-less and malformed fail closed.
+    expect(parseTimezoneExplicitAsOf('2025-03-01T05:00:00.000Z')).toBe(parseTimezoneExplicitAsOf('2025-03-01T00:00:00-05:00'));
+    expect(() => parseTimezoneExplicitAsOf('2025-03-01T00:00:00')).toThrow(/timezone-ambiguous/);
+    expect(() => parseTimezoneExplicitAsOf('not-a-timestamp')).toThrow(/malformed/);
+    // The repo constants are themselves timezone-explicit and accepted by the helper.
+    expect(() => parseTimezoneExplicitAsOf(FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF)).not.toThrow();
+    expect(() => parseTimezoneExplicitAsOf(FORECAST_RUN2_TARGET_SEASON_START)).not.toThrow();
+    expect(FORECAST_RUN2_TARGET_SEASON_START).toMatch(/(Z|[+-]\d{2}:\d{2})$/);
+    expect(FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF).toMatch(/(Z|[+-]\d{2}:\d{2})$/);
   });
 
   it('preserves source / validation / lineage references', () => {
