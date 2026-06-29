@@ -6,9 +6,12 @@ import {
   buildTeamWeekRawV0ForecastRun2Artifact,
   buildTeamWeekRawV0ForecastRun2ArtifactFile,
   EXCERPT_GOVERNED_COVERAGE_EXPECTATION,
+  FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF,
   FORECAST_RUN2_INPUT_SEASON,
   FORECAST_RUN2_TARGET_SEASON,
-  TEAM_WEEK_GRAIN_KEYS
+  FORECAST_RUN2_TARGET_SEASON_START,
+  TEAM_WEEK_GRAIN_KEYS,
+  type BuildForecastRun2ArtifactOptions
 } from '../src/governed/teamWeekRawV0ForecastRun2Artifact.js';
 import { TEAM_WEEK_RAW_V0_FANTASY_FIELDS } from '../src/adapters/teamWeekRawV0GovernedAdapter.js';
 
@@ -17,10 +20,13 @@ const fixturePath = path.resolve(
   'data/fixtures/team_week_raw_governed/team_week_raw_v0_2024_governed.sample.json'
 );
 const loadFixture = (): Record<string, unknown> => JSON.parse(readFileSync(fixturePath, 'utf-8')) as Record<string, unknown>;
-const buildFromFixture = () =>
-  buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(loadFixture(), fixturePath), {
-    coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION
-  });
+const excerptOptions = (overrides: Partial<BuildForecastRun2ArtifactOptions> = {}): BuildForecastRun2ArtifactOptions => ({
+  coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION,
+  asOf: FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF,
+  ...overrides
+});
+const buildFromFixture = (overrides: Partial<BuildForecastRun2ArtifactOptions> = {}) =>
+  buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(loadFixture(), fixturePath), excerptOptions(overrides));
 
 describe('team_week_raw_v0 governed Forecast Run 2 artifact', () => {
   it('carries explicit-marker governance, not inferred from path/name/build/validation/demand', () => {
@@ -53,31 +59,64 @@ describe('team_week_raw_v0 governed Forecast Run 2 artifact', () => {
     expect(artifact.forecastCutoff.inputSeason).toBeLessThan(artifact.forecastCutoff.targetSeason);
     expect(artifact.forecastCutoff.inputSeason).toBeLessThan(2025);
     expect(artifact.forecastCutoff.cutoffBeforeTargetSeason).toBe(true);
-    // A recorded as-of timestamp must be present.
+    // A recorded pre-target as-of timestamp must be present and parseable.
     expect(typeof artifact.forecastCutoff.asOf).toBe('string');
     expect(artifact.forecastCutoff.asOf.length).toBeGreaterThan(0);
+    expect(Number.isNaN(Date.parse(artifact.forecastCutoff.asOf))).toBe(false);
+    expect(Date.parse(artifact.forecastCutoff.asOf)).toBeLessThan(Date.parse(FORECAST_RUN2_TARGET_SEASON_START));
+    expect(artifact.forecastCutoff.targetSeasonStart).toBe(FORECAST_RUN2_TARGET_SEASON_START);
+  });
+
+  it('distinguishes the forecast cutoff as-of from the source generated/build timestamp', () => {
+    // The committed governed source's generatedAt is post-target (2026); it must NOT become the cutoff.
+    const artifact = buildFromFixture();
+    expect(artifact.forecastCutoff.sourceGeneratedAt).toBe('2026-06-25T19:20:51+00:00');
+    expect(artifact.forecastCutoff.asOf).not.toBe(artifact.forecastCutoff.sourceGeneratedAt);
+    expect(artifact.forecastCutoff.asOf).toBe(FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF);
+    // Even with no generatedAt at all, a valid as-of must still be supplied by the caller.
+    const noStamp = loadFixture();
+    delete noStamp.generatedAt;
+    const fromNoStamp = buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(noStamp, fixturePath), excerptOptions());
+    expect(fromNoStamp.forecastCutoff.sourceGeneratedAt).toBeNull();
+    expect(fromNoStamp.forecastCutoff.asOf).toBe(FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF);
   });
 
   it('refuses to emit a 2024-cutoff artifact for a non-2024 governed source', () => {
     const wrongSeason = loadFixture();
     wrongSeason.season = 2023;
-    expect(() => buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(wrongSeason, fixturePath), {
-      coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION
-    })).toThrow(/recorded cutoff is pinned to input season 2024/);
+    expect(() => buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(wrongSeason, fixturePath), excerptOptions()))
+      .toThrow(/recorded cutoff is pinned to input season 2024/);
   });
 
-  it('requires a recorded as-of and accepts an explicit override', () => {
-    const noStamp = loadFixture();
-    delete noStamp.generatedAt;
-    expect(() => buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(noStamp, fixturePath), {
+  it('fails closed when no forecast cutoff as-of is supplied (generatedAt is never the cutoff)', () => {
+    expect(() => buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(loadFixture(), fixturePath), {
       coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION
-    })).toThrow(/requires a recorded forecast cutoff as-of/);
+    })).toThrow(/requires an explicit pre-target forecast cutoff as-of/);
 
-    const overridden = buildTeamWeekRawV0ForecastRun2Artifact(adaptTeamWeekRawV0Governed(noStamp, fixturePath), {
-      coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION,
-      asOf: '2026-01-15T00:00:00+00:00'
-    });
-    expect(overridden.forecastCutoff.asOf).toBe('2026-01-15T00:00:00+00:00');
+    // An empty/whitespace as-of also fails closed.
+    expect(() => buildFromFixture({ asOf: '   ' })).toThrow(/requires an explicit pre-target forecast cutoff as-of/);
+  });
+
+  it('fails closed on a malformed as-of timestamp', () => {
+    expect(() => buildFromFixture({ asOf: 'not-a-timestamp' })).toThrow(/malformed forecast cutoff as-of/);
+  });
+
+  it('fails closed on a target-season / post-target / future-looking as-of', () => {
+    // Exactly at the target-season start boundary (not strictly before) fails closed.
+    expect(() => buildFromFixture({ asOf: FORECAST_RUN2_TARGET_SEASON_START })).toThrow(/on\/after the 2025 target season start/);
+    // Inside the 2025 target season.
+    expect(() => buildFromFixture({ asOf: '2025-10-01T00:00:00.000Z' })).toThrow(/on\/after the 2025 target season start/);
+    // A post-target build-style timestamp (mirrors the old generatedAt default) fails closed.
+    expect(() => buildFromFixture({ asOf: '2026-06-25T19:20:51+00:00' })).toThrow(/on\/after the 2025 target season start/);
+  });
+
+  it('succeeds with a valid pre-target as-of and computes cutoffBeforeTargetSeason from validation', () => {
+    const artifact = buildFromFixture({ asOf: '2025-01-15T00:00:00.000Z' });
+    expect(artifact.forecastCutoff.asOf).toBe('2025-01-15T00:00:00.000Z');
+    expect(artifact.forecastCutoff.cutoffBeforeTargetSeason).toBe(true);
+    // The boolean tracks the validation: the only path to a returned artifact is a pre-target as-of,
+    // and a non-pre-target as-of throws instead of returning cutoffBeforeTargetSeason: false.
+    expect(Date.parse(artifact.forecastCutoff.asOf)).toBeLessThan(Date.parse(artifact.forecastCutoff.targetSeasonStart));
   });
 
   it('preserves source / validation / lineage references', () => {
@@ -197,9 +236,7 @@ describe('team_week_raw_v0 governed Forecast Run 2 artifact', () => {
   });
 
   it('emits the same artifact from the file wrapper as from the in-memory builder', () => {
-    const fromFile = buildTeamWeekRawV0ForecastRun2ArtifactFile(fixturePath, {
-      coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION
-    });
+    const fromFile = buildTeamWeekRawV0ForecastRun2ArtifactFile(fixturePath, excerptOptions());
     expect(fromFile.forecastRun2Artifact).toBe(true);
     expect(fromFile.forecastCutoff.inputSeason).toBe(2024);
     expect(fromFile.readinessStatus).toBe('ready_minimal_boundary');
@@ -214,9 +251,7 @@ describe('committed governed Forecast Run 2 sample export', () => {
   const sample = JSON.parse(readFileSync(samplePath, 'utf-8')) as Record<string, unknown>;
 
   it('matches the freshly-emitted artifact for the governed sample source', () => {
-    const fresh = buildTeamWeekRawV0ForecastRun2ArtifactFile(fixturePath, {
-      coverageExpectation: EXCERPT_GOVERNED_COVERAGE_EXPECTATION
-    });
+    const fresh = buildTeamWeekRawV0ForecastRun2ArtifactFile(fixturePath, excerptOptions());
     // The committed sample stores a repo-relative sourceArtifactPath; compare on the rest.
     const { sourceArtifactPath: _freshPath, ...freshRest } = fresh as unknown as Record<string, unknown>;
     const { sourceArtifactPath: _samplePath, ...sampleRest } = sample;
@@ -224,9 +259,14 @@ describe('committed governed Forecast Run 2 sample export', () => {
     expect(sample.sourceArtifactPath).toBe('data/fixtures/team_week_raw_governed/team_week_raw_v0_2024_governed.sample.json');
   });
 
-  it('is a self-consistent Forecast-consumable evidence packet', () => {
+  it('is a self-consistent Forecast-consumable evidence packet with a pre-target as-of', () => {
     expect(sample.forecastRun2Artifact).toBe(true);
     expect(sample.readinessStatus).toBe('ready_minimal_boundary');
-    expect((sample.forecastCutoff as Record<string, unknown>).inputSeason).toBe(2024);
+    const cutoff = sample.forecastCutoff as Record<string, unknown>;
+    expect(cutoff.inputSeason).toBe(2024);
+    // The committed sample records a pre-target as-of distinct from the source build timestamp.
+    expect(cutoff.asOf).not.toBe(cutoff.sourceGeneratedAt);
+    expect(cutoff.cutoffBeforeTargetSeason).toBe(true);
+    expect(Date.parse(cutoff.asOf as string)).toBeLessThan(Date.parse(cutoff.targetSeasonStart as string));
   });
 });

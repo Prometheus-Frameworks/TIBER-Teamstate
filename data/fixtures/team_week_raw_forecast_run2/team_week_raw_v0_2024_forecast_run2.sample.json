@@ -198,7 +198,9 @@
   "forecastCutoff": {
     "inputSeason": 2024,
     "targetSeason": 2025,
-    "asOf": "2026-06-25T19:20:51+00:00",
+    "asOf": "2025-03-01T00:00:00.000Z",
+    "sourceGeneratedAt": "2026-06-25T19:20:51+00:00",
+    "targetSeasonStart": "2025-09-01T00:00:00.000Z",
     "cutoffBeforeTargetSeason": true,
     "safeFor": "forecast_run2_2024_input_to_2025_target"
   },
@@ -294,6 +296,7 @@
     "This is the upstream Teamstate evidence packet Forecast #81 waits for before value binding is allowed; it is not Forecast Run 2, training, evaluation, scoring, ranking, or fantasy advice.",
     "Governance is explicit-marker only and is never inferred from file path, file name, validation success, build success, or downstream demand.",
     "forecastCutoff.inputSeason is the recorded 2024 cutoff; it stays strictly before the 2025 target season so no target-season Teamstate values can enter Forecast inputs.",
+    "forecastCutoff.asOf is the pre-target-season cutoff boundary the artifact claims (validated strictly before forecastCutoff.targetSeasonStart); it is distinct from forecastCutoff.sourceGeneratedAt, which is the source/export build time and is never used as the semantic cutoff.",
     "Row grain is team-week; downstream player-season binding uses the player input-season team and input season (Teamstate season/teamCode → Forecast input_season/player_input_season_team).",
     "pressureRateAllowed remains unavailable/insufficient_data/deferred/excluded; no numeric pressure feature is emitted and pressure is never imputed, backfilled, estimated, or zero-filled.",
     "Fantasy split fields stay absent/excluded from Forecast input use; partial-null columns (e.g. redZoneTdRate) remain null-aware and are never zero-filled."
