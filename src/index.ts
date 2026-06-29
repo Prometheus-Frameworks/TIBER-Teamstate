@@ -36,3 +36,4 @@ export * from './pipeline/teamEnvironmentForecastFeaturesV1.js';
 export * from './adapters/teamWeekRawV0GovernedAdapter.js';
 export * from './ingest/loadTeamWeekRawV0Governed.js';
 export * from './governed/teamWeekRawV0GovernedReadiness.js';
+export * from './governed/teamWeekRawV0ForecastRun2Artifact.js';

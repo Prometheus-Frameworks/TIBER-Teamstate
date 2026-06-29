@@ -12,7 +12,8 @@
     "pipeline": "npm run build && node dist/src/pipeline/runTeamStatePipeline.js",
     "dryrun:candidate": "npm run build && node dist/src/dryrun/runTeamWeekRawV0CandidateDryRun.js",
     "rehearsal:candidate": "npm run build && node dist/src/rehearsal/runTeamWeekRawV0CandidateRehearsal.js",
-    "readiness:governed": "npm run build && node dist/src/governed/runTeamWeekRawV0GovernedReadiness.js"
+    "readiness:governed": "npm run build && node dist/src/governed/runTeamWeekRawV0GovernedReadiness.js",
+    "artifact:forecast-run2": "npm run build && node dist/src/governed/runTeamWeekRawV0ForecastRun2Artifact.js"
   },
   "keywords": [
     "nfl",
