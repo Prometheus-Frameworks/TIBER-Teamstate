@@ -32,6 +32,12 @@ const ARTIFACT_REL = 'data/fixtures/team_week_raw_forecast_run2/team_week_raw_v0
 const EVIDENCE_REL = 'data/fixtures/team_week_raw_forecast_run2/team_week_raw_v0_2024_forecast_run2.coverage_evidence.json';
 const MIRROR_REL = 'data/governed/team_week_raw_v0_2024_real_source_candidate.mirror.json';
 
+// The pinned sha256 of the governed TIBER-Data 2024 team_week_raw_v0 source (TIBER-Data #181/#182).
+// The vendored mirror must be byte-identical to it. We compare the locally-computed checksum against
+// this known-good value BEFORE writing any artifact, so a drifted/edited/replaced source fails closed
+// rather than being silently re-blessed as the verified upstream mirror.
+const EXPECTED_GOVERNED_SOURCE_SHA256 = '2aed00e68c1620af10d2ea4350104f7e183ff6ee050f5d385a503ef027281de9';
+
 const writeJson = (relPath, value) => {
   const absPath = path.join(REPO_ROOT, relPath);
   writeFileSync(absPath, `${JSON.stringify(value, null, 2)}\n`, 'utf-8');
@@ -41,6 +47,17 @@ const writeJson = (relPath, value) => {
 const sourceAbs = path.join(REPO_ROOT, SOURCE_REL);
 const sourceBytes = readFileSync(sourceAbs);
 const sha256 = createHash('sha256').update(sourceBytes).digest('hex');
+
+// Fail closed on source drift: never write artifacts (or re-stamp the mirror manifest) from a vendored
+// source whose bytes no longer match the pinned governed TIBER-Data checksum.
+if (sha256 !== EXPECTED_GOVERNED_SOURCE_SHA256) {
+  process.stderr.write(
+    `export:forecast-run2-full refused: vendored governed source ${SOURCE_REL} sha256 ${sha256} ` +
+      `does not match the pinned TIBER-Data governed checksum ${EXPECTED_GOVERNED_SOURCE_SHA256}. ` +
+      'Restore the byte-identical governed mirror before regenerating (the source must not be edited here).\n'
+  );
+  process.exit(1);
+}
 
 const consumption = loadTeamWeekRawV0Governed(sourceAbs);
 const emitted = buildTeamWeekRawV0ForecastRun2Artifact(consumption, { asOf: FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF });

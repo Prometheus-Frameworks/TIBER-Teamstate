@@ -24,6 +24,10 @@ const sourceAbs = path.resolve(process.cwd(), SOURCE_REL);
 const readJson = (rel: string): Record<string, unknown> =>
   JSON.parse(readFileSync(path.resolve(process.cwd(), rel), 'utf-8')) as Record<string, unknown>;
 
+// Pinned sha256 of the governed TIBER-Data 2024 team_week_raw_v0 source (TIBER-Data #181/#182). The
+// vendored mirror must stay byte-identical; a drifted source is caught here independent of the export
+// script's own fail-closed guard.
+const EXPECTED_GOVERNED_SOURCE_SHA256 = '2aed00e68c1620af10d2ea4350104f7e183ff6ee050f5d385a503ef027281de9';
 const sourceSha256 = createHash('sha256').update(readFileSync(sourceAbs)).digest('hex');
 const consumption = loadTeamWeekRawV0Governed(sourceAbs);
 const fullArtifact = buildTeamWeekRawV0ForecastRun2Artifact(consumption, { asOf: FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF });
@@ -153,8 +157,11 @@ describe('committed full-mode Forecast Run 2 golden artifact and coverage eviden
     expect(projection.doNotRunForecast).toBe(true);
   });
 
-  it('the mirror manifest sha256 is byte-identical to the vendored governed source', () => {
+  it('the mirror manifest sha256 is byte-identical to the pinned governed source', () => {
+    // The vendored source must match the pinned upstream checksum, and the manifest must record it.
+    expect(sourceSha256).toBe(EXPECTED_GOVERNED_SOURCE_SHA256);
     const mirror = readJson(MIRROR_REL);
+    expect(mirror.sha256).toBe(EXPECTED_GOVERNED_SOURCE_SHA256);
     expect(mirror.sha256).toBe(sourceSha256);
     expect(mirror.rowCount).toBe(544);
     expect(mirror.teamCount).toBe(32);
