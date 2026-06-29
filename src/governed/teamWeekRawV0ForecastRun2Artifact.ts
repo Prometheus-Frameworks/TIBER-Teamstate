@@ -159,8 +159,9 @@ export interface BuildForecastRun2ArtifactOptions {
   /**
    * The forecast cutoff as-of: the pre-target-season time boundary the artifact claims for Forecast
    * Run 2 use. Required — the builder never defaults it to the source's build/`generatedAt` time. Must
-   * be a parseable timestamp strictly before {@link FORECAST_RUN2_TARGET_SEASON_START}; callers may
-   * pass {@link FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF} as the canonical 2024 input-season cutoff.
+   * be a parseable, timezone-explicit timestamp (ending in `Z` or a numeric `±HH:MM` offset) strictly
+   * before {@link FORECAST_RUN2_TARGET_SEASON_START}; offset-less values fail closed. Callers may pass
+   * {@link FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF} as the canonical 2024 input-season cutoff.
    */
   asOf?: string;
   /** Bye-aware coverage expectation to validate against. Defaults to the real 2024 544-row shape. */
@@ -187,12 +188,37 @@ const assertNoLeakage = (columns: readonly string[]): void => {
   }
 };
 
+// A cutoff as-of must carry an explicit timezone marker (`Z` or a numeric `±HH:MM` offset) so it
+// denotes a deterministic instant. Offset-less ISO strings are rejected: `Date.parse` would interpret
+// them in the process-local timezone, which could slip a target-boundary string past the pre-target
+// guard in a positive-offset environment.
+const TIMEZONE_EXPLICIT_ISO_AS_OF = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Parse a forecast cutoff as-of into a deterministic epoch-ms instant, failing closed on a malformed
+ * timestamp or one without an explicit timezone marker (`Z` or a numeric `±HH:MM` offset). Requiring
+ * an explicit timezone keeps the leakage-boundary comparison independent of the process-local timezone.
+ */
+export const parseTimezoneExplicitAsOf = (asOf: string): number => {
+  const asOfTime = Date.parse(asOf);
+  if (Number.isNaN(asOfTime)) {
+    throw new Error(`Forecast Run 2 artifact refuses a malformed forecast cutoff as-of "${asOf}"; expected a parseable ISO-8601 timestamp.`);
+  }
+  if (!TIMEZONE_EXPLICIT_ISO_AS_OF.test(asOf)) {
+    throw new Error(
+      `Forecast Run 2 artifact refuses a timezone-ambiguous forecast cutoff as-of "${asOf}"; it must include an explicit timezone marker (Z or a numeric offset such as +00:00 / -05:00) so the leakage boundary is deterministic and independent of the process-local timezone.`
+    );
+  }
+  return asOfTime;
+};
+
 /**
  * Emit the governed Forecast Run 2 input artifact from an already-loaded governed consumption.
  * Pure (no I/O). Fails closed when the recorded cutoff cannot be honestly established (non-2024 source
- * season; a missing, malformed, or target-season/future-looking as-of) or when a pressure / fantasy /
- * target-leakage column would reach Forecast. The forecast cutoff as-of must be supplied explicitly as
- * a real pre-target-season boundary; the source's build/`generatedAt` time is never used as the cutoff.
+ * season; a missing, malformed, timezone-ambiguous, or target-season/future-looking as-of) or when a
+ * pressure / fantasy / target-leakage column would reach Forecast. The forecast cutoff as-of must be
+ * supplied explicitly as a real, timezone-explicit pre-target-season boundary; the source's
+ * build/`generatedAt` time is never used as the cutoff.
  */
 export const buildTeamWeekRawV0ForecastRun2Artifact = (
   consumption: TeamWeekRawGovernedConsumption,
@@ -213,13 +239,12 @@ export const buildTeamWeekRawV0ForecastRun2Artifact = (
       'Forecast Run 2 artifact requires an explicit pre-target forecast cutoff as-of (options.asOf); the source generatedAt/build time is never used as the cutoff. Pass FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF or another pre-target timestamp.'
     );
   }
-  const asOfTime = Date.parse(asOf);
-  if (Number.isNaN(asOfTime)) {
-    throw new Error(`Forecast Run 2 artifact refuses a malformed forecast cutoff as-of "${asOf}"; expected a parseable ISO-8601 timestamp.`);
-  }
+  // Parse as a deterministic instant: malformed or timezone-ambiguous (offset-less) as-of values fail
+  // closed here, so the comparison below never depends on the process-local timezone.
+  const asOfTime = parseTimezoneExplicitAsOf(asOf);
   // cutoffBeforeTargetSeason is computed from this validation, not hardcoded: a non-pre-target as-of
   // fails closed rather than being silently marked safe.
-  const cutoffBeforeTargetSeason = asOfTime < Date.parse(FORECAST_RUN2_TARGET_SEASON_START);
+  const cutoffBeforeTargetSeason = asOfTime < parseTimezoneExplicitAsOf(FORECAST_RUN2_TARGET_SEASON_START);
   if (!cutoffBeforeTargetSeason) {
     throw new Error(
       `Forecast Run 2 artifact refuses a forecast cutoff as-of "${asOf}" on/after the ${FORECAST_RUN2_TARGET_SEASON} target season start (${FORECAST_RUN2_TARGET_SEASON_START}); the as-of must be a real pre-target cutoff, not a target-season/future-looking or build timestamp.`
@@ -292,7 +317,7 @@ export const buildTeamWeekRawV0ForecastRun2Artifact = (
       'This is the upstream Teamstate evidence packet Forecast #81 waits for before value binding is allowed; it is not Forecast Run 2, training, evaluation, scoring, ranking, or fantasy advice.',
       'Governance is explicit-marker only and is never inferred from file path, file name, validation success, build success, or downstream demand.',
       'forecastCutoff.inputSeason is the recorded 2024 cutoff; it stays strictly before the 2025 target season so no target-season Teamstate values can enter Forecast inputs.',
-      'forecastCutoff.asOf is the pre-target-season cutoff boundary the artifact claims (validated strictly before forecastCutoff.targetSeasonStart); it is distinct from forecastCutoff.sourceGeneratedAt, which is the source/export build time and is never used as the semantic cutoff.',
+      'forecastCutoff.asOf is the pre-target-season cutoff boundary the artifact claims; it must be timezone-explicit (Z or a numeric offset) and is validated as a deterministic instant strictly before forecastCutoff.targetSeasonStart. It is distinct from forecastCutoff.sourceGeneratedAt, which is the source/export build time and is never used as the semantic cutoff.',
       'Row grain is team-week; downstream player-season binding uses the player input-season team and input season (Teamstate season/teamCode → Forecast input_season/player_input_season_team).',
       'pressureRateAllowed remains unavailable/insufficient_data/deferred/excluded; no numeric pressure feature is emitted and pressure is never imputed, backfilled, estimated, or zero-filled.',
       'Fantasy split fields stay absent/excluded from Forecast input use; partial-null columns (e.g. redZoneTdRate) remain null-aware and are never zero-filled.'
