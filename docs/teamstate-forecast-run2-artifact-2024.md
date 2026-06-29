@@ -21,7 +21,7 @@ artifact, while a recorded `forecastCutoff` and explicit join posture are added 
 | Sourced from governed upstream data | `provenanceStatus: "governed_real_data"` |
 | Source / validation / lineage refs | `sourceArtifacts`, `validationReportPath`, `lineageManifestPath` |
 | Recorded forecast cutoff = 2024 input season | `forecastCutoff.inputSeason: 2024`, `forecastCutoff.asOf` |
-| Safe for 2024-input → 2025-target Run 2 | `forecastCutoff.targetSeason: 2025`, `forecastCutoff.cutoffBeforeTargetSeason: true`, `forecastCutoff.safeFor` |
+| Safe for 2024-input → 2025-target Run 2 | `forecastCutoff.targetSeason: 2025`, `forecastCutoff.targetSeasonStart`, `forecastCutoff.cutoffBeforeTargetSeason` (computed), `forecastCutoff.safeFor` |
 | Team-week grain + player-season join posture | `rowGrain: "team_week"`, `downstreamBinding` (`teamWeekGrainKeys`, `joinKeysRequired`, `fieldMapping`) |
 | Row / team / week coverage | `rowCount`, `teamCount`, `weekCoverage` |
 | Field readiness preserved | `availableFields`, `partialNullFields`, `deferredInsufficientFields`, `fieldReadiness`, `forecastInputColumns` |
@@ -31,8 +31,29 @@ artifact, while a recorded `forecastCutoff` and explicit join posture are added 
 | No target/future/leakage inputs | `targetLeakageStatus` |
 
 Governance is **never** inferred from file path, file name, validation success, build success, or
-downstream demand — explicit upstream markers only. A non-2024 governed source or a missing recorded
-as-of fails closed (no artifact emitted).
+downstream demand — explicit upstream markers only. A non-2024 governed source fails closed (no
+artifact emitted).
+
+## Forecast cutoff as-of vs. source generated time
+
+The artifact records two distinct timestamps, and they must not be conflated:
+
+- **`forecastCutoff.asOf`** — the *forecast cutoff* the artifact claims: the pre-target-season time
+  boundary beyond which no information may inform the 2024-input → 2025-target Run 2 setup. It is
+  validated to be a parseable timestamp **strictly before `forecastCutoff.targetSeasonStart`**
+  (`FORECAST_RUN2_TARGET_SEASON_START` = `2025-09-01T00:00:00.000Z`, the start of the 2025 target
+  season). `forecastCutoff.cutoffBeforeTargetSeason` is **computed from this validation**, never
+  hardcoded.
+- **`forecastCutoff.sourceGeneratedAt`** — the source/export *build* timestamp (the governed source's
+  `generatedAt`), recorded for provenance only. It is **never** used as the semantic cutoff. The
+  committed sample illustrates the distinction: its `sourceGeneratedAt` is `2026-06-25` (a post-target
+  build time) while its `asOf` is a real pre-target cutoff.
+
+The cutoff as-of must be supplied explicitly by the caller (`options.asOf`); the builder never defaults
+it to the source's build time. Callers may pass the canonical `FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF`
+(`2025-03-01T00:00:00.000Z`, after the 2024 season concludes and before the 2025 target season). A
+**missing, empty, malformed, target-season, or future-looking** as-of **fails closed** (no artifact
+emitted), as does a non-2024 governed source.
 
 ## Teamstate ↔ Forecast field-name mapping
 
@@ -62,12 +83,17 @@ A committed sample emitted from the small governed excerpt fixture lives at
 After building:
 
 ```bash
-# real 2024 544-row coverage expectation
+# real 2024 544-row coverage expectation (as-of defaults to FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF)
 npm run artifact:forecast-run2 -- <path-to-governed-team_week_raw_v0.json>
 
 # excerpt-scale committed sample
 npm run artifact:forecast-run2 -- data/fixtures/team_week_raw_governed/team_week_raw_v0_2024_governed.sample.json --excerpt
+
+# supply an explicit pre-target cutoff as-of
+npm run artifact:forecast-run2 -- <path-to-governed-team_week_raw_v0.json> --as-of 2025-01-15T00:00:00.000Z
 ```
 
-The CLI prints the artifact as JSON and exits non-zero unless `readinessStatus` is
-`ready_minimal_boundary`.
+The `--as-of` flag sets `forecastCutoff.asOf`; it defaults to the canonical
+`FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF` and is never derived from the source's build/generated time. A
+missing/malformed/non-pre-target as-of fails closed. The CLI prints the artifact as JSON and exits
+non-zero unless `readinessStatus` is `ready_minimal_boundary`.

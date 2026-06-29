@@ -39,6 +39,19 @@ import type {
 export const FORECAST_RUN2_INPUT_SEASON = 2024 as const;
 /** The Forecast Run 2 target season (2024 input → 2025 target). Never a data source in Teamstate. */
 export const FORECAST_RUN2_TARGET_SEASON = 2025 as const;
+/**
+ * The instant the 2025 Forecast Run 2 target season begins. NFL seasons kick off in early September,
+ * so the target-season boundary is pinned to 2025-09-01T00:00:00Z. A recorded forecast cutoff as-of
+ * must fall strictly before this instant to be a valid 2024-input → 2025-target cutoff.
+ */
+export const FORECAST_RUN2_TARGET_SEASON_START = `${FORECAST_RUN2_TARGET_SEASON}-09-01T00:00:00.000Z` as const;
+/**
+ * Canonical 2024 input-season forecast cutoff as-of: after the full 2024 season concludes (Super Bowl
+ * LIX, Feb 2025) and strictly before the 2025 target season starts. Callers (CLI, sample export) pass
+ * this deliberately as a real pre-target cutoff; the builder never derives an as-of from the source's
+ * build/generated time. Provided as a documented default for callers, not a silent builder fallback.
+ */
+export const FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF = '2025-03-01T00:00:00.000Z' as const;
 /** Team-week grain primary keys Teamstate owns, in stable join order. */
 export const TEAM_WEEK_GRAIN_KEYS = ['season', 'week', 'teamCode'] as const;
 /**
@@ -68,9 +81,20 @@ export interface ForecastRun2Cutoff {
   inputSeason: typeof FORECAST_RUN2_INPUT_SEASON;
   /** The downstream Forecast target season this 2024 input feeds; never used as a Teamstate source. */
   targetSeason: typeof FORECAST_RUN2_TARGET_SEASON;
-  /** Recorded as-of timestamp for the cutoff (the governed source's `generatedAt` by default). */
+  /**
+   * The forecast cutoff as-of: the pre-target-season time boundary the artifact claims for Forecast
+   * Run 2 use. Validated strictly before {@link FORECAST_RUN2_TARGET_SEASON_START}. This is the cutoff
+   * moment the artifact represents — never the source's build/generated time (see `sourceGeneratedAt`).
+   */
   asOf: string;
-  /** Pinned true: the cutoff stays strictly before the target season, so no target data can leak in. */
+  /** The source/export build (generated) timestamp, recorded for provenance only; never the cutoff. */
+  sourceGeneratedAt: string | null;
+  /** The target-season boundary the as-of was validated to fall strictly before. */
+  targetSeasonStart: typeof FORECAST_RUN2_TARGET_SEASON_START;
+  /**
+   * Computed from validation: emission only succeeds (and this is `true`) when `asOf` is strictly
+   * before `targetSeasonStart`; a non-pre-target as-of fails closed rather than being marked true.
+   */
   cutoffBeforeTargetSeason: true;
   safeFor: 'forecast_run2_2024_input_to_2025_target';
 }
@@ -132,7 +156,12 @@ export interface TeamWeekRawV0ForecastRun2Artifact extends TeamWeekRawV0Governed
 }
 
 export interface BuildForecastRun2ArtifactOptions {
-  /** Override the recorded cutoff as-of timestamp. Defaults to the governed source's `generatedAt`. */
+  /**
+   * The forecast cutoff as-of: the pre-target-season time boundary the artifact claims for Forecast
+   * Run 2 use. Required — the builder never defaults it to the source's build/`generatedAt` time. Must
+   * be a parseable timestamp strictly before {@link FORECAST_RUN2_TARGET_SEASON_START}; callers may
+   * pass {@link FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF} as the canonical 2024 input-season cutoff.
+   */
   asOf?: string;
   /** Bye-aware coverage expectation to validate against. Defaults to the real 2024 544-row shape. */
   coverageExpectation?: ByeAwareCoverageExpectation;
@@ -161,7 +190,9 @@ const assertNoLeakage = (columns: readonly string[]): void => {
 /**
  * Emit the governed Forecast Run 2 input artifact from an already-loaded governed consumption.
  * Pure (no I/O). Fails closed when the recorded cutoff cannot be honestly established (non-2024 source
- * season, missing as-of) or when a pressure / fantasy / target-leakage column would reach Forecast.
+ * season; a missing, malformed, or target-season/future-looking as-of) or when a pressure / fantasy /
+ * target-leakage column would reach Forecast. The forecast cutoff as-of must be supplied explicitly as
+ * a real pre-target-season boundary; the source's build/`generatedAt` time is never used as the cutoff.
  */
 export const buildTeamWeekRawV0ForecastRun2Artifact = (
   consumption: TeamWeekRawGovernedConsumption,
@@ -173,9 +204,26 @@ export const buildTeamWeekRawV0ForecastRun2Artifact = (
     );
   }
 
-  const asOf = options.asOf ?? consumption.upstream.generatedAt;
-  if (asOf === null || asOf.trim().length === 0) {
-    throw new Error('Forecast Run 2 artifact requires a recorded forecast cutoff as-of timestamp (source generatedAt or options.asOf).');
+  // The forecast cutoff as-of is the pre-target-season time boundary the artifact claims — never the
+  // source's build/generatedAt time. It must be supplied explicitly (callers may use the canonical
+  // FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF); generatedAt is recorded separately for provenance only.
+  const asOf = options.asOf;
+  if (asOf === undefined || asOf.trim().length === 0) {
+    throw new Error(
+      'Forecast Run 2 artifact requires an explicit pre-target forecast cutoff as-of (options.asOf); the source generatedAt/build time is never used as the cutoff. Pass FORECAST_RUN2_DEFAULT_CUTOFF_AS_OF or another pre-target timestamp.'
+    );
+  }
+  const asOfTime = Date.parse(asOf);
+  if (Number.isNaN(asOfTime)) {
+    throw new Error(`Forecast Run 2 artifact refuses a malformed forecast cutoff as-of "${asOf}"; expected a parseable ISO-8601 timestamp.`);
+  }
+  // cutoffBeforeTargetSeason is computed from this validation, not hardcoded: a non-pre-target as-of
+  // fails closed rather than being silently marked safe.
+  const cutoffBeforeTargetSeason = asOfTime < Date.parse(FORECAST_RUN2_TARGET_SEASON_START);
+  if (!cutoffBeforeTargetSeason) {
+    throw new Error(
+      `Forecast Run 2 artifact refuses a forecast cutoff as-of "${asOf}" on/after the ${FORECAST_RUN2_TARGET_SEASON} target season start (${FORECAST_RUN2_TARGET_SEASON_START}); the as-of must be a real pre-target cutoff, not a target-season/future-looking or build timestamp.`
+    );
   }
 
   const expectation = options.coverageExpectation ?? REAL_2024_CANDIDATE_COVERAGE_EXPECTATION;
@@ -197,7 +245,9 @@ export const buildTeamWeekRawV0ForecastRun2Artifact = (
     inputSeason: FORECAST_RUN2_INPUT_SEASON,
     targetSeason: FORECAST_RUN2_TARGET_SEASON,
     asOf,
-    cutoffBeforeTargetSeason: true,
+    sourceGeneratedAt: consumption.upstream.generatedAt,
+    targetSeasonStart: FORECAST_RUN2_TARGET_SEASON_START,
+    cutoffBeforeTargetSeason,
     safeFor: 'forecast_run2_2024_input_to_2025_target'
   };
 
@@ -242,6 +292,7 @@ export const buildTeamWeekRawV0ForecastRun2Artifact = (
       'This is the upstream Teamstate evidence packet Forecast #81 waits for before value binding is allowed; it is not Forecast Run 2, training, evaluation, scoring, ranking, or fantasy advice.',
       'Governance is explicit-marker only and is never inferred from file path, file name, validation success, build success, or downstream demand.',
       'forecastCutoff.inputSeason is the recorded 2024 cutoff; it stays strictly before the 2025 target season so no target-season Teamstate values can enter Forecast inputs.',
+      'forecastCutoff.asOf is the pre-target-season cutoff boundary the artifact claims (validated strictly before forecastCutoff.targetSeasonStart); it is distinct from forecastCutoff.sourceGeneratedAt, which is the source/export build time and is never used as the semantic cutoff.',
       'Row grain is team-week; downstream player-season binding uses the player input-season team and input season (Teamstate season/teamCode → Forecast input_season/player_input_season_team).',
       'pressureRateAllowed remains unavailable/insufficient_data/deferred/excluded; no numeric pressure feature is emitted and pressure is never imputed, backfilled, estimated, or zero-filled.',
       'Fantasy split fields stay absent/excluded from Forecast input use; partial-null columns (e.g. redZoneTdRate) remain null-aware and are never zero-filled.'
