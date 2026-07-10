@@ -1,6 +1,8 @@
 import { type AddressInfo } from 'node:net';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, expect, it, afterEach } from 'vitest';
-import { createTeamstateServer } from '../src/server.js';
+import { createTeamstateServer, isDirectExecution } from '../src/server.js';
 
 describe('teamstate HTTP serving scaffold', () => {
   let server: ReturnType<typeof createTeamstateServer> | undefined;
@@ -22,6 +24,19 @@ describe('teamstate HTTP serving scaffold', () => {
     const mod = await import('../src/server.js');
     expect(typeof mod.createTeamstateServer).toBe('function');
     expect(typeof mod.handleRequest).toBe('function');
+  });
+
+  it('detects direct CLI execution using URL/path normalization', () => {
+    const cliFilePath = path.resolve(process.cwd(), 'dist/src/server.js');
+    const metaUrl = pathToFileURL(cliFilePath).href;
+
+    expect(isDirectExecution(metaUrl, cliFilePath)).toBe(true);
+    expect(isDirectExecution(metaUrl, path.resolve(process.cwd(), 'dist/src/other.js'))).toBe(false);
+    expect(isDirectExecution(metaUrl, undefined)).toBe(false);
+
+    const spacedFilePath = path.resolve(process.cwd(), 'tmp folder/server.js');
+    const spacedMetaUrl = pathToFileURL(spacedFilePath).href;
+    expect(isDirectExecution(spacedMetaUrl, spacedFilePath)).toBe(true);
   });
 
   it('returns 200 and the expected payload on /healthz', async () => {

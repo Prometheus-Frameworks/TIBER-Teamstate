@@ -1,4 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const SERVICE_NAME = 'tiber-teamstate';
 
@@ -60,11 +62,18 @@ export function createTeamstateServer() {
   return createServer(handleRequest);
 }
 
-function isMainModule(): boolean {
-  return process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`;
-}
+export const isDirectExecution = (metaUrl: string, argvPath: string | undefined): boolean => {
+  if (!argvPath) {
+    return false;
+  }
 
-if (isMainModule()) {
+  const moduleFilePath = path.normalize(path.resolve(fileURLToPath(metaUrl)));
+  const entryFilePath = path.normalize(path.resolve(argvPath));
+
+  return moduleFilePath === entryFilePath;
+};
+
+if (isDirectExecution(import.meta.url, process.argv[1])) {
   const port = Number.parseInt(process.env.PORT ?? '3000', 10);
   const host = '0.0.0.0';
 
