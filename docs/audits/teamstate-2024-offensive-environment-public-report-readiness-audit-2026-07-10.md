@@ -49,7 +49,7 @@ Guardrails respected:
 | Provenance is explicit | `metadata.provenanceStatus: "governed_real_data"`, `metadata.governance.governanceStatus: "governed"`, `governanceSource: "explicit_marker"` | **Confirmed** |
 | Cutoff / weeks are explicit | `metadata.coverage.weeks` = 1–18, `isFullRegularSeasonCalendar: true`, `byeWeeksHandled: true` | **Confirmed** |
 | Null semantics are explicit | `metadata.fieldReadiness`, `metadata.deferredFields: ["pressureRateAllowed"]`, per-row null counts (below) | **Confirmed** |
-| Report can be regenerated deterministically | Governed loader is a pure read of a committed, sha256-pinned mirror; no non-deterministic step in the consumption boundary | **Confirmed** |
+| Governed source and consumption boundary are deterministic | Governed loader is a pure read of a committed, sha256-pinned mirror; no non-deterministic step in the consumption boundary | **Confirmed** — narrower than "the report can be regenerated deterministically": no report derivation exists yet (§3–4), so that claim cannot be made until one does |
 
 Per-field null counts across all 544 rows (computed directly from the committed file):
 
@@ -91,23 +91,40 @@ the governed source directly through a new, separately-scoped derivation, as the
 
 ## 3. Field/lane support matrix for "2024 offensive-environment comparison"
 
-Derived from `metadata.fieldReadiness` plus the observed null counts above:
+Field *availability* at team-week grain is not the same thing as *season-level publication
+eligibility*. Every one of the 19 non-withheld fields is available at team-week grain, but none of
+them is yet directly season-aggregable without an explicit, documented derivation decision — a
+mechanical average across team-weeks is not automatically the right season-level statistic. This
+matrix separates the two questions using four tiers:
 
-| Field | Status | Public-report eligible |
+1. **source field available** — present in `TeamWeekRawGovernedRow`, non-null (or null-aware) at
+   team-week grain;
+2. **directly season-aggregable** — a season statistic can be computed with an explicit denominator
+   already present in the row shape, with no open derivation question;
+3. **aggregable only after a contract decision** — the field needs an explicit, justified
+   normalization, weighting, or presentation choice before a season value can be published;
+4. **unavailable or withheld** — excluded from the report entirely.
+
+| Field | Tier | Why |
 | --- | --- | --- |
-| `epaPerPlay`, `passEpaPerPlay`, `rushEpaPerPlay` | available, 0 nulls | Yes |
-| `successRate`, `explosivePlayRate` | available, 0 nulls | Yes |
-| `secondsPerPlay` (pace), `offensivePlays`, `neutralPlays` | available, 0 nulls | Yes |
-| `passRate`, `neutralPassRate`, `rushRate` | available, 0 nulls | Yes |
-| `drives`, `pointsPerDrive`, `redZoneTrips` | available, 0 nulls | Yes |
-| `pointsFor`, `pointsAgainst`, `sacksAllowed`, `turnovers` | available, 0 nulls | Yes |
-| `redZoneTdRate` | `partial_nulls` (11/544) | Yes, but must stay null-aware in any season average (exclude null rows from the denominator; never zero-fill) |
-| `pressureRateAllowed` | `deferred`, 544/544 null | **No** — excluded per comment ("pressure rate") and per upstream deferral |
-| `fantasyPointsFor{QB,RB,WR,TE}`, `fantasyPointsAllowed{QB,RB,WR,TE}` | 544/544 null, absent in practice | **No** — excluded per comment ("fantasy-position split fields") |
-| Current/future-week expectations, market priors, coaching forecasts, QB stability | not present in this source at all | **No** — not applicable; this artifact is 2024 observed team-week data only, so these lanes require no explicit exclusion logic, only correct labeling as out of scope |
+| `pointsFor` | 1 → 3 | Needs an explicit season-total vs. per-game presentation decision |
+| `pointsAgainst` | 1 → 3 | Same presentation decision, **plus** an explicit rationale for including a defensive-facing count in an *offensive*-environment report at all — not automatically in-scope just because it's available |
+| `offensivePlays`, `neutralPlays`, `drives`, `redZoneTrips`, `sacksAllowed`, `turnovers` | 1 → 3 | Counts; need an explicit season-total vs. per-game (rate) presentation decision |
+| `secondsPerPlay`, `epaPerPlay`, `successRate`, `explosivePlayRate` | 1 → 3 | Should be weighted by the relevant play denominator (e.g. `offensivePlays`) across team-weeks, not averaged unweighted; the weighting choice needs to be documented |
+| `passRate`, `rushRate` | 1 → 3 | Need play-weighted aggregation (by `offensivePlays`), not an unweighted mean of weekly rates |
+| `neutralPassRate` | 1 → 3 | Needs `neutralPlays`-weighted aggregation specifically, not `offensivePlays` |
+| `pointsPerDrive` | 1 → 3 | Needs drive-weighted aggregation (by `drives`), not an unweighted mean |
+| `redZoneTdRate` | 1 → 3 | Needs `redZoneTrips`-weighted aggregation **and** null preservation for legitimate zero-red-zone-trip weeks — excluding null weeks and then taking an unweighted average of the rest is not sufficient on its own and must be specified as a deliberate contract choice |
+| `passEpaPerPlay`, `rushEpaPerPlay` | 1 → 3 | Correct weighting requires exact pass-play and rush-play denominators, which are **not** explicit fields in `TeamWeekRawGovernedRow`. Deriving them by multiplying `passRate`/`rushRate` by `offensivePlays` would introduce approximation/rounding that must not be silently assumed — the denominator sourcing itself needs a contract decision |
+| `pressureRateAllowed` | 4 | `deferred`, 544/544 null — excluded per comment ("pressure rate") and upstream deferral |
+| `fantasyPointsFor{QB,RB,WR,TE}`, `fantasyPointsAllowed{QB,RB,WR,TE}` | 4 | 544/544 null, absent in practice — excluded per comment ("fantasy-position split fields") |
+| Current/future-week expectations, market priors, coaching forecasts, QB stability | 4 | Not present in this source at all; not applicable, no exclusion logic needed beyond correct labeling |
 
-This matches the comment's exclusion list exactly and requires no new judgment calls beyond
-deciding the season-aggregation method for the one partially-null field (`redZoneTdRate`).
+No field in this source lands in tier 2 today. That is the audit's central finding for this
+section: the source data is genuinely available and matches the comment's claims, but a season
+value for *every* included field requires an explicit derivation decision the report contract has
+not yet made. This is why the recommendation below is a contract-design issue, not a signal that
+publication-ready fields already exist.
 
 ---
 
@@ -122,7 +139,9 @@ deciding the season-aggregation method for the one partially-null field (`redZon
   through. This is the correct data-layer foundation for the public report and should be reused,
   not rebuilt.
 - The committed governed mirror is sha256-pinned and re-verified by the existing test suite, so the
-  "regenerated deterministically" requirement is already met at the source layer.
+  *source and consumption boundary* are deterministic. This does not yet extend to "the report is
+  deterministically regenerable" — no report derivation exists (§3), so that claim is only true of
+  the input, not the output.
 
 **Missing — this is the actual gap:**
 
@@ -136,7 +155,8 @@ deciding the season-aggregation method for the one partially-null field (`redZon
   produce `NaN` — exactly the kind of silent-bad-output the comment's boundaries are designed to
   prevent. **This pipeline must not be reused for the public report without modification**; a
   season-comparison derivation needs to be built directly on top of the governed adapter's
-  null-aware rows, scoped to only the eligible fields in §3.
+  null-aware rows, with an explicit weighting/normalization decision per field per §3 (nothing there
+  is tier-2 "aggregate as-is") and scoped to only the tier-1/3 fields, excluding the tier-4 fields.
 - No public-report contract (human- or machine-readable) or validator exists yet for this artifact.
   No route exists yet — `src/server.ts` currently serves only `/`, `/healthz`, and
   `/service-metadata.json`, so `/nfl/2024/offensive-environments` and
@@ -152,25 +172,32 @@ deciding the season-aggregation method for the one partially-null field (`redZon
 | --- | --- |
 | Is the governed 2024 source what the operator comment says it is? | Yes — 32/32 teams, 544/544 rows, `governed_real_data`, explicit provenance/cutoff/null semantics, all independently verified. |
 | Can the required boundaries (no `output/` fixtures, no Forecast Run 2 packet as the public report) be honestly met? | Yes, with no code changes needed to *avoid* them — the risk is confusable artifacts (esp. `2026_team_offensive_environment_v0.json`), not missing controls. |
-| Which fields can the first report honestly show? | The 18 fully-available fields plus null-aware `redZoneTdRate` (19 total eligible, §3). `pressureRateAllowed` and the 8 fantasy fields are out, matching the comment exactly. |
+| Which fields can the first report honestly show? | All 19 non-withheld fields are available at team-week grain, but **none is directly season-aggregable yet** — every one needs an explicit weighting/normalization decision before publication (§3, tier 3). `pressureRateAllowed` and the 8 fantasy fields are out, matching the comment exactly. |
 | Is there reusable data-layer code? | Yes — `teamWeekRawV0GovernedAdapter` + `src/governed/*` already do the null-aware, fail-closed governed read. |
 | Is there a season-aggregation derivation ready to use? | **No.** The only existing one (`buildSeasonToDateReports.ts`) is on the wrong pipeline, non-null-aware, and would mishandle this source's nulls if pointed at it directly. |
 | Do route paths collide with anything live? | No — `/nfl/2024/offensive-environments` and `.json` are unclaimed. |
 
 ## Recommendation
 
-The governed 2024 source is genuinely ready to support Direction A's report. The gap is entirely on
-the derivation/contract side, not the data side: a season-comparison methodology (how team-week
-rows aggregate to a team-season row, in particular how the partially-null `redZoneTdRate` is
-averaged) and a public report contract (human- and machine-readable, per issue #11 §5–6) need to be
-defined before any implementation, reusing `teamWeekRawV0GovernedAdapter` as the data layer and
-excluding the fields in §3.
+The governed 2024 source is genuinely ready to support Direction A's report *as a data source*. The
+gap is entirely on the derivation/contract side, not the data side: a season-comparison methodology
+— an explicit, justified weighting/normalization decision for every field in §3's tier-3 list (not
+just `redZoneTdRate`), plus a scope rationale for including `pointsAgainst` at all — and a public
+report contract (human- and machine-readable, per issue #11 §5–6) need to be defined before any
+implementation, reusing `teamWeekRawV0GovernedAdapter` as the data layer and excluding the tier-4
+fields in §3.
 
-**Machine-readable decision:** `may_open_teamstate_public_report_contract_issue`
+This PR is a Teamstate-side technical audit only. It does **not** satisfy TIBER-Ops #11's required
+deliverables — the canonical cross-repository architecture document, publication eligibility
+matrix, ownership model, discoverability plan, or the human-/machine-readable report contracts —
+and it does not make the final cross-repository decision. **TIBER-Ops #11 remains open** and must
+incorporate this audit's findings before TIBER-Ops emits the authoritative final decision.
+
+**Teamstate-side recommendation to TIBER-Ops:** `may_open_teamstate_public_report_contract_issue`
 
 Recommended next bounded Teamstate issue: define the `teamstate_public_offensive_environment_2024_v1`
-report contract — team-season aggregation methodology over `teamWeekRawV0GovernedAdapter` output,
-null-aware handling of `redZoneTdRate`, the human-readable page contract, and the machine-readable
-JSON contract at `/nfl/2024/offensive-environments{,.json}` — followed by implementation and wiring
-`service-metadata.json`'s `public_reports`/`artifact_publication_enabled` once the contract and its
-validator exist.
+report contract — a documented, field-by-field team-season aggregation methodology over
+`teamWeekRawV0GovernedAdapter` output (per §3's tier-3 fields), the human-readable page contract, and
+the machine-readable JSON contract at `/nfl/2024/offensive-environments{,.json}` — followed by
+implementation and wiring `service-metadata.json`'s `public_reports`/`artifact_publication_enabled`
+once the contract and its validator exist.
