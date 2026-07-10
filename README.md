@@ -95,6 +95,7 @@ The architecture intentionally keeps these scores separate (no blended single sc
 - `src/pipeline/teamEnvironmentMovement.ts` – temporal movement artifact builder for weekly team-state windows.
 - `src/contracts/currentSnapshot.ts` – explicit row contracts for downstream snapshot artifacts.
 - `src/contracts/teamEnvironmentMovement.ts` – explicit contract for `team_environment_movement_v0`.
+- `src/server.ts` – minimal HTTP serving adapter (deployment scaffold only; no scoring/pipeline logic). See [Deployment (Railway)](#deployment-railway).
 
 ## Raw Input Ingestion (PR4)
 
@@ -153,6 +154,48 @@ npm run pipeline -- --input data/raw --season 2025 --week 8
 ```bash
 node dist/src/pipeline/runTeamStatePipeline.js <raw-input-path> <output-dir>
 ```
+
+## Deployment (Railway)
+
+`src/server.ts` is a minimal, read-only HTTP serving adapter for the public deployment
+scaffold established by issue #78. It is independent of the analytics library
+(`src/index.ts`) and does not run any pipeline, scoring, or artifact-publication logic.
+
+Routes:
+
+- `GET /healthz` — `{ "status": "ok", "service": "tiber-teamstate" }`
+- `GET /` — minimal HTML service page.
+- `GET /service-metadata.json` — machine-readable metadata; always reports
+  `"artifact_publication_enabled": false` until a separate publication-eligibility
+  decision authorizes public football reports.
+- any other path — deterministic `404`.
+
+No internal directories (`output/`, `data/processed/`, fixtures, samples, candidates, or
+operator journals) are exposed by this server.
+
+### Railway configuration
+
+```text
+Build command: npm run build
+Start command: npm start
+```
+
+`npm start` runs `node dist/src/server.js`, which reads `process.env.PORT` (falling back to
+`3000` locally) and binds to `0.0.0.0`.
+
+### Local smoke test
+
+```bash
+npm run build
+PORT=8099 npm start &
+curl -s http://127.0.0.1:8099/healthz
+curl -s http://127.0.0.1:8099/
+curl -s http://127.0.0.1:8099/service-metadata.json
+kill %1
+```
+
+Importing `src/server.js` (e.g. from tests) does not bind a port — the server only starts
+when the module is run directly.
 
 ## Filtering (PR4)
 

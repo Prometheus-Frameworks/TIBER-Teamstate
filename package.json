@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "description": "Deterministic team-level environment intelligence library for NFL analysis.",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
     "test": "vitest run",
     "check": "tsc -p tsconfig.json --noEmit",
     "pipeline": "npm run build && node dist/src/pipeline/runTeamStatePipeline.js",
