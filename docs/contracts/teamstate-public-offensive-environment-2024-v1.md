@@ -229,17 +229,21 @@ Required page content:
 - **Methodology version and link:** `teamstate_public_offensive_environment_2024_v1`, linking to
   this document (or its eventual public-facing methodology-page rendering, §11 of the Ops
   architecture — not built here).
-- **Provenance and source artifact references:** `governed_real_data`, governance markers, and the
-  per-source references from §5/§7 (source ref, snapshot timestamp, checksum, for each of the
-  governed source's underlying inputs) plus upstream validation/lineage report paths.
+- **Provenance and source chain:** `governed_real_data`, governance markers, the `governed_input`
+  pin (the exact Teamstate-local governed artifact consumed, with its checksum), and the
+  `upstream_sources` list (each raw nflverse input's ref, snapshot timestamp, and recorded
+  checksum) — plus the repository-qualified validation/lineage report references (§5, §7).
 - **Warnings:** any per-team `W_ZERO_REDZONE_OPPORTUNITIES`/`W_ZERO_DENOMINATOR_*` warning that
   fires (§3). No exposure-weight-proxy warning exists in v1, because no proxy-weighted field is
   published (§2, §3).
 - **Temporal metadata (§7):** `data_through`, `source_snapshot_at`, `generated_at` — three distinct,
   visible facts, not collapsed into one "cutoff" line.
-- **Current/superseded status:** whether this exact report version is the current canonical report
-  or has been superseded, per the mutable report registry (§6) — not a field inside the report's
-  own frozen content.
+- **Stable canonical pointer, no rendered status:** a frozen link to the canonical alias (§6) so a
+  reader on a specific historical version can navigate to whatever is current. This page — at
+  either the canonical alias or the immutable versioned identity — **never renders current/
+  superseded status as content.** The link target text (`canonical_url`) never changes, even though
+  what is served there does; that is sufficient navigation without the page itself displaying a
+  status that would make its own content mutate over time (§6, §8 invariant 9).
 - **Identity:** the immutable versioned identity for this exact report version (§6), distinct from
   the canonical alias, visible so a reader can cite the exact version.
 - **Link to the JSON representation (§5).**
@@ -294,20 +298,35 @@ supersession/current-status field (that lives in a separate mutable registry ent
     "governance_source": "explicit_marker"
   },
   "methodology_version": "teamstate_public_offensive_environment_2024_v1",
-  "source_artifacts": [
+  "governed_input": {
+    "artifact_id": "team_week_raw_v0_2024_real_source_candidate",
+    "repository": "TIBER-Teamstate",
+    "path": "data/governed/team_week_raw_v0_2024_real_source_candidate.json",
+    "checksum": { "algorithm": "sha256", "value": "2aed00e68c1620af10d2ea4350104f7e183ff6ee050f5d385a503ef027281de9" },
+    "checksum_verification": "recomputed_locally_at_generation_time_against_committed_repo_file"
+  },
+  "upstream_sources": [
     {
       "source_ref": "nflverse-data:pbp/play_by_play_2024",
       "source_snapshot_at": "2026-06-27T13:42:00+00:00",
-      "checksum": { "algorithm": "sha256", "value": "6d432dd4308329bfddaef633309ea119f9ca46d52cbb3c09f47172a2e8efcd01" }
+      "checksum": { "algorithm": "sha256", "value": "6d432dd4308329bfddaef633309ea119f9ca46d52cbb3c09f47172a2e8efcd01" },
+      "checksum_verification": "recorded_from_governed_artifact_metadata_no_network_refetch"
     },
     {
       "source_ref": "nflverse-data:schedules/games",
       "source_snapshot_at": "2026-06-27T13:42:05+00:00",
-      "checksum": { "algorithm": "sha256", "value": "179ea0a014159b3aa4da59eee756272dd33ec876d704fb46650c08118fe75a05" }
+      "checksum": { "algorithm": "sha256", "value": "179ea0a014159b3aa4da59eee756272dd33ec876d704fb46650c08118fe75a05" },
+      "checksum_verification": "recorded_from_governed_artifact_metadata_no_network_refetch"
     }
   ],
-  "validation_report_path": "exports/candidates/team_week_raw/team_week_raw_v0_2024_real_source_candidate.validation.json",
-  "lineage_manifest_path": "data/manifests/team_week_raw_v0_2024_real_source_candidate.manifest.json",
+  "validation_report": {
+    "repository": "TIBER-Data",
+    "path": "exports/candidates/team_week_raw/team_week_raw_v0_2024_real_source_candidate.validation.json"
+  },
+  "lineage_manifest": {
+    "repository": "TIBER-Data",
+    "path": "data/manifests/team_week_raw_v0_2024_real_source_candidate.manifest.json"
+  },
   "excluded_lanes": [
     { "field": "pointsAgainst", "reason": "out_of_declared_scope_defensive_facing" },
     { "field": "pressureRateAllowed", "reason": "withheld_upstream_deferred" },
@@ -365,12 +384,29 @@ Notes on this shape:
 - **No `supersession_status`/`superseded_by` field exists in this payload.** That is deliberate —
   see §6 for why putting a mutable status inside a document this contract calls immutable is
   self-contradictory, and where that status actually lives instead.
-- `source_artifacts` is an array of the governed artifact's actual upstream inputs (play-by-play,
-  schedules), each with its own `source_ref`, `source_snapshot_at`, and `checksum` — not a single
-  invented "mirror hash" the current adapter boundary cannot supply (§7, §11, §12). The top-level
-  `source_snapshot_at` is the **latest** of the per-source values (`max()` — here, the schedules
-  snapshot, `13:42:05`, one second after the play-by-play snapshot, `13:42:00`) — an explicit
-  aggregation rule, not an arbitrary pick of one input.
+- **Two distinct pins, not one:** `governed_input` identifies and checksums the actual
+  `team_week_raw_v0` artifact Teamstate consumes (repository-qualified as `TIBER-Teamstate`,
+  since it's the committed local mirror this repo reads directly) — without this, a public report
+  can't prove which exact governed intermediate produced its values, even if the raw upstream
+  inputs are unchanged. `upstream_sources` is a separate array of the *raw* nflverse inputs that
+  fed that governed artifact (play-by-play, schedules), each with its own `source_ref`,
+  `source_snapshot_at`, and `checksum`, repository-qualified as `TIBER-Data` where applicable
+  (`validation_report`, `lineage_manifest`) since those paths resolve in TIBER-Data, not here. The
+  top-level `source_snapshot_at` is the **latest** of `upstream_sources[].source_snapshot_at`
+  (`max()` — here, the schedules snapshot, `13:42:05`, one second after the play-by-play snapshot,
+  `13:42:00`) — an explicit aggregation rule, not an arbitrary pick of one input.
+- **Checksum verification differs by pin, and neither requires a network fetch (§7, §12):**
+  `governed_input.checksum` is verified by **locally recomputing** the sha256 of the committed
+  `data/governed/team_week_raw_v0_2024_real_source_candidate.json` bytes at generation time —
+  implementable today with no network access, and precedented by this repo's existing
+  `scripts/export_forecast_run2_full.mjs`, which already does exactly this and fails closed on
+  drift. `upstream_sources[].checksum` is **recorded only** — read from the governed artifact's own
+  `metadata.inputSources`, required to be present and well-formed, but **not** independently
+  re-verified against a network re-fetch of the raw nflverse parquet files, because (a) the adapter
+  boundary doesn't expose those raw bytes at all, and (b) the upstream URLs are documented as
+  mutable rolling release assets — re-fetching later would not validate the exact historical bytes
+  originally consumed and could produce false failures (or false passes) unrelated to whether the
+  committed governed artifact is actually valid.
 - `declared_scope.data_through` is a **pinned contract constant**, not a value derived from
   `teamWeekRawV0GovernedAdapter` output at runtime — see §1's callout for why, and §7/§12 for the
   upstream gap this works around. `source_snapshot_at` and `generated_at` remain genuinely
@@ -393,13 +429,27 @@ Two distinct identities, plus a separate mutable registry — three concepts, no
 single "immutable" identity cannot also carry a mutating supersession status without contradicting
 itself.
 
-### The frozen report payload (§5)
+### The frozen report payload (§5) — strict immutability, HTML included
 
 Once published at a `version_url`, a report payload's content is permanently frozen —
 byte/semantically identical forever, including its `report_version_id`, all `teams[]` values, and
 all metadata **except** anything about current/superseded status, which this payload does not
 carry at all (see below). This is what makes `version_url` genuinely immutable: there is nothing
 in it left to mutate.
+
+**This applies identically to HTML and JSON — neither ever renders current/superseded status as
+page content, at either the canonical alias or the immutable versioned identity.** An earlier draft
+of this contract required the HTML page to display "whether this exact version is current or
+superseded, per the registry" — that would make the HTML response at a `version_url` change
+whenever the registry changes, directly contradicting "content never changes" (§8 invariant 9) and
+leaving HTML/JSON parity (§9, `E_HTML_JSON_SEMANTIC_MISMATCH`) ambiguous, since the JSON payload
+never carried a status field at all. The resolution: **strict immutable version pages.** Both
+formats, at both URLs, include only a stable, frozen link to the canonical alias (`canonical_url`)
+so a reader can navigate to whatever is current — the link *target text* never changes, even though
+what is served there does. Neither page renders an explicit "you are viewing the current report" /
+"this report has been superseded" status string. A future phase may add a separate,
+explicitly-scoped public version-history page that *does* render registry state as its whole
+purpose — that is not this contract, and not Phase 3.
 
 ### Two URL identities for the frozen payload
 
@@ -467,7 +517,7 @@ Three distinct facts, never collapsed into one "cutoff" field (per the TIBER-Ops
   Phase 3 to compute this from at runtime (§1's callout, §12's upstream gap). Phase 3 must source
   it from this contract's pinned constant, not attempt to derive it from adapter rows.
 - **`source_snapshot_at`** — when the governed upstream source bytes were retrieved, taken as the
-  **latest** (`max()`) of the per-source snapshot timestamps in `source_artifacts` (§5) — this
+  **latest** (`max()`) of the per-source snapshot timestamps in `upstream_sources` (§5) — this
   report depends on two distinct upstream inputs (play-by-play, schedules) with two distinct
   retrieval timestamps, and using only one of them would silently omit the other's snapshot time.
   **This requires a governed-adapter extension** — `teamWeekRawV0GovernedAdapter`'s
@@ -475,6 +525,8 @@ Three distinct facts, never collapsed into one "cutoff" field (per the TIBER-Ops
   `validationReportPath`, and `lineageManifestPath`, but does **not** expose
   `metadata.inputSources` (which carries each source's `sourceRefs`, `sourceSnapshotAt`, and
   `checksum` in the raw governed artifact) at all. See §12 for the exact, minimal extension needed.
+  Separately, `governed_input`'s own checksum (§5) is obtained via a small, existing-precedent local
+  file read (§8, §11, §12) — not the adapter extension, which only covers `upstream_sources`.
 - **`generated_at`** — when this specific report version was derived from the governed source. Can
   differ from both of the above; a report regenerated today can still have `data_through` fixed at
   the end of the 2024 season and `source_snapshot_at` fixed at whenever TIBER-Data retrieved the
@@ -494,9 +546,12 @@ report. Any single failure means: do not publish, no partial route, no best-effo
    `governance_source == "explicit_marker"` (§1).
 2. Coverage satisfies the declared scope exactly (§1): 32/32 teams, 544/544 rows, 17
    games/team, `missing_teams == []`, `unexpected_teams == []`.
-3. Every entry in `source_artifacts[]` has a `checksum` that matches a fresh recompute of that
-   specific upstream input (play-by-play, schedules) at generation time — not a single aggregate
-   hash standing in for both.
+3. `governed_input.checksum` matches a **fresh local recompute** of the committed
+   `data/governed/team_week_raw_v0_2024_real_source_candidate.json` bytes at generation time (no
+   network access required — precedented by `scripts/export_forecast_run2_full.mjs`). Each entry
+   in `upstream_sources[]` has a `checksum` that is **present and well-formed**, as recorded in the
+   governed artifact's own metadata — not independently re-verified against a network re-fetch of
+   the raw upstream inputs (§7).
 4. `methodology_version` is a known, approved value (`teamstate_public_offensive_environment_2024_v1`
    for this contract).
 5. Only the 12 fields §3 defines methodology for are present in `teams[].observed`/`derived`; no
@@ -509,10 +564,11 @@ report. Any single failure means: do not publish, no partial route, no best-effo
 8. `data_through`, `source_snapshot_at`, and `generated_at` are all present and are not the
    identical literal value by construction (i.e., the fields are wired to their distinct sources,
    not to one shared timestamp variable), and `source_snapshot_at` equals `max()` of
-   `source_artifacts[].source_snapshot_at`.
+   `upstream_sources[].source_snapshot_at`.
 9. `report_version_id`, `canonical_url`, and `version_url` are all present; the payload at
-   `version_url` never carries a `supersession_status`/`superseded_by` field (§6) and, once
-   published, its content never changes.
+   `version_url` never carries a `supersession_status`/`superseded_by` field (§6), never renders
+   current/superseded status as HTML page content either, and, once published, its content (JSON
+   and HTML alike) never changes.
 10. The human-readable and machine-readable forms for a given `report_version_id` are semantically
     equivalent (same values, same warnings, same scope).
 11. Current/superseded status is tracked only in the `service-metadata.json` registry (§6), never
@@ -537,7 +593,8 @@ partial or best-effort route.**
 | `E_COVERAGE_TEAM_MISSING` | `missing_teams` non-empty | 2 |
 | `E_COVERAGE_TEAM_UNEXPECTED` | `unexpected_teams` non-empty | 2 |
 | `E_COVERAGE_ROW_COUNT_MISMATCH` | `team_game_row_count != expected_team_game_rows`, or any team's row count `!= expected_games_per_team` | 2 |
-| `E_SOURCE_ARTIFACT_CHECKSUM_MISSING` | Any `source_artifacts[].checksum` absent or does not match a fresh recompute of that specific input | 3 |
+| `E_GOVERNED_INPUT_CHECKSUM_MISMATCH` | `governed_input.checksum` absent, or does not match a fresh local recompute of the committed governed artifact bytes | 3 |
+| `E_UPSTREAM_SOURCE_CHECKSUM_MISSING` | Any `upstream_sources[].checksum` absent or malformed (presence/well-formedness only — no network re-verification required) | 3 |
 | `E_METHODOLOGY_VERSION_UNKNOWN` | `methodology_version` not a recognized, approved value | 4 |
 | `E_UNDOCUMENTED_FIELD_PRESENT` | Any field in `teams[].observed`/`derived` not defined in §3 | 5 |
 | `E_WITHHELD_FIELD_PRESENT` | `pointsAgainst`, `pressureRateAllowed`, `passRate`, `rushRate`, `successRate`, `explosivePlayRate`, `passEpaPerPlay`, `rushEpaPerPlay`, or any fantasy field present in a team record | 6 |
@@ -546,9 +603,9 @@ partial or best-effort route.**
 | `E_UNWEIGHTED_AGGREGATION_USED` | Any rate field computed as a simple mean of weekly values instead of the weighted formula §3 specifies | §3 (formula conformance) |
 | `E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED` | Any of the six blocked fields (§2) present at all, regardless of method used to compute them | 6 |
 | `E_TEMPORAL_METADATA_MISSING` | Any of `data_through`/`source_snapshot_at`/`generated_at` absent | 8 |
-| `E_TEMPORAL_METADATA_CONFLATED` | Two or more of the three temporal fields are wired to the same source value (structural check, not a coincidental-equality check), or `source_snapshot_at != max(source_artifacts[].source_snapshot_at)` | 8 |
+| `E_TEMPORAL_METADATA_CONFLATED` | Two or more of the three temporal fields are wired to the same source value (structural check, not a coincidental-equality check), or `source_snapshot_at != max(upstream_sources[].source_snapshot_at)` | 8 |
 | `E_VERSION_IDENTITY_MISSING` | `report_version_id`/`canonical_url`/`version_url` absent | 9 |
-| `E_VERSION_IDENTITY_MUTABLE` | A previously published `version_url`'s content differs from a fresh regeneration at the same `report_version_id`, or the payload contains a `supersession_status`/`superseded_by` field at all | 9 |
+| `E_VERSION_IDENTITY_MUTABLE` | A previously published `version_url`'s content (HTML or JSON) differs from a fresh regeneration at the same `report_version_id`; the JSON payload contains a `supersession_status`/`superseded_by` field at all; or the HTML page at any `version_url` (canonical or immutable) renders current/superseded status text | 9 |
 | `E_HTML_JSON_SEMANTIC_MISMATCH` | HTML and JSON for the same `report_version_id` disagree on any published value, scope, or warning | 10 |
 | `E_REGISTRY_STATE_INVALID` | `service-metadata.json`'s `public_reports` registry names more than one `status: "current"` entry for this report family, or a `superseded_by` doesn't resolve to a real `report_version_id` | 11 |
 | `E_PUBLICATION_NOT_APPROVED` | No recorded explicit human approval for this `report_version_id` | 12 |
@@ -566,7 +623,8 @@ above, but enough to drive real tests for each):
 | 2 | Input has 543 rows (one dropped) with all 32 teams present | `E_COVERAGE_ROW_COUNT_MISMATCH`, no publication |
 | 3 | One team has 16 rows, another has 18 | `E_COVERAGE_ROW_COUNT_MISMATCH`, no publication |
 | 4 | Source `provenanceStatus` is `partial_real_data` | `E_PROVENANCE_NOT_GOVERNED`, no publication |
-| 5 | The schedules input's checksum does not match a fresh recompute (pbp checksum still matches) | `E_SOURCE_ARTIFACT_CHECKSUM_MISSING`, no publication |
+| 5 | The committed `data/governed/team_week_raw_v0_2024_real_source_candidate.json` bytes have drifted from the pinned `governed_input.checksum` (local recompute mismatch) | `E_GOVERNED_INPUT_CHECKSUM_MISMATCH`, no publication |
+| 5a | An `upstream_sources[]` entry is emitted with `checksum: null` | `E_UPSTREAM_SOURCE_CHECKSUM_MISSING`, no publication |
 | 6 | Output includes a `pressureRateAllowed` field on any team, even as `null` | `E_WITHHELD_FIELD_PRESENT`, no publication |
 | 7 | Output includes `fantasyPointsForQB: 0` on any team | `E_WITHHELD_FIELD_ZERO_FILLED`, no publication |
 | 8 | Output includes a `passRate` or `passEpaPerPlay` field at all, by any computation method | `E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED`, no publication |
@@ -578,6 +636,7 @@ above, but enough to drive real tests for each):
 | 14 | JSON `report_version_id` present, HTML page for the same version omits it | `E_VERSION_IDENTITY_MISSING`, no publication |
 | 15 | Regenerating an already-published `report_version_id` produces different values | `E_VERSION_IDENTITY_MUTABLE`, no publication (must mint a new `report_version_id` instead) |
 | 16 | A report payload includes a `supersession_status` field at all | `E_VERSION_IDENTITY_MUTABLE`, no publication (that concept belongs only in the registry, §6) |
+| 16a | The HTML page at a version_url renders "This report has been superseded" text sourced from the registry | `E_VERSION_IDENTITY_MUTABLE`, no publication (strict immutable version pages, §6) |
 | 17 | HTML shows a team's `epaPerPlay` rounded differently than the JSON for the same version | `E_HTML_JSON_SEMANTIC_MISMATCH`, no publication |
 | 18 | Registry has two entries with `status: "current"` for the same report family | `E_REGISTRY_STATE_INVALID`, no publication |
 | 19 | All invariants pass, but no recorded human approval for this `report_version_id` | `E_PUBLICATION_NOT_APPROVED`, no publication |
@@ -597,8 +656,13 @@ not authorize starting that work.
       (`src/adapters/teamWeekRawV0GovernedAdapter.ts`) to preserve `metadata.inputSources`
       (`sourceRefs`, `sourceSnapshotAt`, `checksum` per source) as a read-only pass-through — the
       same posture as its existing preserved `sourceArtifacts`/`validationReportPath`/
-      `lineageManifestPath` fields, no new governance judgment. Required before `source_artifacts`
+      `lineageManifestPath` fields, no new governance judgment. Required before `upstream_sources`
       and `source_snapshot_at` (§5, §7) can be populated at all.
+- [ ] Compute `governed_input.checksum` (§5, §8 invariant 3) by locally re-hashing the committed
+      `data/governed/team_week_raw_v0_2024_real_source_candidate.json` bytes at generation time —
+      reuse or align with the existing sha256-check pattern in
+      `scripts/export_forecast_run2_full.mjs` rather than inventing a new one. This is separate from
+      the adapter extension above and requires no network access.
 - [ ] Deterministic derivation built directly on `teamWeekRawV0GovernedAdapter` output for all 12
       methodology fields (§3) plus `source_snapshot_at`/`generated_at` (no bypass of its
       fail-closed governance checks). `declared_scope.data_through` is the one exception — sourced
@@ -614,7 +678,9 @@ not authorize starting that work.
 - [ ] Validator implemented per §9, covering every rejection code with a real test, including all
       of §10's acceptance-matrix cases.
 - [ ] HTML and JSON routes for both the canonical alias and the immutable versioned identity (§6),
-      with semantic-parity tests between the two formats.
+      with semantic-parity tests between the two formats. Neither format, at either URL, renders
+      current/superseded status as page content (§6, strict immutable version pages) — tested by
+      confirming the HTML at a `version_url` is byte-identical before and after a registry flip.
 - [ ] `service-metadata.json` updated only as part of this later, separately authorized work — not
       touched by this contract-design issue.
 - [ ] Publication remains disabled (`artifact_publication_enabled: false`) throughout
@@ -644,7 +710,7 @@ not authorize starting that work.
 - **`teamWeekRawV0GovernedAdapter` does not expose `metadata.inputSources`.** It currently
   preserves `sourceArtifacts` (a bare array of source-ID strings), `validationReportPath`, and
   `lineageManifestPath`, but not each input source's own `sourceRefs`/`sourceSnapshotAt`/
-  `checksum` — needed for §5's `source_artifacts` and §7's `source_snapshot_at`. This is a
+  `checksum` — needed for §5's `upstream_sources` and §7's `source_snapshot_at`. This is a
   Teamstate-internal boundary extension (§11), not a TIBER-Data ask: the data already exists in the
   governed artifact's `metadata.inputSources`, the adapter just doesn't surface it yet. A minimal,
   read-only pass-through extension resolves it, consistent with the adapter's existing
@@ -652,7 +718,7 @@ not authorize starting that work.
 - **`team_week_raw_v0` / `teamWeekRawV0GovernedAdapter` carry no game-date field**, so
   `declared_scope.data_through` cannot be computed at runtime from adapter output — it is pinned as
   a contract constant instead (§1, §7). The underlying `nflverse-data:schedules/games` source
-  (already in `source_artifacts`, §5) does carry real game dates; a future revision could add a
+  (already in `upstream_sources`, §5) does carry real game dates; a future revision could add a
   `gameDate`/`weekEndDate` field to `team_week_raw_v0`'s row shape so `data_through` could be
   derived automatically instead of pinned. This does not block v1.
 - **Operator publication-approval mechanics** (who records the approval named in invariant 12, and
