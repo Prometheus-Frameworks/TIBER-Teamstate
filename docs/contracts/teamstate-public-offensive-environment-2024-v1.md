@@ -36,13 +36,23 @@
   "expectedTeamCount": 32,
   "expectedTeamGameRows": 544,
   "expectedGamesPerTeam": 17,
-  "outputMeaning": "historical_observed_comparison"
+  "outputMeaning": "historical_observed_comparison",
+  "dataThrough": "2025-01-05",
+  "dataThroughSource": "pinned_contract_constant_public_nfl_schedule_not_adapter_derived"
 }
 ```
 
 `outputMeaning: historical_observed_comparison` is an explicit, machine-checkable non-claim: this
 report is not current-state, not a forecast, not a ranking recommendation, and not advice. It
 describes what happened in the governed 2024 regular season, nothing else.
+
+**`dataThrough` is a pinned contract constant, not derived from `teamWeekRawV0GovernedAdapter`
+output.** The adapter's row shape carries `season`/`week`/`teamCode`/`opponentCode` plus metrics —
+no game-date field. `2025-01-05` (the real-world final date of the 2024 NFL regular season, Week
+18) is declared here the same way `expectedTeamCount: 32` and `expectedTeamGameRows: 544` are
+declared: as a fixed property of this report's historical scope, checked for internal consistency
+against the adapter's actual week range (1–18 present), not computed from adapter rows at runtime.
+See §7 and §12 for why, and the upstream field that would let a future revision derive it instead.
 
 **Coverage check (all must hold; any failure → withhold per §8/§9, never partial-publish):**
 
@@ -254,7 +264,9 @@ document.**
     "expected_team_count": 32,
     "expected_team_game_rows": 544,
     "expected_games_per_team": 17,
-    "output_meaning": "historical_observed_comparison"
+    "output_meaning": "historical_observed_comparison",
+    "data_through": "2025-01-05",
+    "data_through_source": "pinned_contract_constant_public_nfl_schedule_not_adapter_derived"
   },
   "coverage": {
     "team_count": 32,
@@ -266,7 +278,6 @@ document.**
     "is_full_league": true,
     "satisfies_declared_scope": true
   },
-  "data_through": "ISO-8601 date — the 2024 regular season's final game date; not independently verified by this contract and must be sourced from the governed artifact's own schedule data at implementation time, not hardcoded",
   "source_snapshot_at": "2026-06-27T13:42:00+00:00",
   "generated_at": "ISO-8601 timestamp — when this report version was derived",
   "provenance_status": "governed_real_data",
@@ -331,7 +342,13 @@ document.**
         "pointsPerDrive": 0.0,
         "redZoneTdRate": null
       },
-      "warnings": []
+      "warnings": [
+        {
+          "code": "W_EXPOSURE_WEIGHT_PROXY",
+          "fields": ["passRate", "rushRate", "successRate", "explosivePlayRate"],
+          "message": "Season value weighted by offensivePlays as a disclosed exposure-weight proxy, not the field's proven exact per-row denominator (contract §3)."
+        }
+      ]
     }
   ]
 }
@@ -339,13 +356,20 @@ document.**
 
 Notes on this shape:
 
-- `data_through`, `source_snapshot_at`, and `generated_at` are three distinct fields (§7) — never
-  collapsed.
+- `declared_scope.data_through` is a **pinned contract constant**, not a value derived from
+  `teamWeekRawV0GovernedAdapter` output at runtime — see §1's callout for why, and §7/§12 for the
+  upstream gap this works around. `source_snapshot_at` and `generated_at` remain genuinely
+  runtime-derived. All three stay distinct (§7) — never collapsed into one field.
 - `report_version_id`/`canonical_url`/`version_url` implement the two-identity requirement (§6).
 - `excluded_lanes` names what is deliberately absent and why, without emitting a value for it
   (satisfies "withheld fields absent, not zero-filled or present-with-a-disclaimer").
 - Every field in `teams[].observed`/`teams[].derived` traces to a row in §3's methodology tables —
   the JSON contract does not introduce any field §3 did not define.
+- `teams[].warnings` is **required**, not illustrative, whenever a team record includes any of
+  `passRate`/`rushRate`/`successRate`/`explosivePlayRate` — every team in this report's scope
+  includes all four, so every team record carries this exact warning (one combined entry, not four
+  separate ones). An implementation emitting `"warnings": []` alongside those fields fails
+  invariant 7 (§8) and rejection code `E_MISSING_EXPOSURE_WEIGHT_WARNING` (§9).
 - This is the **finalized** contract shape for Phase 3 to implement against — not illustrative
   placeholder text. All literal string/field names above (`artifact`, `schema_version`,
   `report_version_id`, etc.) are the actual contract, not examples of a shape TBD.
@@ -391,8 +415,12 @@ No route, redirect, or identity-resolution code is implemented by this document.
 Three distinct facts, never collapsed into one "cutoff" field (per the TIBER-Ops architecture §7):
 
 - **`data_through`** — the latest football event/date the report's data actually includes. For
-  this report: the end of the 2024 NFL regular season. A fixed historical fact that does not change
-  across regenerations of this same report version.
+  this report: `2025-01-05`, the real-world final date of the 2024 NFL regular season (Week 18). A
+  fixed historical fact that does not change across regenerations of this same report version. It
+  is a **pinned `declared_scope` constant, not an adapter-derived value**: `TeamWeekRawGovernedRow`
+  carries no game-date field, so there is nothing in `teamWeekRawV0GovernedAdapter` output for
+  Phase 3 to compute this from at runtime (§1's callout, §12's upstream gap). Phase 3 must source
+  it from this contract's pinned constant, not attempt to derive it from adapter rows.
 - **`source_snapshot_at`** — when the governed upstream source bytes were retrieved. Carried
   through from the governed source's own `retrievalTimestamp` (already tracked at the TIBER-Data
   layer per `metadata.inputSources`) — the public report must preserve this, not discard or
@@ -514,8 +542,14 @@ output — not a truncated, partial, or best-effort report.
 This checklist defines **future** requirements for a separate, later implementation issue. It does
 not authorize starting that work.
 
-- [ ] Deterministic derivation built directly on `teamWeekRawV0GovernedAdapter` output (no new
-      adapter, no bypass of its fail-closed governance checks).
+- [ ] Deterministic derivation built directly on `teamWeekRawV0GovernedAdapter` output for all 16
+      methodology fields (§3) plus `source_snapshot_at`/`generated_at` (no new adapter, no bypass
+      of its fail-closed governance checks). `declared_scope.data_through` is the one exception —
+      sourced from this contract's pinned constant (§1, §7), not computed from adapter rows, since
+      the adapter carries no game-date field.
+- [ ] Every team record's `warnings` includes the exact `W_EXPOSURE_WEIGHT_PROXY` entry (§5, §8
+      invariant 7) whenever `passRate`/`rushRate`/`successRate`/`explosivePlayRate` are present —
+      not an empty array.
 - [ ] Output conforms exactly to §5's JSON schema — every field name, nesting, and type matches;
       no additional undocumented fields.
 - [ ] Every formula in §3 is implemented exactly as specified, including the weighted (not simple
@@ -557,9 +591,19 @@ not authorize starting that work.
 - **Operator publication-approval mechanics** (who records the approval named in invariant 13, and
   how) are Phase 3/4 tooling questions, not resolved here — this contract only requires that the
   approval exist and be checkable, not how it is captured.
+- **`team_week_raw_v0` / `teamWeekRawV0GovernedAdapter` carry no game-date field**, so
+  `declared_scope.data_through` cannot be computed at runtime from adapter output — it is pinned as
+  a contract constant instead (§1, §7). The underlying `nflverse-data:schedules/games` source
+  (already listed in this artifact's `sourceArtifacts` lineage) does carry real game dates; a
+  future revision could add a `gameDate`/`weekEndDate` field to `team_week_raw_v0`'s row shape so
+  `data_through` (and per-week date context generally) could be derived automatically instead of
+  pinned. This does not block v1 — the pinned constant is a documented, reviewable value, checked
+  for internal consistency against the adapter's actual week range (1–18 present) rather than
+  computed from it.
 
 None of these block this contract's authorization; each is either a documented, disclosed
-approximation (with a re-verification checkpoint) or a scoped-out field with a clear future path.
+approximation (with a re-verification checkpoint), a pinned constant with a clear upstream path to
+becoming derived, or a scoped-out field with a clear future path.
 
 ---
 
