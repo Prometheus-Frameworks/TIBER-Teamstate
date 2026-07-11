@@ -20,6 +20,13 @@
 
 - **What this document is not:** an implementation, a validator, a route, or an authorization to
   build one. Phase 3 (implementation) is a separate, later issue this document does not open.
+- **Revision note:** this contract was narrowed after review to exclude `passRate`, `rushRate`,
+  `successRate`, and `explosivePlayRate` (§2, §3, §12) once their true weighting denominator was
+  identified as a real, already-computed TIBER-Data quantity (`competitive_plays`) that the
+  governed artifact doesn't yet expose — matching, rather than approximating around, the same
+  standard already applied to `passEpaPerPlay`/`rushEpaPerPlay`. The report is smaller than
+  originally scoped as a result; that is the intended outcome of "prefer a smaller truthful report
+  over a broader speculative one" (TIBER-Ops #11).
 
 ---
 
@@ -82,28 +89,32 @@ gets an explicit disposition. None is included by default because it happens to 
 | `pointsFor` | **Included** | Core observed offensive output; season total + per-game (§3) |
 | `offensivePlays` | **Included** | Core play-volume count; season total + per-game (§3) |
 | `neutralPlays` | **Included** | Core neutral-script play-volume count; season total + per-game (§3) |
-| `secondsPerPlay` | **Included** | Pace signal; play-weighted season average (§3) |
-| `passRate` | **Included** | Core pass/rush identity signal; weighted season average, weighting-precision caveat applies (§3) |
-| `neutralPassRate` | **Included** | Neutral-script pass identity; exactly reconciled, `neutralPlays`-weighted (§3) |
-| `rushRate` | **Included** | Core pass/rush identity signal; weighted season average, weighting-precision caveat applies (§3) |
+| `secondsPerPlay` | **Included** | Pace signal; play-weighted season average, denominator confirmed by upstream provenance notes (§3) |
 | `epaPerPlay` | **Included** | Core offensive-efficiency signal; play-weighted, denominator confirmed by upstream provenance notes (§3) |
-| `passEpaPerPlay` | **Blocked pending upstream denominator field** | Correct weighting needs the exact pass-play count. It is not `offensivePlays × passRate` — proven non-integer on real rows (§3, evidence). Not authorized for approximation; excluded from v1. |
-| `rushEpaPerPlay` | **Blocked pending upstream denominator field** | Same reason as `passEpaPerPlay`. |
-| `successRate` | **Included** | Core efficiency-consistency signal; weighted season average, weighting-precision caveat applies (§3) |
-| `explosivePlayRate` | **Included** | Core explosiveness signal; weighted season average, weighting-precision caveat applies (§3) |
+| `neutralPassRate` | **Included** | Neutral-script pass identity; exactly reconciled, `neutralPlays`-weighted (§3) |
 | `drives` | **Included** | Core drive-volume count; season total + per-game (§3) |
 | `pointsPerDrive` | **Included** | Core scoring-efficiency signal; exactly reconciled, `drives`-weighted (§3) |
 | `redZoneTrips` | **Included** | Core red-zone opportunity count; season total + per-game (§3) |
 | `redZoneTdRate` | **Included** | Core red-zone efficiency signal; exactly reconciled, `redZoneTrips`-weighted, null-aware (§3) |
 | `sacksAllowed` | **Included** | Core pass-protection signal; season total + per-game (§3) |
 | `turnovers` | **Included** | Core ball-security signal; season total + per-game (§3) |
-| `pointsFor` vs `pointsAgainst` — `pointsAgainst` | **Excluded** | `pointsAgainst` characterizes the *opponent's* offensive output against this team's defense, not this team's offensive environment. Including it — even as context — would blur this report's declared scope (offensive environment only) toward a team/defensive-performance report, which is a separately scoped future question, not this one. |
+| `passRate` | **Blocked pending upstream denominator field** | True per-row denominator is not `offensivePlays` (proven non-integer, §3) and is not reconstructable from emitted fields. TIBER-Data's governed builder already computes the correct denominator internally as `TeamGameStats.competitive_plays` (`passRate = pass_plays / competitive_plays`) but does not currently expose it in `team_week_raw_v0`. Not authorized for weighted-proxy approximation; excluded from v1 (§12). |
+| `rushRate` | **Blocked pending upstream denominator field** | Same reason as `passRate` — `rushRate = rush_plays / competitive_plays`, `competitive_plays` not exposed. |
+| `successRate` | **Blocked pending upstream denominator field** | Same category — `success_count / competitive_plays`, `competitive_plays` not exposed. |
+| `explosivePlayRate` | **Blocked pending upstream denominator field** | Same category — `explosive_count / competitive_plays`, `competitive_plays` not exposed. |
+| `passEpaPerPlay` | **Blocked pending upstream denominator field** | Correct weighting needs the exact pass-play count. It is not `offensivePlays × passRate` — proven non-integer on real rows (§3, evidence). Not authorized for approximation; excluded from v1. |
+| `rushEpaPerPlay` | **Blocked pending upstream denominator field** | Same reason as `passEpaPerPlay`. |
+| `pointsAgainst` | **Excluded** | `pointsAgainst` characterizes the *opponent's* offensive output against this team's defense, not this team's offensive environment. Including it — even as context — would blur this report's declared scope (offensive environment only) toward a team/defensive-performance report, which is a separately scoped future question, not this one. |
 | `pressureRateAllowed` | **Excluded (withheld)** | `deferred`, 544/544 null upstream; unavailable, never zero-filled (PR #80). |
 | `fantasyPointsForQB/RB/WR/TE` (4 fields) | **Excluded (withheld)** | 544/544 null / absent in practice; stripped at the governed-adapter boundary already (PR #80). |
 | `fantasyPointsAllowedQB/RB/WR/TE` (4 fields) | **Excluded (withheld)** | Same as above. |
 
-16 fields included. 2 fields blocked pending upstream work. 10 fields excluded (1 scope-rationale
-exclusion + 9 withheld/absent). This accounts for all 28 metric fields in the governed row shape.
+**12 fields included** with full methodology (§3). **6 fields blocked** pending the same,
+well-specified upstream gap: TIBER-Data exposing `competitive_plays` (for `passRate`, `rushRate`,
+`successRate`, `explosivePlayRate`) and exact pass-/rush-play denominators (for `passEpaPerPlay`,
+`rushEpaPerPlay`) in `team_week_raw_v0` (§12). **1 field excluded** on declared-scope grounds
+(`pointsAgainst`). **9 fields withheld** (`pressureRateAllowed` + 8 fantasy split fields). This
+accounts for all 28 metric fields in the governed row shape.
 
 ---
 
@@ -128,16 +139,21 @@ all 544 rows unless noted as a sample check):
 - **Exactly reconciled, 100-row sample:** `neutralPassRate × neutralPlays` is an integer on every
   sampled row (avg. fractional deviation 0.0). `neutralPlays` is `neutralPassRate`'s true
   denominator.
-- **NOT reconciled against `offensivePlays` — disclosed approximation:** `passRate`, `rushRate`,
-  `successRate`, and `explosivePlayRate` do **not** cleanly divide by `offensivePlays`. Proof:
-  ARI, 2024 week 1 — `offensivePlays = 60`, `passRate = 0.644068`. `60 × 0.644068 = 38.644`, not an
-  integer. `59 × 0.644068 = 38.000`, an exact integer — the field's true per-row denominator is
-  `59`, one less than `offensivePlays` for this row, for a reason not reconstructable from the
-  emitted fields alone (`passRate + rushRate == 1.0` on every row, so the two share *a* consistent
-  denominator, just not the emitted `offensivePlays`). A 100-row sample shows the same pattern for
-  `successRate` and `explosivePlayRate` (average fractional deviation against `offensivePlays`:
-  ~0.15–0.17, not close to zero). `offensivePlays` is nonetheless used below as the season-weighting
-  exposure variable for these four fields — see the field table for what that claim is and is not.
+- **Resolved, not just disproven:** `passRate`, `rushRate`, `successRate`, and `explosivePlayRate`
+  do **not** cleanly divide by `offensivePlays`. Proof: ARI, 2024 week 1 —
+  `offensivePlays = 60`, `passRate = 0.644068`. `60 × 0.644068 = 38.644`, not an integer.
+  `59 × 0.644068 = 38.000`, an exact integer — the field's true per-row denominator is `59`, one
+  less than `offensivePlays` for this row (`passRate + rushRate == 1.0` on every row, confirming
+  the two share *a* consistent denominator, just not `offensivePlays`). A 100-row sample shows the
+  same pattern for `successRate`/`explosivePlayRate` (average fractional deviation against
+  `offensivePlays`: ~0.15–0.17). **This is not an open question** — per review, TIBER-Data's
+  governed builder already computes the exact denominator internally as
+  `TeamGameStats.competitive_plays` (`offensivePlays` uses the broader `OFFENSIVE_PLAY_TYPES` set;
+  `competitive_plays` counts only pass/run plays, explaining the gap). The governed
+  `team_week_raw_v0` artifact and `teamWeekRawV0GovernedAdapter` simply do not currently expose
+  `competitive_plays`. Because the correct denominator is known but not available at this
+  contract's data boundary, these four fields are **excluded from v1** (§2) rather than published
+  against an admittedly-imprecise proxy — see §12 for the exact upstream ask.
 
 ### Global conventions
 
@@ -178,30 +194,15 @@ all 544 rows unless noted as a sample check):
 | `secondsPerPlay` | `secondsPerPlay` | seconds/play | `Σ(secondsPerPlay_w × offensivePlays_w) / Σ offensivePlays_w` | `offensivePlays` (confirmed by upstream provenance notes) | Never null in governed source; reject if null (§9) | 2 decimals |
 | `epaPerPlay` | `epaPerPlay` | EPA/play | Same formula shape | `offensivePlays` (confirmed by upstream provenance notes) | Same | 4 decimals |
 
-### Rate fields — disclosed exposure-weighted approximation (derived)
-
-| Source field | Output field | Unit | Formula | Weighting denominator | Null behavior | Precision |
-| --- | --- | --- | --- | --- | --- | --- |
-| `passRate` | `passRate` | rate [0,1] | `Σ(passRate_w × offensivePlays_w) / Σ offensivePlays_w` | `offensivePlays` used as an **exposure-weight proxy**, not the field's proven exact per-row denominator (see precision note above) | Never null; reject if null (§9) | 4 decimals |
-| `rushRate` | `rushRate` | rate [0,1] | Same formula shape | Same caveat | Same | 4 decimals |
-| `successRate` | `successRate` | rate [0,1] | Same formula shape | Same caveat | Same | 4 decimals |
-| `explosivePlayRate` | `explosivePlayRate` | rate [0,1] | Same formula shape | Same caveat | Same | 4 decimals |
-
-These four fields are published because they are core, well-defined, internally consistent weekly
-observations (`passRate + rushRate == 1.0` on every row, confirmed across the full dataset) and
-`offensivePlays` is the closest, most complete play-volume field the source emits — but this
-contract does **not** claim the season-weighted value exactly reconstructs a true season-level
-rate the way `pointsPerDrive` or `neutralPassRate` do. Phase 3 must carry this caveat into the
-published `warnings` array for every team record that includes these fields (§9's `W_EXPOSURE_WEIGHT_PROXY`
-warning) and must re-verify the true denominator against TIBER-Data's exact source formula before
-implementation (§10, §11).
-
 ### Excluded / blocked fields — no methodology defined
 
 `pointsAgainst`, `pressureRateAllowed`, and the 8 fantasy split fields have no aggregation
 methodology in this contract — they are absent from the report entirely, not present-with-null.
-`passEpaPerPlay`/`rushEpaPerPlay` are likewise absent; see §12 for the upstream requirement that
-would let a future revision include them.
+`passRate`, `rushRate`, `successRate`, `explosivePlayRate`, `passEpaPerPlay`, and `rushEpaPerPlay`
+are likewise absent for v1 — their correct denominator is known (`competitive_plays` /
+exact pass-/rush-play counts) but not yet exposed by the governed source; see §12 for the specific
+upstream requirement that would let a future revision include them with exact, not approximated,
+weighting.
 
 ---
 
@@ -216,25 +217,29 @@ Required page content:
   environments compare during the 2024 regular season, based on governed observed team-week data?*
 - **Declared scope and coverage summary:** season 2024, regular season, all 32 NFL teams, 544/544
   team-game rows, 17 games/team — stated plainly, not just as a metadata block.
-- **Supported lanes vs. excluded lanes:** the 16 included fields (§2, §3) grouped in plain language
-  (pace, pass/rush identity, efficiency, red-zone, ball security, protection); and an explicit
-  statement of what is *not* shown and why — pressure rate (data withheld upstream), fantasy
-  splits (not applicable to a team-environment report), pass-specific/rush-specific EPA (blocked
-  pending an upstream denominator field, §12), and points allowed (out of this report's offensive
-  scope, §2).
+- **Supported lanes vs. excluded lanes:** the 12 included fields (§2, §3) grouped in plain language
+  (pace, overall efficiency, neutral-script pass tendency, red-zone, drives, ball security,
+  protection); and an explicit statement of what is *not* shown and why — pass rate, rush rate,
+  success rate, explosive-play rate, and pass-/rush-specific EPA (all blocked pending TIBER-Data
+  exposing the exact play-classification denominator they need, §12), pressure rate (data withheld
+  upstream), fantasy splits (not applicable to a team-environment report), and points allowed (out
+  of this report's offensive scope, §2).
 - **Per-team values:** every included field from §3, per team, with the season total for count
   fields and the per-game/weighted-average for rate fields both visible where both exist.
 - **Methodology version and link:** `teamstate_public_offensive_environment_2024_v1`, linking to
   this document (or its eventual public-facing methodology-page rendering, §11 of the Ops
   architecture — not built here).
-- **Provenance and source artifact references:** `governed_real_data`, governance markers, source
-  artifact ID and sha256, upstream validation/lineage report paths (carried through from
-  `teamWeekRawV0GovernedAdapter`'s preserved references).
-- **Warnings:** the `W_EXPOSURE_WEIGHT_PROXY` caveat (§3) on the four affected fields, plus any
-  per-team `W_ZERO_REDZONE_OPPORTUNITIES`/`W_ZERO_DENOMINATOR_*` warning that fires.
+- **Provenance and source artifact references:** `governed_real_data`, governance markers, and the
+  per-source references from §5/§7 (source ref, snapshot timestamp, checksum, for each of the
+  governed source's underlying inputs) plus upstream validation/lineage report paths.
+- **Warnings:** any per-team `W_ZERO_REDZONE_OPPORTUNITIES`/`W_ZERO_DENOMINATOR_*` warning that
+  fires (§3). No exposure-weight-proxy warning exists in v1, because no proxy-weighted field is
+  published (§2, §3).
 - **Temporal metadata (§7):** `data_through`, `source_snapshot_at`, `generated_at` — three distinct,
   visible facts, not collapsed into one "cutoff" line.
-- **Supersession state:** `current` or `superseded`, with a link to the successor if superseded.
+- **Current/superseded status:** whether this exact report version is the current canonical report
+  or has been superseded, per the mutable report registry (§6) — not a field inside the report's
+  own frozen content.
 - **Identity:** the immutable versioned identity for this exact report version (§6), distinct from
   the canonical alias, visible so a reader can cite the exact version.
 - **Link to the JSON representation (§5).**
@@ -250,6 +255,9 @@ document.**
 ## 5. Machine-readable JSON contract (finalized)
 
 **Canonical alias:** `/nfl/2024/offensive-environments.json` (§6 defines identity semantics)
+
+**This payload is frozen once published** — see §6 for why it deliberately carries no
+supersession/current-status field (that lives in a separate mutable registry entry, §6).
 
 ```json
 {
@@ -278,7 +286,7 @@ document.**
     "is_full_league": true,
     "satisfies_declared_scope": true
   },
-  "source_snapshot_at": "2026-06-27T13:42:00+00:00",
+  "source_snapshot_at": "2026-06-27T13:42:05+00:00",
   "generated_at": "ISO-8601 timestamp — when this report version was derived",
   "provenance_status": "governed_real_data",
   "governance": {
@@ -288,15 +296,25 @@ document.**
   "methodology_version": "teamstate_public_offensive_environment_2024_v1",
   "source_artifacts": [
     {
-      "source_artifact_id": "team_week_raw_v0",
-      "sha256": "2aed00e68c1620af10d2ea4350104f7e183ff6ee050f5d385a503ef027281de9",
-      "validation_report_path": "exports/candidates/team_week_raw/team_week_raw_v0_2024_real_source_candidate.validation.json",
-      "lineage_manifest_path": "data/manifests/team_week_raw_v0_2024_real_source_candidate.manifest.json"
+      "source_ref": "nflverse-data:pbp/play_by_play_2024",
+      "source_snapshot_at": "2026-06-27T13:42:00+00:00",
+      "checksum": { "algorithm": "sha256", "value": "6d432dd4308329bfddaef633309ea119f9ca46d52cbb3c09f47172a2e8efcd01" }
+    },
+    {
+      "source_ref": "nflverse-data:schedules/games",
+      "source_snapshot_at": "2026-06-27T13:42:05+00:00",
+      "checksum": { "algorithm": "sha256", "value": "179ea0a014159b3aa4da59eee756272dd33ec876d704fb46650c08118fe75a05" }
     }
   ],
+  "validation_report_path": "exports/candidates/team_week_raw/team_week_raw_v0_2024_real_source_candidate.validation.json",
+  "lineage_manifest_path": "data/manifests/team_week_raw_v0_2024_real_source_candidate.manifest.json",
   "excluded_lanes": [
     { "field": "pointsAgainst", "reason": "out_of_declared_scope_defensive_facing" },
     { "field": "pressureRateAllowed", "reason": "withheld_upstream_deferred" },
+    { "field": "passRate", "reason": "blocked_pending_upstream_denominator" },
+    { "field": "rushRate", "reason": "blocked_pending_upstream_denominator" },
+    { "field": "successRate", "reason": "blocked_pending_upstream_denominator" },
+    { "field": "explosivePlayRate", "reason": "blocked_pending_upstream_denominator" },
     { "field": "passEpaPerPlay", "reason": "blocked_pending_upstream_denominator" },
     { "field": "rushEpaPerPlay", "reason": "blocked_pending_upstream_denominator" },
     { "field": "fantasyPointsForQB", "reason": "withheld_absent" },
@@ -309,8 +327,6 @@ document.**
     { "field": "fantasyPointsAllowedTE", "reason": "withheld_absent" }
   ],
   "warnings": [],
-  "supersession_status": "current",
-  "superseded_by": null,
   "teams": [
     {
       "team": "DET",
@@ -334,21 +350,11 @@ document.**
         "turnoversPerGame": 0.0,
         "secondsPerPlay": 0.0,
         "epaPerPlay": 0.0,
-        "successRate": 0.0,
-        "explosivePlayRate": 0.0,
-        "passRate": 0.0,
-        "rushRate": 0.0,
         "neutralPassRate": 0.0,
         "pointsPerDrive": 0.0,
         "redZoneTdRate": null
       },
-      "warnings": [
-        {
-          "code": "W_EXPOSURE_WEIGHT_PROXY",
-          "fields": ["passRate", "rushRate", "successRate", "explosivePlayRate"],
-          "message": "Season value weighted by offensivePlays as a disclosed exposure-weight proxy, not the field's proven exact per-row denominator (contract §3)."
-        }
-      ]
+      "warnings": []
     }
   ]
 }
@@ -356,20 +362,25 @@ document.**
 
 Notes on this shape:
 
+- **No `supersession_status`/`superseded_by` field exists in this payload.** That is deliberate —
+  see §6 for why putting a mutable status inside a document this contract calls immutable is
+  self-contradictory, and where that status actually lives instead.
+- `source_artifacts` is an array of the governed artifact's actual upstream inputs (play-by-play,
+  schedules), each with its own `source_ref`, `source_snapshot_at`, and `checksum` — not a single
+  invented "mirror hash" the current adapter boundary cannot supply (§7, §11, §12). The top-level
+  `source_snapshot_at` is the **latest** of the per-source values (`max()` — here, the schedules
+  snapshot, `13:42:05`, one second after the play-by-play snapshot, `13:42:00`) — an explicit
+  aggregation rule, not an arbitrary pick of one input.
 - `declared_scope.data_through` is a **pinned contract constant**, not a value derived from
   `teamWeekRawV0GovernedAdapter` output at runtime — see §1's callout for why, and §7/§12 for the
   upstream gap this works around. `source_snapshot_at` and `generated_at` remain genuinely
-  runtime-derived. All three stay distinct (§7) — never collapsed into one field.
+  runtime-derived (once the adapter extension in §12 lands). All three stay distinct (§7) — never
+  collapsed into one field.
 - `report_version_id`/`canonical_url`/`version_url` implement the two-identity requirement (§6).
 - `excluded_lanes` names what is deliberately absent and why, without emitting a value for it
   (satisfies "withheld fields absent, not zero-filled or present-with-a-disclaimer").
 - Every field in `teams[].observed`/`teams[].derived` traces to a row in §3's methodology tables —
   the JSON contract does not introduce any field §3 did not define.
-- `teams[].warnings` is **required**, not illustrative, whenever a team record includes any of
-  `passRate`/`rushRate`/`successRate`/`explosivePlayRate` — every team in this report's scope
-  includes all four, so every team record carries this exact warning (one combined entry, not four
-  separate ones). An implementation emitting `"warnings": []` alongside those fields fails
-  invariant 7 (§8) and rejection code `E_MISSING_EXPOSURE_WEIGHT_WARNING` (§9).
 - This is the **finalized** contract shape for Phase 3 to implement against — not illustrative
   placeholder text. All literal string/field names above (`artifact`, `schema_version`,
   `report_version_id`, etc.) are the actual contract, not examples of a shape TBD.
@@ -378,35 +389,69 @@ Notes on this shape:
 
 ## 6. Canonical and immutable report identity
 
-Two distinct identities, both required, so supersession is actually implementable (per the
-TIBER-Ops architecture §6/§8):
+Two distinct identities, plus a separate mutable registry — three concepts, not two, because a
+single "immutable" identity cannot also carry a mutating supersession status without contradicting
+itself.
+
+### The frozen report payload (§5)
+
+Once published at a `version_url`, a report payload's content is permanently frozen —
+byte/semantically identical forever, including its `report_version_id`, all `teams[]` values, and
+all metadata **except** anything about current/superseded status, which this payload does not
+carry at all (see below). This is what makes `version_url` genuinely immutable: there is nothing
+in it left to mutate.
+
+### Two URL identities for the frozen payload
 
 - **Canonical alias** — `/nfl/2024/offensive-environments` (HTML) and
-  `/nfl/2024/offensive-environments.json` (JSON). Always serves whichever `report_version_id` is
-  currently `supersession_status: "current"` for this declared scope. Serves content directly (not
-  a redirect) — a citation to the canonical alias always shows the current report.
+  `/nfl/2024/offensive-environments.json` (JSON). Resolution logic (implemented in Phase 3, not
+  here) looks up the current `report_version_id` in the mutable registry (below) and serves that
+  exact version's frozen payload — directly, not a redirect, so a citation to the canonical alias
+  always shows the current report's actual content.
 - **Immutable versioned identity** — `/nfl/2024/offensive-environments/{report_version_id}` (HTML)
   and `/nfl/2024/offensive-environments/{report_version_id}.json` (JSON), where
   `report_version_id` follows the pattern `{methodology_version}.r{n}` (e.g.
   `teamstate_public_offensive_environment_2024_v1.r1`). `n` increments on every regeneration that
   changes published output (methodology change **or** a governed-source correction that changes
-  values) — not on a no-op re-run that reproduces byte-identical output. Once published, a
-  versioned URL's content never changes and is never deleted; it is the only thing a citation, an
-  agent tool, or a search index should treat as permanent.
+  values) — not on a no-op re-run that reproduces byte-identical output. This URL always serves the
+  exact same frozen payload, regardless of which version is currently canonical.
 
-**Relationship between HTML and JSON:** both identities exist in both formats, sharing the same
-`report_version_id`. The HTML page links to its own-version JSON (not the canonical JSON) so a
-reader following a specific historical version stays pinned to that version's data. Phase 3 must
-verify HTML/JSON semantic parity per version (§8, §9 — `E_HTML_JSON_SEMANTIC_MISMATCH`).
+### The mutable report registry (separate from the payload)
 
-**Superseded behavior:** when a new `report_version_id` is approved as current, the previous
-version's `supersession_status` flips to `"superseded"` and `superseded_by` is set to the new
-`report_version_id`; the canonical alias begins serving the new version; the old version's
-immutable URL keeps serving its exact original content, unchanged, forever. This flip must be
-atomic with the new version's publication — no window where both look current (mirrors the
+Current/superseded status and successor pointers live in `service-metadata.json`'s `public_reports`
+array — a file this contract already treats as mutable and regeneratable (§1's Status block, §8
+invariant on publication state) — **not** inside any report payload:
+
+```json
+{
+  "public_reports": [
+    {
+      "report_version_id": "teamstate_public_offensive_environment_2024_v1.r1",
+      "canonical_url": "/nfl/2024/offensive-environments",
+      "version_url": "/nfl/2024/offensive-environments/teamstate_public_offensive_environment_2024_v1.r1",
+      "status": "current",
+      "superseded_by": null,
+      "published_at": "ISO-8601 timestamp"
+    }
+  ]
+}
+```
+
+When a new `report_version_id` is approved as current: a new registry entry is added with
+`status: "current"`; the previous entry's `status` flips to `"superseded"` and its `superseded_by`
+is set to the new `report_version_id`; the canonical alias begins resolving to the new version. The
+frozen payload at the old version's `version_url` **does not change** — it never claimed
+current-ness in the first place, so nothing about it needs to mutate. This flip must be atomic —
+no window where the registry names two entries `current` for the same report family (mirrors the
 Ops architecture's fail-closed supersession rule).
 
-No route, redirect, or identity-resolution code is implemented by this document.
+**Relationship between HTML and JSON:** both identities exist in both formats, sharing the same
+`report_version_id` and the same frozen-payload/mutable-registry split. The HTML page for a given
+version links to that same version's JSON (not the canonical JSON), so a reader following a
+specific historical version stays pinned to that version's data. Phase 3 must verify HTML/JSON
+semantic parity per version (§8, §9 — `E_HTML_JSON_SEMANTIC_MISMATCH`).
+
+No route, redirect, identity-resolution, or registry code is implemented by this document.
 
 ---
 
@@ -421,10 +466,15 @@ Three distinct facts, never collapsed into one "cutoff" field (per the TIBER-Ops
   carries no game-date field, so there is nothing in `teamWeekRawV0GovernedAdapter` output for
   Phase 3 to compute this from at runtime (§1's callout, §12's upstream gap). Phase 3 must source
   it from this contract's pinned constant, not attempt to derive it from adapter rows.
-- **`source_snapshot_at`** — when the governed upstream source bytes were retrieved. Carried
-  through from the governed source's own `retrievalTimestamp` (already tracked at the TIBER-Data
-  layer per `metadata.inputSources`) — the public report must preserve this, not discard or
-  re-derive it.
+- **`source_snapshot_at`** — when the governed upstream source bytes were retrieved, taken as the
+  **latest** (`max()`) of the per-source snapshot timestamps in `source_artifacts` (§5) — this
+  report depends on two distinct upstream inputs (play-by-play, schedules) with two distinct
+  retrieval timestamps, and using only one of them would silently omit the other's snapshot time.
+  **This requires a governed-adapter extension** — `teamWeekRawV0GovernedAdapter`'s
+  `TeamWeekRawGovernedUpstream` currently preserves `sourceArtifacts` (a bare `string[]` of IDs),
+  `validationReportPath`, and `lineageManifestPath`, but does **not** expose
+  `metadata.inputSources` (which carries each source's `sourceRefs`, `sourceSnapshotAt`, and
+  `checksum` in the raw governed artifact) at all. See §12 for the exact, minimal extension needed.
 - **`generated_at`** — when this specific report version was derived from the governed source. Can
   differ from both of the above; a report regenerated today can still have `data_through` fixed at
   the end of the 2024 season and `source_snapshot_at` fixed at whenever TIBER-Data retrieved the
@@ -444,29 +494,31 @@ report. Any single failure means: do not publish, no partial route, no best-effo
    `governance_source == "explicit_marker"` (§1).
 2. Coverage satisfies the declared scope exactly (§1): 32/32 teams, 544/544 rows, 17
    games/team, `missing_teams == []`, `unexpected_teams == []`.
-3. `source_artifacts[].sha256` present and matches the governed mirror's recomputed hash at
-   generation time.
+3. Every entry in `source_artifacts[]` has a `checksum` that matches a fresh recompute of that
+   specific upstream input (play-by-play, schedules) at generation time — not a single aggregate
+   hash standing in for both.
 4. `methodology_version` is a known, approved value (`teamstate_public_offensive_environment_2024_v1`
    for this contract).
-5. Only the 16 fields §3 defines methodology for are present in `teams[].observed`/`derived`; no
+5. Only the 12 fields §3 defines methodology for are present in `teams[].observed`/`derived`; no
    undocumented field is emitted.
-6. `pointsAgainst`, `pressureRateAllowed`, `passEpaPerPlay`, `rushEpaPerPlay`, and all 8 fantasy
-   split fields are absent from every team record — never present, never null-as-placeholder, never
-   zero-filled.
-7. Every field in §3's "disclosed exposure-weighted approximation" table carries the
-   `W_EXPOSURE_WEIGHT_PROXY` warning on every team record.
-8. `redZoneTdRate` is `null` if and only if that team's season `redZoneTripsTotal == 0`; never `0`
+6. `pointsAgainst`, `pressureRateAllowed`, `passRate`, `rushRate`, `successRate`,
+   `explosivePlayRate`, `passEpaPerPlay`, `rushEpaPerPlay`, and all 8 fantasy split fields are
+   absent from every team record — never present, never null-as-placeholder, never zero-filled.
+7. `redZoneTdRate` is `null` if and only if that team's season `redZoneTripsTotal == 0`; never `0`
    for a genuinely zero-opportunity season.
-9. `data_through`, `source_snapshot_at`, and `generated_at` are all present and are not the
+8. `data_through`, `source_snapshot_at`, and `generated_at` are all present and are not the
    identical literal value by construction (i.e., the fields are wired to their distinct sources,
-   not to one shared timestamp variable).
-10. `report_version_id`, `canonical_url`, and `version_url` are all present and `version_url`
-    resolves to content that will never change after this publication.
-11. The human-readable and machine-readable forms for a given `report_version_id` are semantically
+   not to one shared timestamp variable), and `source_snapshot_at` equals `max()` of
+   `source_artifacts[].source_snapshot_at`.
+9. `report_version_id`, `canonical_url`, and `version_url` are all present; the payload at
+   `version_url` never carries a `supersession_status`/`superseded_by` field (§6) and, once
+   published, its content never changes.
+10. The human-readable and machine-readable forms for a given `report_version_id` are semantically
     equivalent (same values, same warnings, same scope).
-12. `supersession_status` is a valid state (`current` or `superseded`) and, if `superseded`,
-    `superseded_by` names a real, resolvable `report_version_id`.
-13. An explicit human publication-approval action has been recorded for this specific
+11. Current/superseded status is tracked only in the `service-metadata.json` registry (§6), never
+    inside a report payload; the registry never names two entries `status: "current"` for the same
+    report family at once, and any `superseded_by` names a real, resolvable `report_version_id`.
+12. An explicit human publication-approval action has been recorded for this specific
     `report_version_id` — the presence of a passing validator run is necessary but not sufficient.
 
 ---
@@ -485,22 +537,21 @@ partial or best-effort route.**
 | `E_COVERAGE_TEAM_MISSING` | `missing_teams` non-empty | 2 |
 | `E_COVERAGE_TEAM_UNEXPECTED` | `unexpected_teams` non-empty | 2 |
 | `E_COVERAGE_ROW_COUNT_MISMATCH` | `team_game_row_count != expected_team_game_rows`, or any team's row count `!= expected_games_per_team` | 2 |
-| `E_SOURCE_ARTIFACT_HASH_MISSING` | `source_artifacts[].sha256` absent or does not match a fresh recompute | 3 |
+| `E_SOURCE_ARTIFACT_CHECKSUM_MISSING` | Any `source_artifacts[].checksum` absent or does not match a fresh recompute of that specific input | 3 |
 | `E_METHODOLOGY_VERSION_UNKNOWN` | `methodology_version` not a recognized, approved value | 4 |
 | `E_UNDOCUMENTED_FIELD_PRESENT` | Any field in `teams[].observed`/`derived` not defined in §3 | 5 |
-| `E_WITHHELD_FIELD_PRESENT` | `pointsAgainst`, `pressureRateAllowed`, `passEpaPerPlay`, `rushEpaPerPlay`, or any fantasy field present in a team record | 6 |
+| `E_WITHHELD_FIELD_PRESENT` | `pointsAgainst`, `pressureRateAllowed`, `passRate`, `rushRate`, `successRate`, `explosivePlayRate`, `passEpaPerPlay`, `rushEpaPerPlay`, or any fantasy field present in a team record | 6 |
 | `E_WITHHELD_FIELD_ZERO_FILLED` | Any withheld field present with value `0` instead of being absent | 6 |
-| `E_MISSING_EXPOSURE_WEIGHT_WARNING` | `passRate`/`rushRate`/`successRate`/`explosivePlayRate` present without the `W_EXPOSURE_WEIGHT_PROXY` warning on that team record | 7 |
-| `E_REDZONE_NULL_INVARIANT_VIOLATED` | `redZoneTdRate` is `null` while `redZoneTripsTotal > 0`, or non-null while `redZoneTripsTotal == 0` | 8 |
-| `E_UNWEIGHTED_AGGREGATION_USED` | Any rate field computed as a simple mean of weekly values instead of the weighted formula §3 specifies | 3, §3 |
-| `E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED` | `passEpaPerPlay`/`rushEpaPerPlay` (or any field requiring their denominator) present at all | 6 |
-| `E_TEMPORAL_METADATA_MISSING` | Any of `data_through`/`source_snapshot_at`/`generated_at` absent | 9 |
-| `E_TEMPORAL_METADATA_CONFLATED` | Two or more of the three temporal fields are wired to the same source value (structural check, not a coincidental-equality check) | 9 |
-| `E_VERSION_IDENTITY_MISSING` | `report_version_id`/`canonical_url`/`version_url` absent | 10 |
-| `E_VERSION_IDENTITY_MUTABLE` | A previously published `version_url`'s content differs from a fresh regeneration at the same `report_version_id` | 10 |
-| `E_HTML_JSON_SEMANTIC_MISMATCH` | HTML and JSON for the same `report_version_id` disagree on any published value, scope, or warning | 11 |
-| `E_SUPERSESSION_STATE_INVALID` | `supersession_status` not one of `current`/`superseded`, or `superseded` without a resolvable `superseded_by` | 12 |
-| `E_PUBLICATION_NOT_APPROVED` | No recorded explicit human approval for this `report_version_id` | 13 |
+| `E_REDZONE_NULL_INVARIANT_VIOLATED` | `redZoneTdRate` is `null` while `redZoneTripsTotal > 0`, or non-null while `redZoneTripsTotal == 0` | 7 |
+| `E_UNWEIGHTED_AGGREGATION_USED` | Any rate field computed as a simple mean of weekly values instead of the weighted formula §3 specifies | §3 (formula conformance) |
+| `E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED` | Any of the six blocked fields (§2) present at all, regardless of method used to compute them | 6 |
+| `E_TEMPORAL_METADATA_MISSING` | Any of `data_through`/`source_snapshot_at`/`generated_at` absent | 8 |
+| `E_TEMPORAL_METADATA_CONFLATED` | Two or more of the three temporal fields are wired to the same source value (structural check, not a coincidental-equality check), or `source_snapshot_at != max(source_artifacts[].source_snapshot_at)` | 8 |
+| `E_VERSION_IDENTITY_MISSING` | `report_version_id`/`canonical_url`/`version_url` absent | 9 |
+| `E_VERSION_IDENTITY_MUTABLE` | A previously published `version_url`'s content differs from a fresh regeneration at the same `report_version_id`, or the payload contains a `supersession_status`/`superseded_by` field at all | 9 |
+| `E_HTML_JSON_SEMANTIC_MISMATCH` | HTML and JSON for the same `report_version_id` disagree on any published value, scope, or warning | 10 |
+| `E_REGISTRY_STATE_INVALID` | `service-metadata.json`'s `public_reports` registry names more than one `status: "current"` entry for this report family, or a `superseded_by` doesn't resolve to a real `report_version_id` | 11 |
+| `E_PUBLICATION_NOT_APPROVED` | No recorded explicit human approval for this `report_version_id` | 12 |
 
 ---
 
@@ -515,22 +566,22 @@ above, but enough to drive real tests for each):
 | 2 | Input has 543 rows (one dropped) with all 32 teams present | `E_COVERAGE_ROW_COUNT_MISMATCH`, no publication |
 | 3 | One team has 16 rows, another has 18 | `E_COVERAGE_ROW_COUNT_MISMATCH`, no publication |
 | 4 | Source `provenanceStatus` is `partial_real_data` | `E_PROVENANCE_NOT_GOVERNED`, no publication |
-| 5 | Source `sha256` does not match a fresh recompute | `E_SOURCE_ARTIFACT_HASH_MISSING`, no publication |
+| 5 | The schedules input's checksum does not match a fresh recompute (pbp checksum still matches) | `E_SOURCE_ARTIFACT_CHECKSUM_MISSING`, no publication |
 | 6 | Output includes a `pressureRateAllowed` field on any team, even as `null` | `E_WITHHELD_FIELD_PRESENT`, no publication |
 | 7 | Output includes `fantasyPointsForQB: 0` on any team | `E_WITHHELD_FIELD_ZERO_FILLED`, no publication |
-| 8 | Output includes a `passEpaPerPlay` field at all | `E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED`, no publication |
-| 9 | `passRate` computed as a plain arithmetic mean of 17 weekly values, not weighted | `E_UNWEIGHTED_AGGREGATION_USED`, no publication |
-| 10 | `passRate` present without `W_EXPOSURE_WEIGHT_PROXY` warning on that team | `E_MISSING_EXPOSURE_WEIGHT_WARNING`, no publication |
-| 11 | A team with `redZoneTripsTotal == 0` has `redZoneTdRate: 0` instead of `null` | `E_REDZONE_NULL_INVARIANT_VIOLATED`, no publication |
-| 12 | A team with `redZoneTripsTotal > 0` has `redZoneTdRate: null` | `E_REDZONE_NULL_INVARIANT_VIOLATED`, no publication |
-| 13 | `data_through` absent | `E_TEMPORAL_METADATA_MISSING`, no publication |
-| 14 | `source_snapshot_at` and `generated_at` both wired to the same variable in the implementation | `E_TEMPORAL_METADATA_CONFLATED`, no publication |
-| 15 | JSON `report_version_id` present, HTML page for the same version omits it | `E_VERSION_IDENTITY_MISSING`, no publication |
-| 16 | Regenerating an already-published `report_version_id` produces different values | `E_VERSION_IDENTITY_MUTABLE`, no publication (must mint a new `report_version_id` instead) |
+| 8 | Output includes a `passRate` or `passEpaPerPlay` field at all, by any computation method | `E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED`, no publication |
+| 9 | `neutralPassRate` computed as a plain arithmetic mean of 17 weekly values, not weighted | `E_UNWEIGHTED_AGGREGATION_USED`, no publication |
+| 10 | A team with `redZoneTripsTotal == 0` has `redZoneTdRate: 0` instead of `null` | `E_REDZONE_NULL_INVARIANT_VIOLATED`, no publication |
+| 11 | A team with `redZoneTripsTotal > 0` has `redZoneTdRate: null` | `E_REDZONE_NULL_INVARIANT_VIOLATED`, no publication |
+| 12 | `data_through` absent | `E_TEMPORAL_METADATA_MISSING`, no publication |
+| 13 | `source_snapshot_at` set to the play-by-play timestamp (`13:42:00`) instead of `max()` across both sources (`13:42:05`) | `E_TEMPORAL_METADATA_CONFLATED`, no publication |
+| 14 | JSON `report_version_id` present, HTML page for the same version omits it | `E_VERSION_IDENTITY_MISSING`, no publication |
+| 15 | Regenerating an already-published `report_version_id` produces different values | `E_VERSION_IDENTITY_MUTABLE`, no publication (must mint a new `report_version_id` instead) |
+| 16 | A report payload includes a `supersession_status` field at all | `E_VERSION_IDENTITY_MUTABLE`, no publication (that concept belongs only in the registry, §6) |
 | 17 | HTML shows a team's `epaPerPlay` rounded differently than the JSON for the same version | `E_HTML_JSON_SEMANTIC_MISMATCH`, no publication |
-| 18 | `supersession_status: "superseded"` with `superseded_by: null` | `E_SUPERSESSION_STATE_INVALID`, no publication |
+| 18 | Registry has two entries with `status: "current"` for the same report family | `E_REGISTRY_STATE_INVALID`, no publication |
 | 19 | All invariants pass, but no recorded human approval for this `report_version_id` | `E_PUBLICATION_NOT_APPROVED`, no publication |
-| 20 | All invariants pass and approval is recorded | Publication permitted; `artifact_publication_enabled` may flip to `true` and `public_reports` may include this entry |
+| 20 | All invariants pass and approval is recorded | Publication permitted; `artifact_publication_enabled` may flip to `true` and the registry may add this entry as `current` |
 
 Only test #20 results in a passing, publishable state. Every other row must result in **zero**
 output — not a truncated, partial, or best-effort report.
@@ -542,21 +593,24 @@ output — not a truncated, partial, or best-effort report.
 This checklist defines **future** requirements for a separate, later implementation issue. It does
 not authorize starting that work.
 
-- [ ] Deterministic derivation built directly on `teamWeekRawV0GovernedAdapter` output for all 16
-      methodology fields (§3) plus `source_snapshot_at`/`generated_at` (no new adapter, no bypass
-      of its fail-closed governance checks). `declared_scope.data_through` is the one exception —
-      sourced from this contract's pinned constant (§1, §7), not computed from adapter rows, since
-      the adapter carries no game-date field.
-- [ ] Every team record's `warnings` includes the exact `W_EXPOSURE_WEIGHT_PROXY` entry (§5, §8
-      invariant 7) whenever `passRate`/`rushRate`/`successRate`/`explosivePlayRate` are present —
-      not an empty array.
+- [ ] Extend `TeamWeekRawGovernedUpstream`/`adaptTeamWeekRawV0Governed`
+      (`src/adapters/teamWeekRawV0GovernedAdapter.ts`) to preserve `metadata.inputSources`
+      (`sourceRefs`, `sourceSnapshotAt`, `checksum` per source) as a read-only pass-through — the
+      same posture as its existing preserved `sourceArtifacts`/`validationReportPath`/
+      `lineageManifestPath` fields, no new governance judgment. Required before `source_artifacts`
+      and `source_snapshot_at` (§5, §7) can be populated at all.
+- [ ] Deterministic derivation built directly on `teamWeekRawV0GovernedAdapter` output for all 12
+      methodology fields (§3) plus `source_snapshot_at`/`generated_at` (no bypass of its
+      fail-closed governance checks). `declared_scope.data_through` is the one exception — sourced
+      from this contract's pinned constant (§1, §7), not computed from adapter rows.
 - [ ] Output conforms exactly to §5's JSON schema — every field name, nesting, and type matches;
-      no additional undocumented fields.
+      no additional undocumented fields, and no `supersession_status`/`superseded_by` field inside
+      any report payload.
 - [ ] Every formula in §3 is implemented exactly as specified, including the weighted (not simple
       mean) aggregation for every rate field.
-- [ ] The weighting-precision re-verification from §3's exposure-weight note is completed against
-      TIBER-Data's exact source formula before this report is authorized to publish (a concrete,
-      checkable pre-publication step, not a permanent open question).
+- [ ] The mutable report registry (`service-metadata.json`'s `public_reports` array, §6) is
+      implemented separately from report payload generation, with its own tests for the
+      current/superseded flip being atomic.
 - [ ] Validator implemented per §9, covering every rejection code with a real test, including all
       of §10's acceptance-matrix cases.
 - [ ] HTML and JSON routes for both the canonical alias and the immutable versioned identity (§6),
@@ -565,45 +619,50 @@ not authorize starting that work.
       touched by this contract-design issue.
 - [ ] Publication remains disabled (`artifact_publication_enabled: false`) throughout
       implementation and testing, flipping to `true` only after an explicit, recorded human
-      approval for a specific `report_version_id` (invariant 13, §8).
+      approval for a specific `report_version_id` (invariant 12, §8).
 - [ ] A successful full-scope dry run against the real governed 2024 source (not a fixture) is
       run and reviewed before requesting publication approval.
-- [ ] Supersession behavior (§6) is tested: publishing a second `report_version_id` correctly
-      flips the first to `superseded` atomically with the second going `current`, and the first's
-      immutable URL still serves its original content afterward.
+- [ ] Supersession behavior (§6) is tested via the registry, not the payload: publishing a second
+      `report_version_id` correctly flips the registry's first entry to `superseded` atomically
+      with the second entry going `current`, and the first version's frozen payload at its
+      `version_url` is verified byte-identical before and after.
 
 ---
 
 ## 12. Unresolved questions / upstream requirements
 
-- **`passEpaPerPlay`/`rushEpaPerPlay` need an exact upstream denominator.** TIBER-Data's
-  `team_week_raw_v0` does not emit exact pass-play/rush-play integer counts, and `offensivePlays ×
-  passRate` is proven non-integer on real rows (§3). A future contract revision (v2) could include
-  these fields if TIBER-Data adds an explicit `passPlays`/`rushPlays` (or equivalent) field to a
-  future `team_week_raw_v0` revision. This does not block this contract or v1's implementation —
-  v1 simply excludes these two fields, the same way it excludes `pressureRateAllowed`.
-- **The true per-row denominator for `passRate`/`rushRate`/`successRate`/`explosivePlayRate`** is
-  not `offensivePlays` and is not reconstructable from the emitted fields (§3). This contract
-  authorizes `offensivePlays` as a disclosed exposure-weight proxy for season aggregation, with a
-  mandatory warning and a Phase 3 pre-publication re-verification step (§11) — it does not resolve
-  the underlying question of what TIBER-Data's exact denominator is. If TIBER-Data can confirm or
-  expose it, a v2 methodology should adopt the exact value.
-- **Operator publication-approval mechanics** (who records the approval named in invariant 13, and
-  how) are Phase 3/4 tooling questions, not resolved here — this contract only requires that the
-  approval exist and be checkable, not how it is captured.
+- **`passRate`, `rushRate`, `successRate`, `explosivePlayRate`, `passEpaPerPlay`, and
+  `rushEpaPerPlay` all need the same upstream fix: expose `competitive_plays` (and exact
+  pass-/rush-play counts) in `team_week_raw_v0`.** TIBER-Data's governed builder already computes
+  `TeamGameStats.competitive_plays` internally and derives `passRate`/`rushRate`/`successRate`/
+  `explosivePlayRate` from it (`offensivePlays` uses the broader `OFFENSIVE_PLAY_TYPES` set,
+  explaining the reconciliation gap proven in §3). This is a **known, well-specified, low-effort
+  ask** — not an open research question — and would let a v2 methodology weight these fields
+  exactly, and potentially derive `passEpaPerPlay`/`rushEpaPerPlay` from the same exposed
+  denominator. This does not block v1's authorization; v1 simply excludes all six fields rather
+  than approximate around a denominator that's known to exist but isn't exposed yet.
+- **`teamWeekRawV0GovernedAdapter` does not expose `metadata.inputSources`.** It currently
+  preserves `sourceArtifacts` (a bare array of source-ID strings), `validationReportPath`, and
+  `lineageManifestPath`, but not each input source's own `sourceRefs`/`sourceSnapshotAt`/
+  `checksum` — needed for §5's `source_artifacts` and §7's `source_snapshot_at`. This is a
+  Teamstate-internal boundary extension (§11), not a TIBER-Data ask: the data already exists in the
+  governed artifact's `metadata.inputSources`, the adapter just doesn't surface it yet. A minimal,
+  read-only pass-through extension resolves it, consistent with the adapter's existing
+  preservation posture.
 - **`team_week_raw_v0` / `teamWeekRawV0GovernedAdapter` carry no game-date field**, so
   `declared_scope.data_through` cannot be computed at runtime from adapter output — it is pinned as
   a contract constant instead (§1, §7). The underlying `nflverse-data:schedules/games` source
-  (already listed in this artifact's `sourceArtifacts` lineage) does carry real game dates; a
-  future revision could add a `gameDate`/`weekEndDate` field to `team_week_raw_v0`'s row shape so
-  `data_through` (and per-week date context generally) could be derived automatically instead of
-  pinned. This does not block v1 — the pinned constant is a documented, reviewable value, checked
-  for internal consistency against the adapter's actual week range (1–18 present) rather than
-  computed from it.
+  (already in `source_artifacts`, §5) does carry real game dates; a future revision could add a
+  `gameDate`/`weekEndDate` field to `team_week_raw_v0`'s row shape so `data_through` could be
+  derived automatically instead of pinned. This does not block v1.
+- **Operator publication-approval mechanics** (who records the approval named in invariant 12, and
+  how) are Phase 3/4 tooling questions, not resolved here — this contract only requires that the
+  approval exist and be checkable, not how it is captured.
 
-None of these block this contract's authorization; each is either a documented, disclosed
-approximation (with a re-verification checkpoint), a pinned constant with a clear upstream path to
-becoming derived, or a scoped-out field with a clear future path.
+None of these block this contract's authorization: two are well-specified, low-effort boundary
+extensions Phase 3 must complete before it can populate the affected fields at all (source metadata,
+data_through); the third is a genuine upstream TIBER-Data ask with a known fix, resolved here by
+exclusion rather than approximation, not by blocking the whole contract.
 
 ---
 
@@ -623,12 +682,15 @@ may_open_teamstate_public_report_implementation_issue
 ```
 
 The contract is complete and internally consistent: all 19 source-available non-withheld fields
-have an explicit disposition (16 included with full methodology, 1 excluded on scope grounds,
-2 blocked pending upstream work with a documented, non-blocking path forward); `pressureRateAllowed`
-and all 8 fantasy fields remain withheld; the declared scope and its coverage gate are explicit;
-human-readable and JSON contracts are finalized; canonical and immutable identities are both
-defined; the three temporal facts are distinct; a validator specification with stable rejection
-codes and a fail-closed acceptance matrix are both in place; and Phase 3 acceptance criteria are
-defined without authorizing that work. No derivation code, validator code, routes, deployment
-changes, or publication-state changes are introduced here — `artifact_publication_enabled` remains
-`false` and `public_reports` remains empty.
+have an explicit disposition (12 included with full methodology, 1 excluded on scope grounds, 6
+blocked pending the *same*, well-specified upstream gap — `competitive_plays` exposure — with a
+documented, non-blocking path forward); `pressureRateAllowed` and all 8 fantasy fields remain
+withheld; the declared scope and its coverage gate are explicit; human-readable and JSON contracts
+are finalized; the report payload's immutability no longer contradicts itself — current/superseded
+status lives only in a separate mutable registry, never inside a "frozen" payload; the temporal and
+source-artifact contract is scoped to what an explicitly-specified adapter extension can actually
+supply, with a defined multi-source aggregation rule; a validator specification with stable
+rejection codes and a fail-closed acceptance matrix are both in place; and Phase 3 acceptance
+criteria are defined without authorizing that work. No derivation code, validator code, routes,
+deployment changes, or publication-state changes are introduced here —
+`artifact_publication_enabled` remains `false` and `public_reports` remains empty.
