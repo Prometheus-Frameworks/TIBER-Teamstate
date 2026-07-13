@@ -18,7 +18,8 @@ What changed?
 Complete every field above. Link the authorizing issue when one exists; otherwise
 leave `none`. Use the exact emitted decision string, or `none`. Select every
 hard boundary touched, or select only `none of the above`. `Merge authorization`
-must be either `operator_approval_required` or `agent_mergeable_after_checks`.
+must be `operator_approval_required` in v0. `agent_mergeable_after_checks` is
+reserved and invalid until `CLAUDE.md` declares at least one eligible path.
 
 ## Motivation
 
