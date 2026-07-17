@@ -290,6 +290,15 @@ export const buildPublicReport2024Payload = (
     .map((source) => source.source_snapshot_at)
     .reduce((latest, candidate) => (Date.parse(candidate) > Date.parse(latest) ? candidate : latest));
 
+  // §8 invariant 8 "by construction": generated_at must be wired to the generation run itself,
+  // never a copy of the snapshot or data_through values. Refuse rather than emit conflated wiring.
+  if (options.generatedAt === source_snapshot_at || options.generatedAt === PUBLIC_REPORT_2024_DECLARED_SCOPE.data_through) {
+    throw new Error(
+      `public report 2024 generation refused: generatedAt ${options.generatedAt} duplicates another temporal ` +
+        'field; data_through, source_snapshot_at, and generated_at must be wired to distinct sources (§7).'
+    );
+  }
+
   const rowsByTeam = new Map<string, TeamWeekRawGovernedRow[]>();
   for (const row of rows) {
     const teamRows = rowsByTeam.get(row.teamCode);

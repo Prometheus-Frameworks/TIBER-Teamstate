@@ -16,6 +16,7 @@ import {
   PUBLIC_REPORT_2024_DECLARED_SCOPE,
   PUBLIC_REPORT_2024_DERIVED_FIELDS,
   PUBLIC_REPORT_2024_DERIVED_PRECISION,
+  PUBLIC_REPORT_2024_EXPECTED_TEAMS,
   PUBLIC_REPORT_2024_FORBIDDEN_TEAM_FIELDS,
   PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN,
   PUBLIC_REPORT_2024_OBSERVED_FIELDS,
@@ -208,6 +209,39 @@ export const validatePublicReport2024 = (
   const blockedSet = new Set<string>(PUBLIC_REPORT_2024_BLOCKED_DENOMINATOR_FIELDS);
   const teams = Array.isArray(raw.teams) ? (raw.teams as unknown[]) : [];
 
+  // The payload's own team records must cover exactly the declared scope (§1/§5): a payload that
+  // omits team records (e.g. `teams: []`) is not a smaller report, it is an invalid one — without
+  // this, empty content could pass every metadata-level check and reach the publication gate.
+  const payloadTeamCodes = teams
+    .filter(isRecord)
+    .map((entry) => entry.team)
+    .filter(isNonEmptyString);
+  if (payloadTeamCodes.length !== new Set(payloadTeamCodes).size) {
+    reject('E_COVERAGE_ROW_COUNT_MISMATCH', 'teams[] contains duplicate team records');
+  }
+  const payloadTeamSet = new Set(payloadTeamCodes);
+  const expectedTeamSet = new Set<string>(PUBLIC_REPORT_2024_EXPECTED_TEAMS);
+  const missingTeamRecords = PUBLIC_REPORT_2024_EXPECTED_TEAMS.filter((team) => !payloadTeamSet.has(team));
+  if (missingTeamRecords.length > 0) {
+    reject(
+      'E_COVERAGE_TEAM_MISSING',
+      `teams[] omits record(s) for expected team(s): ${missingTeamRecords.join(', ')}`
+    );
+  }
+  const unexpectedTeamRecords = [...payloadTeamSet].filter((team) => !expectedTeamSet.has(team)).sort();
+  if (unexpectedTeamRecords.length > 0) {
+    reject('E_COVERAGE_TEAM_UNEXPECTED', `teams[] contains unexpected team record(s): ${unexpectedTeamRecords.join(', ')}`);
+  }
+  for (const teamEntry of teams) {
+    if (isRecord(teamEntry) && isNonEmptyString(teamEntry.team) && teamEntry.gamesPlayed !== PUBLIC_REPORT_2024_DECLARED_SCOPE.expected_games_per_team) {
+      reject(
+        'E_COVERAGE_ROW_COUNT_MISMATCH',
+        `teams[] record ${teamEntry.team} has gamesPlayed ${String(teamEntry.gamesPlayed)}, expected ` +
+          `${PUBLIC_REPORT_2024_DECLARED_SCOPE.expected_games_per_team}`
+      );
+    }
+  }
+
   const flagField = (team: string, field: string, value: unknown, location: string): void => {
     if (blockedSet.has(field)) {
       reject(
@@ -346,6 +380,17 @@ export const validatePublicReport2024 = (
       `data_through=${String(dataThrough)}, source_snapshot_at=${String(sourceSnapshotAt)}, generated_at=${String(generatedAt)}`
     );
   } else {
+    // §8 invariant 8: the three temporal fields must not be the identical literal value — two
+    // fields carrying the same literal indicates shared wiring (generated_at copied from
+    // source_snapshot_at cannot happen when each field is wired to its distinct source).
+    if (generatedAt === sourceSnapshotAt || generatedAt === dataThrough || sourceSnapshotAt === dataThrough) {
+      reject(
+        'E_TEMPORAL_METADATA_CONFLATED',
+        `two temporal fields carry the identical literal value (data_through=${dataThrough}, ` +
+          `source_snapshot_at=${sourceSnapshotAt}, generated_at=${generatedAt}); each must be wired ` +
+          'to its distinct source (§8 invariant 8)'
+      );
+    }
     // Structural wiring checks: data_through must be the pinned contract constant, and
     // source_snapshot_at must equal max(upstream_sources[].source_snapshot_at) — each field wired
     // to its distinct source, never to a shared timestamp (not a coincidental-equality check).

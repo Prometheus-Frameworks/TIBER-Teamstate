@@ -319,6 +319,37 @@ describe('validatePublicReport2024 — remaining §9 rejection codes', () => {
     ).toContain('E_VERSION_IDENTITY_MISSING');
   });
 
+  it('rejects generated_at wired to source_snapshot_at (identical literal) → E_TEMPORAL_METADATA_CONFLATED', () => {
+    const doctored = clone();
+    doctored.generated_at = doctored.source_snapshot_at;
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_TEMPORAL_METADATA_CONFLATED');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('rejects a payload whose teams[] is empty despite valid coverage metadata → E_COVERAGE_TEAM_MISSING', () => {
+    const doctored = clone();
+    doctored.teams = [];
+    doctored.warnings = [];
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_COVERAGE_TEAM_MISSING');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('rejects a payload missing a single expected team record → E_COVERAGE_TEAM_MISSING', () => {
+    const doctored = clone();
+    doctored.teams = doctored.teams.filter((team) => team.team !== 'BUF');
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_COVERAGE_TEAM_MISSING');
+  });
+
+  it('rejects a team record whose gamesPlayed does not match the declared scope → E_COVERAGE_ROW_COUNT_MISMATCH', () => {
+    const doctored = clone();
+    doctored.teams[0].gamesPlayed = 16;
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_COVERAGE_ROW_COUNT_MISMATCH');
+  });
+
   it('rejects a generated_at absence → E_TEMPORAL_METADATA_MISSING', () => {
     const doctored = clone() as unknown as Record<string, unknown>;
     delete doctored.generated_at;

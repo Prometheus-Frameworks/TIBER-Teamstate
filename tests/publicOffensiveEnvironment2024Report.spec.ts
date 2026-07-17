@@ -187,6 +187,21 @@ describe('buildPublicReport2024Payload fail-closed generation gates', () => {
     ).toThrow(/does not\s+match the contract-pinned checksum/);
   });
 
+  it('refuses a generatedAt that duplicates source_snapshot_at or data_through (§8 invariant 8)', () => {
+    expect(() =>
+      buildPublicReport2024Payload(realConsumption, {
+        generatedAt: '2026-06-27T13:42:05+00:00',
+        governedInputSha256: governedSourceSha256
+      })
+    ).toThrow(/distinct sources/);
+    expect(() =>
+      buildPublicReport2024Payload(realConsumption, {
+        generatedAt: '2025-01-05',
+        governedInputSha256: governedSourceSha256
+      })
+    ).toThrow(/distinct sources/);
+  });
+
   it('refuses generation when metadata.inputSources cannot populate upstream_sources', () => {
     const consumptionWithoutSources: TeamWeekRawGovernedConsumption = {
       upstream: { ...realConsumption.upstream, inputSources: [] },
