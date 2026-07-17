@@ -2,6 +2,14 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { PUBLIC_REPORT_2024_CANONICAL_URL_HTML } from './contracts/teamstatePublicOffensiveEnvironment2024V1.js';
+import {
+  LIVE_SERVICE_METADATA,
+  resolveCurrentRegistryEntry,
+  validatePublicReportRegistry,
+  type TeamstateServiceMetadata
+} from './reports/publicReportRegistry.js';
+
 const SERVICE_NAME = 'tiber-teamstate';
 
 const HTML_PAGE = `<!doctype html>
@@ -21,6 +29,32 @@ const HTML_PAGE = `<!doctype html>
 </html>
 `;
 
+/** Frozen, byte-stable content for one published report version (§6): never mutated after publish. */
+export interface FrozenPublicReportContent {
+  json: string;
+  html: string;
+}
+
+/**
+ * Everything report serving may read: the mutable registry (`service-metadata.json` state) and the
+ * frozen per-version content store. Registry changes never touch frozen content — serving a
+ * version URL therefore stays byte-identical across current/superseded flips (§6, §8 invariant 9).
+ */
+export interface PublicReportServingState {
+  serviceMetadata: TeamstateServiceMetadata;
+  frozenReports: ReadonlyMap<string, FrozenPublicReportContent>;
+}
+
+/**
+ * The live deployment state: deployment scaffold, empty registry, publication disabled, no frozen
+ * content. Every public-report route fails closed (404) in this state — no partial,
+ * fixture-backed, candidate, or best-effort report is ever served pre-approval.
+ */
+export const LIVE_PUBLIC_REPORT_SERVING_STATE: PublicReportServingState = {
+  serviceMetadata: LIVE_SERVICE_METADATA,
+  frozenReports: new Map()
+};
+
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body);
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -32,7 +66,75 @@ function sendHtml(res: ServerResponse, status: number, body: string): void {
   res.end(body);
 }
 
-export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
+/** Serve pre-serialized frozen JSON bytes verbatim, so published content stays byte-stable. */
+function sendFrozenJson(res: ServerResponse, body: string): void {
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(body);
+}
+
+function sendNotFound(res: ServerResponse): void {
+  sendJson(res, 404, { status: 'not_found' });
+}
+
+/**
+ * Resolve a public-report route to frozen content, failing closed on every gap: publication
+ * disabled, no unambiguous current registry entry, unknown version id, or missing frozen content.
+ */
+function resolvePublicReportRoute(
+  state: PublicReportServingState,
+  pathname: string
+): { content: FrozenPublicReportContent; format: 'html' | 'json' } | null {
+  const { serviceMetadata, frozenReports } = state;
+  if (serviceMetadata.artifact_publication_enabled !== true) {
+    return null;
+  }
+  // An invalid registry (e.g. two "current" entries for one family) serves nothing at all —
+  // fail closed on every report route rather than guessing which entry the operator meant.
+  if (validatePublicReportRegistry(serviceMetadata.public_reports).length > 0) {
+    return null;
+  }
+
+  const resolveVersion = (reportVersionId: string, format: 'html' | 'json') => {
+    // Only registered versions are servable — frozen content alone (e.g. a candidate or fixture)
+    // must never be reachable without its registry entry.
+    const entry = serviceMetadata.public_reports.find((candidate) => candidate.report_version_id === reportVersionId);
+    if (entry === undefined) {
+      return null;
+    }
+    const content = frozenReports.get(reportVersionId);
+    return content === undefined ? null : { content, format };
+  };
+
+  if (pathname === PUBLIC_REPORT_2024_CANONICAL_URL_HTML || pathname === `${PUBLIC_REPORT_2024_CANONICAL_URL_HTML}.json`) {
+    const currentEntry = resolveCurrentRegistryEntry(serviceMetadata, PUBLIC_REPORT_2024_CANONICAL_URL_HTML);
+    if (currentEntry === null) {
+      return null;
+    }
+    return resolveVersion(currentEntry.report_version_id, pathname.endsWith('.json') ? 'json' : 'html');
+  }
+
+  const versionPrefix = `${PUBLIC_REPORT_2024_CANONICAL_URL_HTML}/`;
+  if (pathname.startsWith(versionPrefix)) {
+    const rest = pathname.slice(versionPrefix.length);
+    if (rest.length === 0 || rest.includes('/')) {
+      return null;
+    }
+    const format = rest.endsWith('.json') ? 'json' : 'html';
+    const reportVersionId = format === 'json' ? rest.slice(0, -'.json'.length) : rest;
+    if (reportVersionId.length === 0) {
+      return null;
+    }
+    return resolveVersion(reportVersionId, format);
+  }
+
+  return null;
+}
+
+export function handleRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  state: PublicReportServingState = LIVE_PUBLIC_REPORT_SERVING_STATE
+): void {
   const url = new URL(req.url ?? '/', 'http://localhost');
 
   if (url.pathname === '/healthz') {
@@ -41,12 +143,25 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   }
 
   if (url.pathname === '/service-metadata.json') {
-    sendJson(res, 200, {
-      service: SERVICE_NAME,
-      status: 'deployment_scaffold',
-      public_reports: [],
-      artifact_publication_enabled: false,
-    });
+    sendJson(res, 200, state.serviceMetadata);
+    return;
+  }
+
+  if (
+    url.pathname === PUBLIC_REPORT_2024_CANONICAL_URL_HTML ||
+    url.pathname.startsWith(`${PUBLIC_REPORT_2024_CANONICAL_URL_HTML}.json`) ||
+    url.pathname.startsWith(`${PUBLIC_REPORT_2024_CANONICAL_URL_HTML}/`)
+  ) {
+    const resolved = resolvePublicReportRoute(state, url.pathname);
+    if (resolved === null) {
+      sendNotFound(res);
+      return;
+    }
+    if (resolved.format === 'json') {
+      sendFrozenJson(res, resolved.content.json);
+    } else {
+      sendHtml(res, 200, resolved.content.html);
+    }
     return;
   }
 
@@ -55,11 +170,11 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
     return;
   }
 
-  sendJson(res, 404, { status: 'not_found' });
+  sendNotFound(res);
 }
 
-export function createTeamstateServer() {
-  return createServer(handleRequest);
+export function createTeamstateServer(state: PublicReportServingState = LIVE_PUBLIC_REPORT_SERVING_STATE) {
+  return createServer((req, res) => handleRequest(req, res, state));
 }
 
 export const isDirectExecution = (metaUrl: string, argvPath: string | undefined): boolean => {

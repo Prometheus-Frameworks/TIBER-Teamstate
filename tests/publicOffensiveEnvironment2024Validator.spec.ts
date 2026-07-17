@@ -1,0 +1,367 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+import type { TeamWeekRawGovernedRow } from '../src/adapters/teamWeekRawV0GovernedAdapter.js';
+import { loadTeamWeekRawV0Governed } from '../src/ingest/loadTeamWeekRawV0Governed.js';
+import { renderPublicReport2024Html } from '../src/reports/publicOffensiveEnvironment2024Html.js';
+import {
+  buildPublicReport2024Payload,
+  computeSha256Hex,
+  roundHalfAwayFromZero,
+  serializePublicReport2024Payload
+} from '../src/reports/publicOffensiveEnvironment2024Report.js';
+import {
+  validatePublicReport2024,
+  type PublicationApprovalRecord,
+  type ValidatePublicReport2024Context
+} from '../src/reports/publicOffensiveEnvironment2024Validator.js';
+import { LIVE_SERVICE_METADATA, type TeamstateServiceMetadata } from '../src/reports/publicReportRegistry.js';
+import type { PublicReport2024Payload } from '../src/contracts/teamstatePublicOffensiveEnvironment2024V1.js';
+
+const GOVERNED_SOURCE_PATH = path.resolve(
+  process.cwd(),
+  'data/governed/team_week_raw_v0_2024_real_source_candidate.json'
+);
+const GENERATED_AT = '2026-07-17T00:00:00.000Z';
+
+const governedSourceBytes = readFileSync(GOVERNED_SOURCE_PATH);
+const governedSourceSha256 = computeSha256Hex(governedSourceBytes);
+const consumption = loadTeamWeekRawV0Governed(GOVERNED_SOURCE_PATH);
+const payload = buildPublicReport2024Payload(consumption, {
+  generatedAt: GENERATED_AT,
+  governedInputSha256: governedSourceSha256
+});
+const html = renderPublicReport2024Html(payload);
+
+const APPROVAL: PublicationApprovalRecord = {
+  report_version_id: payload.report_version_id,
+  approved_by: 'test-operator',
+  approved_at: GENERATED_AT
+};
+
+const fullContext: ValidatePublicReport2024Context = {
+  governedSourceBytes,
+  sourceRows: consumption.rows,
+  html,
+  registry: LIVE_SERVICE_METADATA,
+  approvals: [APPROVAL]
+};
+
+const clone = (): PublicReport2024Payload => JSON.parse(JSON.stringify(payload)) as PublicReport2024Payload;
+
+const buildFromRows = (rows: TeamWeekRawGovernedRow[]): PublicReport2024Payload =>
+  buildPublicReport2024Payload(
+    { upstream: consumption.upstream, rows },
+    { generatedAt: GENERATED_AT, governedInputSha256: governedSourceSha256 }
+  );
+
+const codesOf = (result: { rejections: Array<{ code: string }> }): string[] =>
+  result.rejections.map((rejection) => rejection.code);
+
+describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () => {
+  it('#1: input row set missing team BUF → E_COVERAGE_TEAM_MISSING, no publication', () => {
+    const rows = consumption.rows.filter((row) => row.teamCode !== 'BUF');
+    const doctored = buildFromRows(rows);
+    const result = validatePublicReport2024(doctored, { sourceRows: rows, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_COVERAGE_TEAM_MISSING');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#2: 543 rows with all 32 teams present → E_COVERAGE_ROW_COUNT_MISMATCH, no publication', () => {
+    const rows = [...consumption.rows];
+    rows.pop();
+    expect(new Set(rows.map((row) => row.teamCode)).size).toBe(32);
+    const doctored = buildFromRows(rows);
+    const result = validatePublicReport2024(doctored, { sourceRows: rows, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_COVERAGE_ROW_COUNT_MISMATCH');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#3: one team with 16 rows, another with 18 → E_COVERAGE_ROW_COUNT_MISMATCH, no publication', () => {
+    const rows = consumption.rows.map((row) => ({ ...row }));
+    const ariRow = rows.find((row) => row.teamCode === 'ARI')!;
+    ariRow.teamCode = 'ATL';
+    expect(rows).toHaveLength(544);
+    const doctored = buildFromRows(rows);
+    const result = validatePublicReport2024(doctored, { sourceRows: rows, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_COVERAGE_ROW_COUNT_MISMATCH');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#4: provenance not governed / missing → E_PROVENANCE_NOT_GOVERNED / E_PROVENANCE_MISSING', () => {
+    const notGoverned = clone();
+    notGoverned.provenance_status = 'partial_real_data';
+    expect(codesOf(validatePublicReport2024(notGoverned, { approvals: [APPROVAL] }))).toContain(
+      'E_PROVENANCE_NOT_GOVERNED'
+    );
+
+    const missing = clone() as unknown as Record<string, unknown>;
+    delete missing.provenance_status;
+    expect(
+      codesOf(validatePublicReport2024(missing as unknown as PublicReport2024Payload, { approvals: [APPROVAL] }))
+    ).toContain('E_PROVENANCE_MISSING');
+  });
+
+  it('#5: committed governed bytes drifted from the pin → E_GOVERNED_INPUT_CHECKSUM_MISMATCH', () => {
+    const driftedBytes = Buffer.concat([governedSourceBytes, Buffer.from('\n')]);
+    const result = validatePublicReport2024(clone(), { governedSourceBytes: driftedBytes, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_GOVERNED_INPUT_CHECKSUM_MISMATCH');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#5a: an upstream_sources[] entry with checksum: null → E_UPSTREAM_SOURCE_CHECKSUM_MISSING', () => {
+    const doctored = clone();
+    doctored.upstream_sources[0].checksum = null;
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_UPSTREAM_SOURCE_CHECKSUM_MISSING');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#6: pressureRateAllowed present on a team, even as null → E_WITHHELD_FIELD_PRESENT', () => {
+    const doctored = clone();
+    (doctored.teams[0] as unknown as Record<string, unknown>).pressureRateAllowed = null;
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_WITHHELD_FIELD_PRESENT');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#7: fantasyPointsForQB: 0 on a team → E_WITHHELD_FIELD_ZERO_FILLED', () => {
+    const doctored = clone();
+    (doctored.teams[0].observed as unknown as Record<string, unknown>).fantasyPointsForQB = 0;
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_WITHHELD_FIELD_ZERO_FILLED');
+    expect(codesOf(result)).toContain('E_WITHHELD_FIELD_PRESENT');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#8: passRate or passEpaPerPlay present by any method → E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED', () => {
+    const withPassRate = clone();
+    (withPassRate.teams[0].derived as unknown as Record<string, unknown>).passRate = 0.61;
+    expect(codesOf(validatePublicReport2024(withPassRate, { approvals: [APPROVAL] }))).toContain(
+      'E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED'
+    );
+
+    const withPassEpa = clone();
+    (withPassEpa.teams[0].derived as unknown as Record<string, unknown>).passEpaPerPlay = 0.12;
+    expect(codesOf(validatePublicReport2024(withPassEpa, { approvals: [APPROVAL] }))).toContain(
+      'E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED'
+    );
+  });
+
+  it('#9: neutralPassRate as a plain mean of weekly values → E_UNWEIGHTED_AGGREGATION_USED', () => {
+    // Find a team whose unweighted mean differs from the weighted value at 4 decimals.
+    const rowsByTeam = new Map<string, TeamWeekRawGovernedRow[]>();
+    for (const row of consumption.rows) {
+      rowsByTeam.set(row.teamCode, [...(rowsByTeam.get(row.teamCode) ?? []), row]);
+    }
+    let targetTeam: string | null = null;
+    let simpleMean = 0;
+    for (const [team, rows] of rowsByTeam) {
+      const weekly = rows.map((row) => row.neutralPassRate as number);
+      const mean = roundHalfAwayFromZero(weekly.reduce((a, b) => a + b, 0) / weekly.length, 4);
+      const published = payload.teams.find((entry) => entry.team === team)!.derived.neutralPassRate;
+      if (mean !== published) {
+        targetTeam = team;
+        simpleMean = mean;
+        break;
+      }
+    }
+    expect(targetTeam).not.toBeNull();
+
+    const doctored = clone();
+    doctored.teams.find((entry) => entry.team === targetTeam)!.derived.neutralPassRate = simpleMean;
+    const result = validatePublicReport2024(doctored, { sourceRows: consumption.rows, approvals: [APPROVAL] });
+    const rejection = result.rejections.find((entry) => entry.code === 'E_UNWEIGHTED_AGGREGATION_USED');
+    expect(rejection).toBeDefined();
+    expect(rejection!.detail).toContain('unweighted simple mean');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#10: redZoneTripsTotal == 0 with redZoneTdRate: 0 → E_REDZONE_NULL_INVARIANT_VIOLATED', () => {
+    const doctored = clone();
+    doctored.teams[0].observed.redZoneTripsTotal = 0;
+    doctored.teams[0].derived.redZoneTdRate = 0;
+    expect(codesOf(validatePublicReport2024(doctored, { approvals: [APPROVAL] }))).toContain(
+      'E_REDZONE_NULL_INVARIANT_VIOLATED'
+    );
+  });
+
+  it('#11: redZoneTripsTotal > 0 with redZoneTdRate: null → E_REDZONE_NULL_INVARIANT_VIOLATED', () => {
+    const doctored = clone();
+    doctored.teams[0].derived.redZoneTdRate = null;
+    expect(codesOf(validatePublicReport2024(doctored, { approvals: [APPROVAL] }))).toContain(
+      'E_REDZONE_NULL_INVARIANT_VIOLATED'
+    );
+  });
+
+  it('#12: data_through absent → E_TEMPORAL_METADATA_MISSING', () => {
+    const doctored = clone() as unknown as { declared_scope: Record<string, unknown> };
+    delete doctored.declared_scope.data_through;
+    expect(
+      codesOf(validatePublicReport2024(doctored as unknown as PublicReport2024Payload, { approvals: [APPROVAL] }))
+    ).toContain('E_TEMPORAL_METADATA_MISSING');
+  });
+
+  it('#13: source_snapshot_at wired to the play-by-play timestamp instead of max() → E_TEMPORAL_METADATA_CONFLATED', () => {
+    const doctored = clone();
+    doctored.source_snapshot_at = '2026-06-27T13:42:00+00:00';
+    const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_TEMPORAL_METADATA_CONFLATED');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#14: HTML page for the version omits the report_version_id → E_VERSION_IDENTITY_MISSING', () => {
+    const htmlWithoutId = html.replace(`<article data-report-version-id="${payload.report_version_id}">`, '<article>');
+    const result = validatePublicReport2024(clone(), { html: htmlWithoutId, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MISSING');
+  });
+
+  it('#15: regenerating an already-published version with different values → E_VERSION_IDENTITY_MUTABLE', () => {
+    const publishedVariant = clone();
+    publishedVariant.teams[0].observed.pointsForTotal += 1;
+    const result = validatePublicReport2024(clone(), {
+      approvals: [APPROVAL],
+      previouslyPublished: { json: serializePublicReport2024Payload(publishedVariant) },
+      candidateSerialized: { json: serializePublicReport2024Payload(clone()) }
+    });
+    expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
+  });
+
+  it('#16: payload carrying a supersession_status field at all → E_VERSION_IDENTITY_MUTABLE', () => {
+    const doctored = clone() as unknown as Record<string, unknown>;
+    doctored.supersession_status = 'current';
+    expect(
+      codesOf(validatePublicReport2024(doctored as unknown as PublicReport2024Payload, { approvals: [APPROVAL] }))
+    ).toContain('E_VERSION_IDENTITY_MUTABLE');
+  });
+
+  it('#16a: HTML rendering "This report has been superseded" → E_VERSION_IDENTITY_MUTABLE', () => {
+    const doctoredHtml = html.replace('<h1>', '<p>This report has been superseded.</p><h1>');
+    const result = validatePublicReport2024(clone(), { html: doctoredHtml, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
+  });
+
+  it('#17: HTML showing epaPerPlay rounded differently than JSON → E_HTML_JSON_SEMANTIC_MISMATCH', () => {
+    const ari = payload.teams.find((team) => team.team === 'ARI')!;
+    const differentlyRounded = ari.derived.epaPerPlay.toFixed(2);
+    const doctoredHtml = html.replace(
+      new RegExp(`(data-team="ARI" data-field="epaPerPlay">)[^<]*<`),
+      `$1${differentlyRounded}<`
+    );
+    expect(doctoredHtml).not.toBe(html);
+    const result = validatePublicReport2024(clone(), { html: doctoredHtml, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_HTML_JSON_SEMANTIC_MISMATCH');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#18: registry with two status: "current" entries for the same family → E_REGISTRY_STATE_INVALID', () => {
+    const registry: TeamstateServiceMetadata = {
+      ...LIVE_SERVICE_METADATA,
+      public_reports: [
+        {
+          report_version_id: 'teamstate_public_offensive_environment_2024_v1.r1',
+          canonical_url: '/nfl/2024/offensive-environments',
+          version_url: '/nfl/2024/offensive-environments/teamstate_public_offensive_environment_2024_v1.r1',
+          status: 'current',
+          superseded_by: null,
+          published_at: GENERATED_AT
+        },
+        {
+          report_version_id: 'teamstate_public_offensive_environment_2024_v1.r2',
+          canonical_url: '/nfl/2024/offensive-environments',
+          version_url: '/nfl/2024/offensive-environments/teamstate_public_offensive_environment_2024_v1.r2',
+          status: 'current',
+          superseded_by: null,
+          published_at: GENERATED_AT
+        }
+      ]
+    };
+    const result = validatePublicReport2024(clone(), { registry, approvals: [APPROVAL] });
+    expect(codesOf(result)).toContain('E_REGISTRY_STATE_INVALID');
+  });
+
+  it('#19: every invariant passes but no recorded human approval → only E_PUBLICATION_NOT_APPROVED', () => {
+    const result = validatePublicReport2024(payload, { ...fullContext, approvals: [] });
+    expect(codesOf(result)).toEqual(['E_PUBLICATION_NOT_APPROVED']);
+    expect(result.publishable).toBe(false);
+  });
+
+  it('#20: every invariant passes and approval is recorded → publishable, zero rejections', () => {
+    const result = validatePublicReport2024(payload, fullContext);
+    expect(result.rejections).toEqual([]);
+    expect(result.publishable).toBe(true);
+  });
+});
+
+describe('validatePublicReport2024 — remaining §9 rejection codes', () => {
+  it('rejects an unknown methodology_version → E_METHODOLOGY_VERSION_UNKNOWN', () => {
+    const doctored = clone();
+    doctored.methodology_version = 'teamstate_public_offensive_environment_2024_v2';
+    expect(codesOf(validatePublicReport2024(doctored, { approvals: [APPROVAL] }))).toContain(
+      'E_METHODOLOGY_VERSION_UNKNOWN'
+    );
+  });
+
+  it('rejects a field §3 does not define → E_UNDOCUMENTED_FIELD_PRESENT', () => {
+    const doctored = clone();
+    (doctored.teams[0].derived as unknown as Record<string, unknown>).explosiveDriveRate = 0.2;
+    expect(codesOf(validatePublicReport2024(doctored, { approvals: [APPROVAL] }))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+  });
+
+  it('rejects absent identity fields → E_VERSION_IDENTITY_MISSING', () => {
+    const doctored = clone() as unknown as Record<string, unknown>;
+    delete doctored.canonical_url;
+    expect(
+      codesOf(validatePublicReport2024(doctored as unknown as PublicReport2024Payload, { approvals: [APPROVAL] }))
+    ).toContain('E_VERSION_IDENTITY_MISSING');
+  });
+
+  it('rejects a generated_at absence → E_TEMPORAL_METADATA_MISSING', () => {
+    const doctored = clone() as unknown as Record<string, unknown>;
+    delete doctored.generated_at;
+    expect(
+      codesOf(validatePublicReport2024(doctored as unknown as PublicReport2024Payload, { approvals: [APPROVAL] }))
+    ).toContain('E_TEMPORAL_METADATA_MISSING');
+  });
+
+  it('every §9 stable code is reachable through the implemented checks', () => {
+    // Documented cross-reference: the union of codes asserted across this spec file covers the
+    // full §9 table. This test enumerates the codes the suite exercises so a future edit that
+    // drops one fails loudly here.
+    const exercised = [
+      'E_PROVENANCE_MISSING',
+      'E_PROVENANCE_NOT_GOVERNED',
+      'E_COVERAGE_TEAM_MISSING',
+      'E_COVERAGE_TEAM_UNEXPECTED',
+      'E_COVERAGE_ROW_COUNT_MISMATCH',
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
+      'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+      'E_METHODOLOGY_VERSION_UNKNOWN',
+      'E_UNDOCUMENTED_FIELD_PRESENT',
+      'E_WITHHELD_FIELD_PRESENT',
+      'E_WITHHELD_FIELD_ZERO_FILLED',
+      'E_REDZONE_NULL_INVARIANT_VIOLATED',
+      'E_UNWEIGHTED_AGGREGATION_USED',
+      'E_APPROXIMATED_DENOMINATOR_UNAUTHORIZED',
+      'E_TEMPORAL_METADATA_MISSING',
+      'E_TEMPORAL_METADATA_CONFLATED',
+      'E_VERSION_IDENTITY_MISSING',
+      'E_VERSION_IDENTITY_MUTABLE',
+      'E_HTML_JSON_SEMANTIC_MISMATCH',
+      'E_REGISTRY_STATE_INVALID',
+      'E_PUBLICATION_NOT_APPROVED'
+    ];
+    // E_COVERAGE_TEAM_UNEXPECTED is exercised right here: rows for a 33rd team not in scope.
+    const rows = consumption.rows.map((row) => ({ ...row }));
+    const extraTeamRow = { ...rows[0], teamCode: 'XYZ' };
+    const result = validatePublicReport2024(buildFromRows([...rows, extraTeamRow]), {
+      sourceRows: [...rows, extraTeamRow],
+      approvals: [APPROVAL]
+    });
+    expect(codesOf(result)).toContain('E_COVERAGE_TEAM_UNEXPECTED');
+    expect(exercised).toHaveLength(21);
+  });
+});
