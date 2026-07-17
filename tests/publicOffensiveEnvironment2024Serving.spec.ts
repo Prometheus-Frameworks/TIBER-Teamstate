@@ -10,9 +10,9 @@ import {
   computeSha256Hex,
   serializePublicReport2024Payload
 } from '../src/reports/publicOffensiveEnvironment2024Report.js';
-import { validatePublicReport2024 } from '../src/reports/publicOffensiveEnvironment2024Validator.js';
 import { LIVE_SERVICE_METADATA } from '../src/reports/publicReportRegistry.js';
 import {
+  FrozenPublicReportStore,
   LIVE_PUBLIC_REPORT_SERVING_STATE,
   createTeamstateServer,
   publishPublicReportVersion,
@@ -25,6 +25,7 @@ const GOVERNED_SOURCE_PATH = path.resolve(
 );
 const CANONICAL_HTML = '/nfl/2024/offensive-environments';
 const CANONICAL_JSON = '/nfl/2024/offensive-environments.json';
+const PUBLISHED_AT = '2026-07-17T00:00:00.000Z';
 
 const governedSourceBytes = readFileSync(GOVERNED_SOURCE_PATH);
 const governedSourceSha256 = computeSha256Hex(governedSourceBytes);
@@ -51,40 +52,154 @@ const R2_ID = r2.payload.report_version_id;
 const approvalFor = (version: typeof r1) => ({
   report_version_id: version.payload.report_version_id,
   approved_by: 'test-operator',
-  approved_at: '2026-07-17T00:00:00.000Z'
+  approved_at: PUBLISHED_AT
 });
 
-const validateVersion = (version: typeof r1, registryState: PublicReportServingState['serviceMetadata']) =>
-  validatePublicReport2024(version.payload, {
-    governedSourceBytes,
+const EMPTY_STATE: PublicReportServingState = {
+  serviceMetadata: LIVE_SERVICE_METADATA,
+  frozenReports: new FrozenPublicReportStore()
+};
+
+// Publish through the ONLY publication path: the publisher validates the raw materials
+// internally (there is no caller-suppliable validation result) and derives the registry
+// identities from the contract — the same path production publication must take.
+const publish = (state: PublicReportServingState, version: typeof r1): PublicReportServingState =>
+  publishPublicReportVersion(state, {
+    payload: version.payload,
     html: version.html,
-    registry: registryState,
-    approvals: [approvalFor(version)]
+    governedSourceBytes,
+    approval: approvalFor(version),
+    publishedAt: PUBLISHED_AT
   });
 
-// Publish through the real gate: each version is validated end-to-end (complete evidence package)
-// against the pre-publication registry; only its case-#20 result with the validator's internally
-// generated content binding + a well-formed exact-version approval can flip the registry, and the
-// frozen content is digest-verified against that binding — the same path production must take.
-const publishedState = (versions: Array<(typeof r1)>): PublicReportServingState => {
-  let state: PublicReportServingState = { serviceMetadata: LIVE_SERVICE_METADATA, frozenReports: new Map() };
-  for (const version of versions) {
-    const validation = validateVersion(version, state.serviceMetadata);
-    expect(validation.publishable).toBe(true);
-    state = publishPublicReportVersion(
-      state,
+const publishedState = (versions: Array<(typeof r1)>): PublicReportServingState =>
+  versions.reduce(publish, EMPTY_STATE);
+
+const frozenRecordFor = (reportVersionId: string, version: typeof r1) => ({
+  reportVersionId,
+  json: version.json,
+  html: version.html,
+  jsonSha256: computeSha256Hex(version.json),
+  htmlSha256: computeSha256Hex(version.html)
+});
+
+describe('publishPublicReportVersion — internal validation is the only publication path', () => {
+  it('publishes a genuinely valid version and enables publication atomically', () => {
+    const state = publish(EMPTY_STATE, r1);
+    expect(state.serviceMetadata.artifact_publication_enabled).toBe(true);
+    expect(state.serviceMetadata.public_reports).toEqual([
       {
-        report_version_id: version.payload.report_version_id,
+        report_version_id: R1_ID,
         canonical_url: CANONICAL_HTML,
-        version_url: `${CANONICAL_HTML}/${version.payload.report_version_id}`,
-        published_at: '2026-07-17T00:00:00.000Z'
-      },
-      { validation, approval: approvalFor(version) },
-      { json: version.json, html: version.html }
-    );
-  }
-  return state;
-};
+        version_url: `${CANONICAL_HTML}/${R1_ID}`,
+        status: 'current',
+        superseded_by: null,
+        published_at: PUBLISHED_AT
+      }
+    ]);
+    expect(state.frozenReports.resolve(R1_ID)?.json).toBe(r1.json);
+    // Input state is untouched (pure step) and the live scaffold remains disabled.
+    expect(EMPTY_STATE.serviceMetadata.artifact_publication_enabled).toBe(false);
+    expect(EMPTY_STATE.frozenReports.size).toBe(0);
+  });
+
+  it('flips current → superseded atomically when publishing a successor', () => {
+    const state = publishedState([r1, r2]);
+    const [first, second] = state.serviceMetadata.public_reports;
+    expect(first).toMatchObject({ report_version_id: R1_ID, status: 'superseded', superseded_by: R2_ID });
+    expect(second).toMatchObject({ report_version_id: R2_ID, status: 'current', superseded_by: null });
+  });
+
+  it('refuses unvalidated content: a doctored payload cannot be published no matter what the caller asserts', () => {
+    const doctored = JSON.parse(JSON.stringify(r1.payload)) as typeof r1.payload;
+    doctored.teams[0].derived.epaPerPlay = 0.9999;
+    expect(() =>
+      publishPublicReportVersion(EMPTY_STATE, {
+        payload: doctored,
+        html: renderPublicReport2024Html(doctored),
+        governedSourceBytes,
+        approval: approvalFor(r1),
+        publishedAt: PUBLISHED_AT
+      })
+    ).toThrow(/internal validation rejected .*E_UNWEIGHTED_AGGREGATION_USED/);
+    expect(EMPTY_STATE.serviceMetadata.artifact_publication_enabled).toBe(false);
+  });
+
+  it('refuses publication without a real approval for the exact version', () => {
+    expect(() =>
+      publishPublicReportVersion(EMPTY_STATE, {
+        payload: r1.payload,
+        html: r1.html,
+        governedSourceBytes,
+        approval: approvalFor(r2), // approval names r2, payload is r1
+        publishedAt: PUBLISHED_AT
+      })
+    ).toThrow(/E_PUBLICATION_NOT_APPROVED/);
+  });
+
+  it('refuses re-publication of an already-registered report_version_id', () => {
+    const state = publish(EMPTY_STATE, r1);
+    expect(() => publish(state, r1)).toThrow(/already exists|already registered/);
+  });
+
+  it('refuses a malformed publishedAt timestamp', () => {
+    expect(() =>
+      publishPublicReportVersion(EMPTY_STATE, {
+        payload: r1.payload,
+        html: r1.html,
+        governedSourceBytes,
+        approval: approvalFor(r1),
+        publishedAt: 'sometime last week'
+      })
+    ).toThrow(/not a valid ISO-8601 timestamp/);
+  });
+
+  it('always registers under the contract family — route identities are not caller inputs', () => {
+    // There is no canonical_url/version_url input at all; the published entry's identities are
+    // derived from the contract constants, so a validated report can never be registered under
+    // another canonical family.
+    const state = publish(EMPTY_STATE, r1);
+    expect(state.serviceMetadata.public_reports[0].canonical_url).toBe(CANONICAL_HTML);
+    expect(state.serviceMetadata.public_reports[0].version_url).toBe(`${CANONICAL_HTML}/${R1_ID}`);
+  });
+});
+
+describe('FrozenPublicReportStore — encapsulated, digest-verified, immutable', () => {
+  it('refuses registration whose bytes do not match the validated digests', () => {
+    const store = new FrozenPublicReportStore();
+    expect(() =>
+      store.register({ ...frozenRecordFor(R1_ID, r1), jsonSha256: 'a'.repeat(64) })
+    ).toThrow(/do not match the validated digest/);
+    expect(() =>
+      store.register({ ...frozenRecordFor(R1_ID, r1), htmlSha256: 'b'.repeat(64) })
+    ).toThrow(/do not match the validated digest/);
+  });
+
+  it('never overwrites an already-registered version', () => {
+    const store = new FrozenPublicReportStore();
+    store.register(frozenRecordFor(R1_ID, r1));
+    expect(() => store.register(frozenRecordFor(R1_ID, r1))).toThrow(/never overwritten/);
+  });
+
+  it('exposes only frozen records — stored content cannot be mutated after publication', () => {
+    const store = new FrozenPublicReportStore();
+    store.register(frozenRecordFor(R1_ID, r1));
+    const record = store.resolve(R1_ID)!;
+    expect(Object.isFrozen(record)).toBe(true);
+    expect(() => {
+      (record as { json: string }).json = r2.json;
+    }).toThrow();
+    expect(store.resolve(R1_ID)!.json).toBe(r1.json);
+  });
+
+  it('resolve() fails closed when content does not declare the requested version', () => {
+    // Simulate a corrupted/bypassed store: r2 bytes registered under the r1 key with internally
+    // consistent digests — the content-identity re-verification still refuses to serve it.
+    const store = new FrozenPublicReportStore();
+    store.register(frozenRecordFor(R1_ID, r2));
+    expect(store.resolve(R1_ID)).toBeNull();
+  });
+});
 
 describe('public report serving (§6 identities, fail-closed pre-approval)', () => {
   let server: ReturnType<typeof createTeamstateServer> | undefined;
@@ -137,7 +252,7 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
 
   it('fails closed when the registry names a version whose frozen content is missing', async () => {
     const state = publishedState([r1]);
-    const base = await startServer({ serviceMetadata: state.serviceMetadata, frozenReports: new Map() });
+    const base = await startServer({ serviceMetadata: state.serviceMetadata, frozenReports: new FrozenPublicReportStore() });
     expect((await fetch(`${base}${CANONICAL_JSON}`)).status).toBe(404);
     expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}.json`)).status).toBe(404);
   });
@@ -146,7 +261,7 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
     const state = publishedState([r1]);
     const withUnregisteredContent: PublicReportServingState = {
       serviceMetadata: state.serviceMetadata,
-      frozenReports: new Map([...state.frozenReports, [R2_ID, { reportVersionId: R2_ID, json: r2.json, html: r2.html }]])
+      frozenReports: state.frozenReports.withRegistered(frozenRecordFor(R2_ID, r2))
     };
     const base = await startServer(withUnregisteredContent);
     expect((await fetch(`${base}${CANONICAL_HTML}/${R2_ID}`)).status).toBe(404);
@@ -233,14 +348,11 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
             version_url: `/nfl/2023/some-other-report/${foreignId}`,
             status: 'current',
             superseded_by: null,
-            published_at: '2026-07-17T00:00:00.000Z'
+            published_at: PUBLISHED_AT
           }
         ]
       },
-      frozenReports: new Map([
-        ...state.frozenReports,
-        [foreignId, { reportVersionId: foreignId, json: r2.json, html: r2.html }]
-      ])
+      frozenReports: state.frozenReports.withRegistered(frozenRecordFor(foreignId, r2))
     };
     const base = await startServer(withForeignEntry);
     // The foreign entry is structurally valid and has frozen content, but it belongs to another
@@ -251,50 +363,12 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
     expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}.json`)).status).toBe(200);
   });
 
-  it('a validation result for r1 can never publish r2 (binding is exact-version)', () => {
-    const state: PublicReportServingState = { serviceMetadata: LIVE_SERVICE_METADATA, frozenReports: new Map() };
-    const r1Validation = validateVersion(r1, state.serviceMetadata);
-    expect(r1Validation.publishable).toBe(true);
-    expect(() =>
-      publishPublicReportVersion(
-        state,
-        {
-          report_version_id: R2_ID,
-          canonical_url: CANONICAL_HTML,
-          version_url: `${CANONICAL_HTML}/${R2_ID}`,
-          published_at: '2026-07-17T00:00:00.000Z'
-        },
-        { validation: r1Validation, approval: approvalFor(r2) },
-        { json: r2.json, html: r2.html }
-      )
-    ).toThrow(/never transferable/);
-  });
-
-  it('content whose bytes differ from the validated binding digests can never be published', () => {
-    const state: PublicReportServingState = { serviceMetadata: LIVE_SERVICE_METADATA, frozenReports: new Map() };
-    const validation = validateVersion(r1, state.serviceMetadata);
-    expect(validation.publishable).toBe(true);
-    expect(() =>
-      publishPublicReportVersion(
-        state,
-        {
-          report_version_id: R1_ID,
-          canonical_url: CANONICAL_HTML,
-          version_url: `${CANONICAL_HTML}/${R1_ID}`,
-          published_at: '2026-07-17T00:00:00.000Z'
-        },
-        { validation, approval: approvalFor(r1) },
-        { json: r2.json, html: r1.html } // r2 bytes smuggled under an r1 publication
-      )
-    ).toThrow(/does not match the validated binding digest/);
-  });
-
   it('frozen r2 bytes stored under the r1 key are never served (content-identity verification)', async () => {
     const state = publishedState([r1]);
     const corrupted: PublicReportServingState = {
       serviceMetadata: state.serviceMetadata,
       // Simulate a corrupted/bypassed store: r2 content sitting under the r1 key.
-      frozenReports: new Map([[R1_ID, { reportVersionId: R1_ID, json: r2.json, html: r2.html }]])
+      frozenReports: new FrozenPublicReportStore().withRegistered(frozenRecordFor(R1_ID, r2))
     };
     const base = await startServer(corrupted);
     expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}`)).status).toBe(404);

@@ -960,6 +960,20 @@ export const validatePublicReport2024 = (
     for (const error of registryErrors) {
       reject('E_REGISTRY_STATE_INVALID', error);
     }
+    // Matrix #15: a report_version_id the registry already names as published can only validate
+    // against the actual stored frozen content — omitting that comparison must fail closed, not
+    // silently pass. (The publication orchestrator sources `previouslyPublished` from the
+    // encapsulated frozen store; it is not an optional nicety for an already-published version.)
+    const alreadyRegistered = context.registry.public_reports.some(
+      (entry) => entry.report_version_id === raw.report_version_id
+    );
+    if (alreadyRegistered && context.previouslyPublished === undefined) {
+      reject(
+        'E_VERSION_IDENTITY_MUTABLE',
+        `report_version_id ${String(raw.report_version_id)} is already registered as published; validation ` +
+          'requires comparison against the stored frozen content, which was not supplied'
+      );
+    }
   }
 
   // --- Explicit human publication approval (§8 invariant 12): exact version, well-formed record ---

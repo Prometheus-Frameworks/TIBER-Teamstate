@@ -3,10 +3,11 @@
  * live exclusively in `service-metadata.json`'s `public_reports` array — never inside a frozen
  * report payload.
  *
- * Supersession is atomic by construction: `applyPublicReportPublication` builds the complete
- * successor registry (new entry `current`, prior entry flipped to `superseded` with its
- * `superseded_by` set) as one pure value, validated before it is returned — there is no
- * intermediate state where two entries are `current` for the same report family.
+ * This module holds the registry data model and its fail-closed validation only. The publication
+ * transition itself lives in `publishPublicReportVersion` (`src/server.ts`), which invokes the
+ * report validator INTERNALLY on the raw materials being published — there is deliberately no
+ * exported function that accepts a caller-asserted validation result and flips the registry, so
+ * a "successful validation" cannot be constructed or replayed into the publication path.
  *
  * The live service state remains the deployment scaffold — empty registry, publication disabled —
  * until a separate, explicit operator approval for an exact `report_version_id`.
@@ -46,7 +47,13 @@ const REGISTRY_ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\
 const isRegistryIsoTimestamp = (value: unknown): value is string =>
   typeof value === 'string' && REGISTRY_ISO_TIMESTAMP_PATTERN.test(value) && Number.isFinite(Date.parse(value));
 
-/** §8 invariant 11 registry validation. Returns every problem found (empty array = valid). */
+/**
+ * §8 invariant 11 registry validation. Returns every problem found (empty array = valid).
+ *
+ * Beyond per-entry shape/identity, the registry's supersession topology must describe a possible
+ * lifecycle: no entry supersedes itself, successor chains are acyclic and stay inside one family,
+ * and every nonempty family has exactly one `current` entry that terminates its chains.
+ */
 export const validatePublicReportRegistry = (entries: readonly PublicReportRegistryEntry[]): string[] => {
   const errors: string[] = [];
   const knownIds = new Set(entries.map((entry) => entry.report_version_id));
@@ -56,6 +63,7 @@ export const validatePublicReportRegistry = (entries: readonly PublicReportRegis
   const entriesById = new Map(entries.map((entry) => [entry.report_version_id, entry]));
 
   const currentByFamily = new Map<string, number>();
+  const entriesByFamily = new Map<string, number>();
   for (const entry of entries) {
     // Complete entry shape/identity: a malformed entry must invalidate the whole registry rather
     // than be partially honored by resolution or serving logic.
@@ -70,6 +78,7 @@ export const validatePublicReportRegistry = (entries: readonly PublicReportRegis
       errors.push('registry entry is missing report_version_id/canonical_url/version_url');
       continue;
     }
+    entriesByFamily.set(entry.canonical_url, (entriesByFamily.get(entry.canonical_url) ?? 0) + 1);
     if (entry.version_url !== `${entry.canonical_url}/${entry.report_version_id}`) {
       errors.push(
         `entry ${entry.report_version_id} has version_url ${entry.version_url}, which is not ` +
@@ -92,6 +101,9 @@ export const validatePublicReportRegistry = (entries: readonly PublicReportRegis
       errors.push(`superseded entry ${entry.report_version_id} must name its successor in superseded_by`);
     }
     if (entry.superseded_by !== null) {
+      if (entry.superseded_by === entry.report_version_id) {
+        errors.push(`entry ${entry.report_version_id} names itself as superseded_by; self-supersession is impossible`);
+      }
       const successor = entriesById.get(entry.superseded_by);
       if (successor === undefined) {
         errors.push(
@@ -107,154 +119,44 @@ export const validatePublicReportRegistry = (entries: readonly PublicReportRegis
       }
     }
   }
-  for (const [family, count] of currentByFamily) {
-    if (count > 1) {
-      errors.push(`registry names ${count} status: "current" entries for report family ${family}`);
+
+  // Successor chains must be acyclic (they must eventually terminate at a current entry or a
+  // detectable dangling pointer, never loop back).
+  for (const entry of entries) {
+    if (entry.superseded_by === null) {
+      continue;
+    }
+    const seen = new Set<string>([entry.report_version_id]);
+    let cursor: string | null = entry.superseded_by;
+    while (cursor !== null) {
+      if (seen.has(cursor)) {
+        errors.push(
+          `supersession chain starting at ${entry.report_version_id} cycles back to ${cursor}; ` +
+            'successor chains must be acyclic and terminate at a current entry'
+        );
+        break;
+      }
+      seen.add(cursor);
+      const next: PublicReportRegistryEntry | undefined = entriesById.get(cursor);
+      if (next === undefined) {
+        break; // Dangling pointer — already reported above.
+      }
+      cursor = next.superseded_by;
+    }
+  }
+
+  // Every nonempty family has exactly one current entry: zero currents (all superseded) is an
+  // impossible lifecycle state, more than one is ambiguous resolution.
+  for (const [family, entryCount] of entriesByFamily) {
+    const currentCount = currentByFamily.get(family) ?? 0;
+    if (entryCount > 0 && currentCount === 0) {
+      errors.push(`report family ${family} has ${entryCount} entr(ies) but no status: "current" entry`);
+    }
+    if (currentCount > 1) {
+      errors.push(`registry names ${currentCount} status: "current" entries for report family ${family}`);
     }
   }
   return errors;
-};
-
-export interface PublicReportPublicationInput {
-  report_version_id: string;
-  canonical_url: string;
-  version_url: string;
-  published_at: string;
-}
-
-/**
- * The complete evidence the publication transition requires (§8 invariant 12, §10 case #20):
- * a fully successful validation result for the exact candidate (zero rejections — a case-#20
- * outcome, produced by `validatePublicReport2024` with its complete evidence package, carrying
- * the validator's internally generated content binding) and the recorded explicit human approval
- * for the exact `report_version_id` being published. Structural types are used (not the
- * validator's own) to keep this module dependency-free; the fields carry the validator's result
- * and approval record verbatim.
- */
-export interface PublicReportPublicationEvidence {
-  validation: {
-    publishable: boolean;
-    rejections: ReadonlyArray<unknown>;
-    /**
-     * The validator's internally generated binding: exact `report_version_id` plus sha256 digests
-     * of the canonical JSON and validated HTML. Required — it is what makes a case-#20 result
-     * non-transferable to any other version or content.
-     */
-    binding: {
-      report_version_id: string;
-      json_sha256: string;
-      html_sha256: string;
-    } | null;
-  };
-  approval: {
-    report_version_id: string;
-    approved_by: string;
-    approved_at: string;
-  };
-}
-
-const SHA256_HEX = /^[0-9a-f]{64}$/;
-
-const PUBLICATION_ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
-
-const isWellFormedApproval = (approval: PublicReportPublicationEvidence['approval']): boolean =>
-  typeof approval.report_version_id === 'string' &&
-  approval.report_version_id.length > 0 &&
-  typeof approval.approved_by === 'string' &&
-  approval.approved_by.trim().length > 0 &&
-  typeof approval.approved_at === 'string' &&
-  PUBLICATION_ISO_TIMESTAMP_PATTERN.test(approval.approved_at) &&
-  Number.isFinite(Date.parse(approval.approved_at));
-
-/**
- * Atomically publish `entry` as the current version of its report family, flipping any prior
- * current entry to `superseded` (with `superseded_by` pointing at the new version) in the same
- * pure step. Returns a new metadata value; never mutates the input, and never touches frozen
- * report payloads. Throws (publishing nothing) rather than returning an invalid registry.
- *
- * This is the ONLY path that may set `artifact_publication_enabled: true`, and it is gated on
- * `evidence`: a complete, successful (zero-rejection) validation result plus a well-formed
- * explicit human approval for exactly `entry.report_version_id`. Anything less throws — a
- * validator pass alone is necessary but not sufficient, and an approval alone proves nothing
- * about the payload (§8 invariant 12; §10 case #20 is the only publishable state).
- */
-export const applyPublicReportPublication = (
-  metadata: TeamstateServiceMetadata,
-  entry: PublicReportPublicationInput,
-  evidence: PublicReportPublicationEvidence
-): TeamstateServiceMetadata => {
-  if (evidence.validation.publishable !== true || evidence.validation.rejections.length !== 0) {
-    throw new Error(
-      `registry publication refused: validation evidence for ${entry.report_version_id} is not a complete ` +
-        `case-#20 success (publishable=${String(evidence.validation.publishable)}, ` +
-        `${evidence.validation.rejections.length} rejection(s)); publication requires zero rejections.`
-    );
-  }
-  const binding = evidence.validation.binding;
-  if (
-    binding === null ||
-    typeof binding.json_sha256 !== 'string' ||
-    !SHA256_HEX.test(binding.json_sha256) ||
-    typeof binding.html_sha256 !== 'string' ||
-    !SHA256_HEX.test(binding.html_sha256)
-  ) {
-    throw new Error(
-      `registry publication refused: validation evidence for ${entry.report_version_id} carries no well-formed ` +
-        'content binding; only a validator-generated case-#20 result can publish.'
-    );
-  }
-  if (binding.report_version_id !== entry.report_version_id) {
-    throw new Error(
-      `registry publication refused: validation evidence is bound to report_version_id ` +
-        `${binding.report_version_id}, but the entry being published is ${entry.report_version_id}; ` +
-        'a validation result is never transferable across versions.'
-    );
-  }
-  if (!isWellFormedApproval(evidence.approval)) {
-    throw new Error(
-      `registry publication refused: approval record for ${entry.report_version_id} is malformed; ` +
-        'approved_by must be a non-empty identity and approved_at a valid ISO-8601 timestamp (§8 invariant 12).'
-    );
-  }
-  if (evidence.approval.report_version_id !== entry.report_version_id) {
-    throw new Error(
-      `registry publication refused: approval names report_version_id ${evidence.approval.report_version_id}, ` +
-        `but the entry being published is ${entry.report_version_id}; approval is exact-version, never transferable.`
-    );
-  }
-  if (metadata.public_reports.some((existing) => existing.report_version_id === entry.report_version_id)) {
-    throw new Error(
-      `registry publication refused: report_version_id ${entry.report_version_id} is already registered; ` +
-        'a changed regeneration must mint a new report_version_id (§6).'
-    );
-  }
-
-  const successorRegistry: PublicReportRegistryEntry[] = [
-    ...metadata.public_reports.map((existing) =>
-      existing.canonical_url === entry.canonical_url && existing.status === 'current'
-        ? { ...existing, status: 'superseded' as const, superseded_by: entry.report_version_id }
-        : { ...existing }
-    ),
-    {
-      report_version_id: entry.report_version_id,
-      canonical_url: entry.canonical_url,
-      version_url: entry.version_url,
-      status: 'current',
-      superseded_by: null,
-      published_at: entry.published_at
-    }
-  ];
-
-  const errors = validatePublicReportRegistry(successorRegistry);
-  if (errors.length > 0) {
-    throw new Error(`registry publication refused: successor registry is invalid: ${errors.join('; ')}`);
-  }
-
-  return {
-    ...metadata,
-    public_reports: successorRegistry,
-    artifact_publication_enabled: true
-  };
 };
 
 /** Resolve the current entry for a report family (`canonical_url`), or null when none exists. */

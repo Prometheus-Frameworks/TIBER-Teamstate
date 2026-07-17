@@ -377,6 +377,35 @@ describe('validatePublicReport2024 — mandatory evidence package (fail closed o
     expect(result.publishable).toBe(false);
   });
 
+  it('an already-registered report_version_id cannot validate without comparison to the stored content', () => {
+    const registry: TeamstateServiceMetadata = {
+      ...LIVE_SERVICE_METADATA,
+      artifact_publication_enabled: true,
+      public_reports: [
+        {
+          report_version_id: payload.report_version_id,
+          canonical_url: '/nfl/2024/offensive-environments',
+          version_url: `/nfl/2024/offensive-environments/${payload.report_version_id}`,
+          status: 'current',
+          superseded_by: null,
+          published_at: GENERATED_AT
+        }
+      ]
+    };
+    // Omitting the stored-content comparison for an already-published version must fail closed.
+    const withoutPrior = validatePublicReport2024(payload, { ...fullContext, registry });
+    expect(codesOf(withoutPrior)).toContain('E_VERSION_IDENTITY_MUTABLE');
+    expect(withoutPrior.publishable).toBe(false);
+
+    // With the actual stored frozen content supplied, the unchanged candidate validates.
+    const withPrior = validatePublicReport2024(payload, {
+      ...fullContext,
+      registry,
+      previouslyPublished: { json: serializePublicReport2024Payload(payload), html }
+    });
+    expect(withPrior.publishable).toBe(true);
+  });
+
   it('published HTML without a candidate render fails closed', () => {
     const result = validatePublicReport2024(payload, {
       governedSourceBytes,
