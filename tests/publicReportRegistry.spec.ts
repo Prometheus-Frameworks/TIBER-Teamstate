@@ -20,7 +20,15 @@ const entryInput = (revision: number) => ({
 });
 
 const evidenceFor = (revision: number): PublicReportPublicationEvidence => ({
-  validation: { publishable: true, rejections: [] },
+  validation: {
+    publishable: true,
+    rejections: [],
+    binding: {
+      report_version_id: `teamstate_public_offensive_environment_2024_v1.r${revision}`,
+      json_sha256: 'a'.repeat(64),
+      html_sha256: 'b'.repeat(64)
+    }
+  },
   approval: {
     report_version_id: `teamstate_public_offensive_environment_2024_v1.r${revision}`,
     approved_by: 'test-operator',
@@ -81,7 +89,7 @@ describe('public report registry (§6)', () => {
   it('refuses publication without a complete case-#20 validation result', () => {
     const notPublishable: PublicReportPublicationEvidence = {
       ...evidenceFor(1),
-      validation: { publishable: false, rejections: [] }
+      validation: { ...evidenceFor(1).validation, publishable: false }
     };
     expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), notPublishable)).toThrow(
       /not a complete case-#20 success/
@@ -89,7 +97,10 @@ describe('public report registry (§6)', () => {
 
     const withRejections: PublicReportPublicationEvidence = {
       ...evidenceFor(1),
-      validation: { publishable: true, rejections: [{ code: 'E_PUBLICATION_NOT_APPROVED', detail: 'x' }] }
+      validation: {
+        ...evidenceFor(1).validation,
+        rejections: [{ code: 'E_PUBLICATION_NOT_APPROVED', detail: 'x' }]
+      }
     };
     expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), withRejections)).toThrow(
       /not a complete case-#20 success/
@@ -113,11 +124,78 @@ describe('public report registry (§6)', () => {
       /malformed/
     );
 
-    // An approval for a different version can never publish this one — approval is exact-version.
+    // Evidence for a different version can never publish this one — the binding check fires first.
     const wrongVersion: PublicReportPublicationEvidence = evidenceFor(2);
     expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), wrongVersion)).toThrow(
+      /never transferable/
+    );
+
+    // Same-binding, wrong-approval: the approval must also name the exact version being published.
+    const mismatchedApproval: PublicReportPublicationEvidence = {
+      validation: evidenceFor(1).validation,
+      approval: evidenceFor(2).approval
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), mismatchedApproval)).toThrow(
       /exact-version/
     );
+  });
+
+  it('refuses publication when the validation binding is absent or names a different version', () => {
+    const noBinding: PublicReportPublicationEvidence = {
+      ...evidenceFor(1),
+      validation: { publishable: true, rejections: [], binding: null }
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), noBinding)).toThrow(
+      /no well-formed\s+content binding/
+    );
+
+    // A genuine result for r1 must never be able to publish r2 — the binding is exact-version.
+    const r1EvidenceForR2Entry: PublicReportPublicationEvidence = {
+      validation: evidenceFor(1).validation,
+      approval: evidenceFor(2).approval
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(2), r1EvidenceForR2Entry)).toThrow(
+      /never transferable/
+    );
+  });
+
+  it('rejects cross-family supersession and malformed published_at in registry validation', () => {
+    const familyA = '/nfl/2024/offensive-environments';
+    const familyB = '/nfl/2023/some-other-report';
+    const crossFamily: PublicReportRegistryEntry[] = [
+      {
+        report_version_id: 'family_a_report.r1',
+        canonical_url: familyA,
+        version_url: `${familyA}/family_a_report.r1`,
+        status: 'superseded',
+        superseded_by: 'family_b_report.r1',
+        published_at: '2026-07-17T00:00:00.000Z'
+      },
+      {
+        report_version_id: 'family_b_report.r1',
+        canonical_url: familyB,
+        version_url: `${familyB}/family_b_report.r1`,
+        status: 'current',
+        superseded_by: null,
+        published_at: '2026-07-17T00:00:00.000Z'
+      }
+    ];
+    expect(validatePublicReportRegistry(crossFamily).join(' ')).toMatch(/supersession never crosses report families/);
+
+    const malformedPublishedAt: PublicReportRegistryEntry[] = [
+      { ...entryInput(1), status: 'current', superseded_by: null, published_at: 'sometime last week' }
+    ];
+    expect(validatePublicReportRegistry(malformedPublishedAt).join(' ')).toMatch(/malformed published_at/);
+
+    const inconsistentVersionUrl: PublicReportRegistryEntry[] = [
+      {
+        ...entryInput(1),
+        version_url: `${CANONICAL}/some-other-id`,
+        status: 'current',
+        superseded_by: null
+      }
+    ];
+    expect(validatePublicReportRegistry(inconsistentVersionUrl).join(' ')).toMatch(/is not/);
   });
 
   it('validatePublicReportRegistry flags duplicate currents, dangling pointers, and orphaned superseded entries', () => {

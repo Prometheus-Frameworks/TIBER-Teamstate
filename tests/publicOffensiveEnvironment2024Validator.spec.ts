@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import type { TeamWeekRawGovernedRow } from '../src/adapters/teamWeekRawV0GovernedAdapter.js';
+import {
+  adaptTeamWeekRawV0Governed,
+  type TeamWeekRawGovernedRow
+} from '../src/adapters/teamWeekRawV0GovernedAdapter.js';
 import { loadTeamWeekRawV0Governed } from '../src/ingest/loadTeamWeekRawV0Governed.js';
 import { renderPublicReport2024Html } from '../src/reports/publicOffensiveEnvironment2024Html.js';
 import {
@@ -42,7 +45,6 @@ const APPROVAL: PublicationApprovalRecord = {
 
 const fullContext: ValidatePublicReport2024Context = {
   governedSourceBytes,
-  sourceRows: consumption.rows,
   html,
   registry: LIVE_SERVICE_METADATA,
   approvals: [APPROVAL]
@@ -50,41 +52,49 @@ const fullContext: ValidatePublicReport2024Context = {
 
 const clone = (): PublicReport2024Payload => JSON.parse(JSON.stringify(payload)) as PublicReport2024Payload;
 
-const buildFromRows = (rows: TeamWeekRawGovernedRow[]): PublicReport2024Payload =>
-  buildPublicReport2024Payload(
-    { upstream: consumption.upstream, rows },
-    { generatedAt: GENERATED_AT, governedInputSha256: governedSourceSha256 }
-  );
+/** Doctored governed source bytes: the committed artifact with its rows transformed. */
+const doctoredSourceBytes = (mutateRows: (rows: TeamWeekRawGovernedRow[]) => TeamWeekRawGovernedRow[]): Buffer => {
+  const artifact = JSON.parse(governedSourceBytes.toString('utf-8')) as { rows: TeamWeekRawGovernedRow[] };
+  artifact.rows = mutateRows(artifact.rows.map((row) => ({ ...row })));
+  return Buffer.from(JSON.stringify(artifact), 'utf-8');
+};
+
+/** Payload honestly derived from doctored bytes (via the real adapter), pinned checksum kept. */
+const buildFromBytes = (bytes: Buffer): PublicReport2024Payload =>
+  buildPublicReport2024Payload(adaptTeamWeekRawV0Governed(JSON.parse(bytes.toString('utf-8')), 'doctored.json'), {
+    generatedAt: GENERATED_AT,
+    governedInputSha256: governedSourceSha256
+  });
 
 const codesOf = (result: { rejections: Array<{ code: string }> }): string[] =>
   result.rejections.map((rejection) => rejection.code);
 
 describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () => {
   it('#1: input row set missing team BUF → E_COVERAGE_TEAM_MISSING, no publication', () => {
-    const rows = consumption.rows.filter((row) => row.teamCode !== 'BUF');
-    const doctored = buildFromRows(rows);
-    const result = validatePublicReport2024(doctored, { sourceRows: rows, approvals: [APPROVAL] });
+    const bytes = doctoredSourceBytes((rows) => rows.filter((row) => row.teamCode !== 'BUF'));
+    const doctored = buildFromBytes(bytes);
+    const result = validatePublicReport2024(doctored, { governedSourceBytes: bytes, approvals: [APPROVAL] });
     expect(codesOf(result)).toContain('E_COVERAGE_TEAM_MISSING');
     expect(result.publishable).toBe(false);
   });
 
   it('#2: 543 rows with all 32 teams present → E_COVERAGE_ROW_COUNT_MISMATCH, no publication', () => {
-    const rows = [...consumption.rows];
-    rows.pop();
-    expect(new Set(rows.map((row) => row.teamCode)).size).toBe(32);
-    const doctored = buildFromRows(rows);
-    const result = validatePublicReport2024(doctored, { sourceRows: rows, approvals: [APPROVAL] });
+    const bytes = doctoredSourceBytes((rows) => rows.slice(0, -1));
+    const doctored = buildFromBytes(bytes);
+    expect(new Set(doctored.teams.map((team) => team.team)).size).toBe(32);
+    const result = validatePublicReport2024(doctored, { governedSourceBytes: bytes, approvals: [APPROVAL] });
     expect(codesOf(result)).toContain('E_COVERAGE_ROW_COUNT_MISMATCH');
     expect(result.publishable).toBe(false);
   });
 
   it('#3: one team with 16 rows, another with 18 → E_COVERAGE_ROW_COUNT_MISMATCH, no publication', () => {
-    const rows = consumption.rows.map((row) => ({ ...row }));
-    const ariRow = rows.find((row) => row.teamCode === 'ARI')!;
-    ariRow.teamCode = 'ATL';
-    expect(rows).toHaveLength(544);
-    const doctored = buildFromRows(rows);
-    const result = validatePublicReport2024(doctored, { sourceRows: rows, approvals: [APPROVAL] });
+    const bytes = doctoredSourceBytes((rows) => {
+      const ariRow = rows.find((row) => row.teamCode === 'ARI')!;
+      ariRow.teamCode = 'ATL';
+      return rows;
+    });
+    const doctored = buildFromBytes(bytes);
+    const result = validatePublicReport2024(doctored, { governedSourceBytes: bytes, approvals: [APPROVAL] });
     expect(codesOf(result)).toContain('E_COVERAGE_ROW_COUNT_MISMATCH');
     expect(result.publishable).toBe(false);
   });
@@ -101,6 +111,21 @@ describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () =
     expect(
       codesOf(validatePublicReport2024(missing as unknown as PublicReport2024Payload, { approvals: [APPROVAL] }))
     ).toContain('E_PROVENANCE_MISSING');
+
+    // Source-side: bytes whose own governance markers fail the adapter also fail closed.
+    const badSourceBytes = (() => {
+      const artifact = JSON.parse(governedSourceBytes.toString('utf-8')) as {
+        metadata: { provenanceStatus: string };
+      };
+      artifact.metadata.provenanceStatus = 'partial_real_data';
+      return Buffer.from(JSON.stringify(artifact), 'utf-8');
+    })();
+    const sourceResult = validatePublicReport2024(clone(), {
+      governedSourceBytes: badSourceBytes,
+      approvals: [APPROVAL]
+    });
+    expect(codesOf(sourceResult)).toContain('E_PROVENANCE_NOT_GOVERNED');
+    expect(sourceResult.publishable).toBe(false);
   });
 
   it('#5: committed governed bytes drifted from the pin → E_GOVERNED_INPUT_CHECKSUM_MISMATCH', () => {
@@ -171,7 +196,7 @@ describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () =
 
     const doctored = clone();
     doctored.teams.find((entry) => entry.team === targetTeam)!.derived.neutralPassRate = simpleMean;
-    const result = validatePublicReport2024(doctored, { sourceRows: consumption.rows, approvals: [APPROVAL] });
+    const result = validatePublicReport2024(doctored, { governedSourceBytes, approvals: [APPROVAL] });
     const rejection = result.rejections.find((entry) => entry.code === 'E_UNWEIGHTED_AGGREGATION_USED');
     expect(rejection).toBeDefined();
     expect(rejection!.detail).toContain('unweighted simple mean');
@@ -222,8 +247,7 @@ describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () =
     publishedVariant.teams[0].observed.pointsForTotal += 1;
     const result = validatePublicReport2024(clone(), {
       approvals: [APPROVAL],
-      previouslyPublished: { json: serializePublicReport2024Payload(publishedVariant) },
-      candidateSerialized: { json: serializePublicReport2024Payload(clone()) }
+      previouslyPublished: { json: serializePublicReport2024Payload(publishedVariant) }
     });
     expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
   });
@@ -285,19 +309,25 @@ describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () =
     const result = validatePublicReport2024(payload, { ...fullContext, approvals: [] });
     expect(codesOf(result)).toEqual(['E_PUBLICATION_NOT_APPROVED']);
     expect(result.publishable).toBe(false);
+    expect(result.binding).toBeNull();
   });
 
-  it('#20: every invariant passes and approval is recorded → publishable, zero rejections', () => {
+  it('#20: every invariant passes and approval is recorded → publishable, zero rejections, exact binding', () => {
     const result = validatePublicReport2024(payload, fullContext);
     expect(result.rejections).toEqual([]);
     expect(result.publishable).toBe(true);
+    // The binding is generated internally and names this exact version and content.
+    expect(result.binding).toEqual({
+      report_version_id: payload.report_version_id,
+      json_sha256: computeSha256Hex(serializePublicReport2024Payload(payload)),
+      html_sha256: computeSha256Hex(html)
+    });
   });
 });
 
 describe('validatePublicReport2024 — mandatory evidence package (fail closed on omission)', () => {
   const omissions: Array<[keyof ValidatePublicReport2024Context, string]> = [
     ['governedSourceBytes', 'E_GOVERNED_INPUT_CHECKSUM_MISMATCH'],
-    ['sourceRows', 'E_UNWEIGHTED_AGGREGATION_USED'],
     ['html', 'E_HTML_JSON_SEMANTIC_MISMATCH'],
     ['registry', 'E_REGISTRY_STATE_INVALID']
   ];
@@ -309,12 +339,20 @@ describe('validatePublicReport2024 — mandatory evidence package (fail closed o
       const result = validatePublicReport2024(payload, partialContext);
       expect(codesOf(result)).toContain(expectedCode);
       expect(result.publishable).toBe(false);
+      expect(result.binding).toBeNull();
     });
   }
+
+  it('omitting the governed bytes also fails formula conformance closed', () => {
+    const partialContext = { ...fullContext };
+    delete partialContext.governedSourceBytes;
+    expect(codesOf(validatePublicReport2024(payload, partialContext))).toContain('E_UNWEIGHTED_AGGREGATION_USED');
+  });
 
   it('an approval alone (no other evidence) can never produce publishable: true', () => {
     const result = validatePublicReport2024(payload, { approvals: [APPROVAL] });
     expect(result.publishable).toBe(false);
+    expect(result.binding).toBeNull();
     expect(codesOf(result)).toEqual(
       expect.arrayContaining([
         'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
@@ -325,14 +363,28 @@ describe('validatePublicReport2024 — mandatory evidence package (fail closed o
     );
   });
 
-  it('published content without a comparable candidate serialization fails closed', () => {
-    const result = validatePublicReport2024(payload, {
+  it('a caller cannot bypass the immutability comparison with a stale serialization (computed internally)', () => {
+    // The candidate serialization is derived from the payload being validated — supplying
+    // published bytes that differ from it must reject, with no caller-supplied substitute.
+    const mutated = clone();
+    mutated.teams[0].observed.pointsForTotal += 1;
+    const result = validatePublicReport2024(mutated, {
       ...fullContext,
-      previouslyPublished: { json: serializePublicReport2024Payload(payload) }
-      // candidateSerialized deliberately omitted
+      html: renderPublicReport2024Html(mutated),
+      previouslyPublished: { json: serializePublicReport2024Payload(payload), html }
     });
     expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
     expect(result.publishable).toBe(false);
+  });
+
+  it('published HTML without a candidate render fails closed', () => {
+    const result = validatePublicReport2024(payload, {
+      governedSourceBytes,
+      registry: LIVE_SERVICE_METADATA,
+      approvals: [APPROVAL],
+      previouslyPublished: { html }
+    });
+    expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
   });
 
   it('rejects malformed approval records: empty approved_by or invalid approved_at', () => {
@@ -352,12 +404,64 @@ describe('validatePublicReport2024 — mandatory evidence package (fail closed o
   });
 });
 
+describe('validatePublicReport2024 — internal binding of rows/metadata to the hashed bytes', () => {
+  it('authentic pinned bytes plus a payload derived from altered rows cannot pass', () => {
+    // The prior attack: alter a row's EPA, generate the payload from the altered rows, then
+    // supply the authentic committed bytes. Rows are now parsed from the hashed bytes themselves,
+    // so the altered-row payload fails formula conformance against the authentic derivation.
+    const alteredBytes = doctoredSourceBytes((rows) => {
+      rows[0].epaPerPlay = (rows[0].epaPerPlay as number) + 0.5;
+      return rows;
+    });
+    const payloadFromAlteredRows = buildFromBytes(alteredBytes);
+    const result = validatePublicReport2024(payloadFromAlteredRows, {
+      governedSourceBytes, // authentic committed bytes, authentic checksum
+      html: renderPublicReport2024Html(payloadFromAlteredRows),
+      registry: LIVE_SERVICE_METADATA,
+      approvals: [APPROVAL]
+    });
+    expect(codesOf(result)).toContain('E_UNWEIGHTED_AGGREGATION_USED');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('forged upstream source metadata (well-shaped but not the recorded values) cannot pass', () => {
+    const forgedRef = clone();
+    forgedRef.upstream_sources[0].source_ref = 'nflverse-data:pbp/play_by_play_2023';
+    const refResult = validatePublicReport2024(forgedRef, {
+      ...fullContext,
+      html: renderPublicReport2024Html(forgedRef)
+    });
+    expect(codesOf(refResult)).toContain('E_UPSTREAM_SOURCE_CHECKSUM_MISSING');
+    expect(refResult.publishable).toBe(false);
+
+    const forgedChecksum = clone();
+    forgedChecksum.upstream_sources[0].checksum = { algorithm: 'sha256', value: 'ab'.repeat(32) };
+    const checksumResult = validatePublicReport2024(forgedChecksum, {
+      ...fullContext,
+      html: renderPublicReport2024Html(forgedChecksum)
+    });
+    expect(codesOf(checksumResult)).toContain('E_UPSTREAM_SOURCE_CHECKSUM_MISSING');
+    expect(checksumResult.publishable).toBe(false);
+  });
+
+  it('a fabricated warning consistent within the payload and HTML still fails recomputation', () => {
+    const doctored = clone();
+    doctored.teams[0].warnings = ['W_ZERO_REDZONE_OPPORTUNITIES'];
+    doctored.warnings = [{ team: doctored.teams[0].team, code: 'W_ZERO_REDZONE_OPPORTUNITIES' }];
+    const result = validatePublicReport2024(doctored, {
+      ...fullContext,
+      html: renderPublicReport2024Html(doctored)
+    });
+    expect(codesOf(result)).toContain('E_UNWEIGHTED_AGGREGATION_USED');
+    expect(result.publishable).toBe(false);
+  });
+});
+
 describe('validatePublicReport2024 — adversarial full-context payloads (§5 exactness)', () => {
   // Every case here supplies the COMPLETE evidence package and re-renders HTML from the doctored
   // payload (so parity alone cannot catch it) — the payload-level checks must fail closed.
   const doctoredFullContext = (doctored: PublicReport2024Payload): ValidatePublicReport2024Context => ({
     governedSourceBytes,
-    sourceRows: consumption.rows,
     html: renderPublicReport2024Html(doctored),
     registry: LIVE_SERVICE_METADATA,
     approvals: [APPROVAL]
@@ -458,6 +562,32 @@ describe('validatePublicReport2024 — adversarial full-context payloads (§5 ex
     );
   });
 
+  it('undocumented nested fields under contract objects and checksums fail closed', () => {
+    const nestedChecksumExtra = clone();
+    (nestedChecksumExtra.governed_input.checksum as unknown as Record<string, unknown>).note = 'trust me';
+    expect(codesOf(validatePublicReport2024(nestedChecksumExtra, doctoredFullContext(nestedChecksumExtra)))).toContain(
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH'
+    );
+
+    const governedInputExtra = clone();
+    (governedInputExtra.governed_input as unknown as Record<string, unknown>).mirror_of = 'somewhere';
+    expect(codesOf(validatePublicReport2024(governedInputExtra, doctoredFullContext(governedInputExtra)))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+
+    const coverageExtra = clone();
+    (coverageExtra.coverage as unknown as Record<string, unknown>).confidence = 'high';
+    expect(codesOf(validatePublicReport2024(coverageExtra, doctoredFullContext(coverageExtra)))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+
+    const upstreamExtra = clone();
+    (upstreamExtra.upstream_sources[0] as unknown as Record<string, unknown>).mirror_url = 'https://example.com';
+    expect(codesOf(validatePublicReport2024(upstreamExtra, doctoredFullContext(upstreamExtra)))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+  });
+
   it('invalid timestamp strings fail closed instead of passing through Date.parse', () => {
     const badGeneratedAt = clone();
     badGeneratedAt.generated_at = 'not-a-date';
@@ -489,11 +619,19 @@ describe('validatePublicReport2024 — adversarial full-context payloads (§5 ex
     expect(result.publishable).toBe(false);
   });
 
-  it('doctored payload-level warnings that disagree with per-team warnings fail closed', () => {
-    const doctored = clone();
-    doctored.warnings = [{ team: 'ARI', code: 'W_ZERO_REDZONE_OPPORTUNITIES' }];
-    const result = validatePublicReport2024(doctored, doctoredFullContext(doctored));
-    expect(codesOf(result)).toContain('E_UNDOCUMENTED_FIELD_PRESENT');
+  it('visible HTML scope divergence fails closed even when extracted fields agree (byte-exact render)', () => {
+    const divergentHtml = html.replace('<span data-scope="season">2024</span>', '<span data-scope="season">2099</span>');
+    expect(divergentHtml).not.toBe(html);
+    const result = validatePublicReport2024(payload, { ...fullContext, html: divergentHtml });
+    expect(codesOf(result)).toContain('E_HTML_JSON_SEMANTIC_MISMATCH');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('visible HTML provenance divergence fails closed (byte-exact render)', () => {
+    const divergentHtml = html.replace('governed_real_data', 'governed_real_data (verified twice)');
+    expect(divergentHtml).not.toBe(html);
+    const result = validatePublicReport2024(payload, { ...fullContext, html: divergentHtml });
+    expect(codesOf(result)).toContain('E_HTML_JSON_SEMANTIC_MISMATCH');
     expect(result.publishable).toBe(false);
   });
 });
@@ -543,6 +681,7 @@ describe('validatePublicReport2024 — remaining §9 rejection codes', () => {
   it('rejects a payload missing a single expected team record → E_COVERAGE_TEAM_MISSING', () => {
     const doctored = clone();
     doctored.teams = doctored.teams.filter((team) => team.team !== 'BUF');
+    doctored.warnings = [];
     const result = validatePublicReport2024(doctored, { approvals: [APPROVAL] });
     expect(codesOf(result)).toContain('E_COVERAGE_TEAM_MISSING');
   });
@@ -589,11 +728,10 @@ describe('validatePublicReport2024 — remaining §9 rejection codes', () => {
       'E_REGISTRY_STATE_INVALID',
       'E_PUBLICATION_NOT_APPROVED'
     ];
-    // E_COVERAGE_TEAM_UNEXPECTED is exercised right here: rows for a 33rd team not in scope.
-    const rows = consumption.rows.map((row) => ({ ...row }));
-    const extraTeamRow = { ...rows[0], teamCode: 'XYZ' };
-    const result = validatePublicReport2024(buildFromRows([...rows, extraTeamRow]), {
-      sourceRows: [...rows, extraTeamRow],
+    // E_COVERAGE_TEAM_UNEXPECTED is exercised right here: bytes carrying a 33rd, out-of-scope team.
+    const bytes = doctoredSourceBytes((rows) => [...rows, { ...rows[0], teamCode: 'XYZ' }]);
+    const result = validatePublicReport2024(buildFromBytes(bytes), {
+      governedSourceBytes: bytes,
       approvals: [APPROVAL]
     });
     expect(codesOf(result)).toContain('E_COVERAGE_TEAM_UNEXPECTED');

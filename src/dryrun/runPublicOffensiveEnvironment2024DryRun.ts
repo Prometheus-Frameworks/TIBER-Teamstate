@@ -25,10 +25,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadTeamWeekRawV0Governed } from '../ingest/loadTeamWeekRawV0Governed.js';
 import {
-  buildPublicReport2024Payload,
   computeSha256Hex,
+  generatePublicReport2024FromGovernedBytes,
   serializePublicReport2024Payload
 } from '../reports/publicOffensiveEnvironment2024Report.js';
 import { renderPublicReport2024Html } from '../reports/publicOffensiveEnvironment2024Html.js';
@@ -54,19 +53,14 @@ if (sourceSha256 !== pin.checksum.value) {
   );
 }
 
-const consumption = loadTeamWeekRawV0Governed(sourceAbs);
 const generatedAt = new Date().toISOString();
-const payload = buildPublicReport2024Payload(consumption, {
-  generatedAt,
-  governedInputSha256: sourceSha256,
-  revision: 1
-});
+// Byte-bound generation: checksum, rows, and upstream metadata all come from this exact buffer.
+const payload = generatePublicReport2024FromGovernedBytes(sourceBytes, { generatedAt, revision: 1 });
 const json = serializePublicReport2024Payload(payload);
 const html = renderPublicReport2024Html(payload);
 
 const baseContext = {
   governedSourceBytes: sourceBytes,
-  sourceRows: consumption.rows,
   html,
   registry: LIVE_SERVICE_METADATA
 };

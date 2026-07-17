@@ -11,13 +11,11 @@ import {
   serializePublicReport2024Payload
 } from '../src/reports/publicOffensiveEnvironment2024Report.js';
 import { validatePublicReport2024 } from '../src/reports/publicOffensiveEnvironment2024Validator.js';
-import {
-  LIVE_SERVICE_METADATA,
-  applyPublicReportPublication
-} from '../src/reports/publicReportRegistry.js';
+import { LIVE_SERVICE_METADATA } from '../src/reports/publicReportRegistry.js';
 import {
   LIVE_PUBLIC_REPORT_SERVING_STATE,
   createTeamstateServer,
+  publishPublicReportVersion,
   type PublicReportServingState
 } from '../src/server.js';
 
@@ -50,39 +48,42 @@ const r2 = buildVersion(2);
 const R1_ID = r1.payload.report_version_id;
 const R2_ID = r2.payload.report_version_id;
 
+const approvalFor = (version: typeof r1) => ({
+  report_version_id: version.payload.report_version_id,
+  approved_by: 'test-operator',
+  approved_at: '2026-07-17T00:00:00.000Z'
+});
+
+const validateVersion = (version: typeof r1, registryState: PublicReportServingState['serviceMetadata']) =>
+  validatePublicReport2024(version.payload, {
+    governedSourceBytes,
+    html: version.html,
+    registry: registryState,
+    approvals: [approvalFor(version)]
+  });
+
 // Publish through the real gate: each version is validated end-to-end (complete evidence package)
-// against the pre-publication registry, and only its case-#20 result + a well-formed exact-version
-// approval can flip the registry — the same path production publication must take.
+// against the pre-publication registry; only its case-#20 result with the validator's internally
+// generated content binding + a well-formed exact-version approval can flip the registry, and the
+// frozen content is digest-verified against that binding — the same path production must take.
 const publishedState = (versions: Array<(typeof r1)>): PublicReportServingState => {
-  let metadata = LIVE_SERVICE_METADATA;
-  const frozenReports = new Map<string, { json: string; html: string }>();
+  let state: PublicReportServingState = { serviceMetadata: LIVE_SERVICE_METADATA, frozenReports: new Map() };
   for (const version of versions) {
-    const approval = {
-      report_version_id: version.payload.report_version_id,
-      approved_by: 'test-operator',
-      approved_at: '2026-07-17T00:00:00.000Z'
-    };
-    const validation = validatePublicReport2024(version.payload, {
-      governedSourceBytes,
-      sourceRows: consumption.rows,
-      html: version.html,
-      registry: metadata,
-      approvals: [approval]
-    });
+    const validation = validateVersion(version, state.serviceMetadata);
     expect(validation.publishable).toBe(true);
-    metadata = applyPublicReportPublication(
-      metadata,
+    state = publishPublicReportVersion(
+      state,
       {
         report_version_id: version.payload.report_version_id,
         canonical_url: CANONICAL_HTML,
         version_url: `${CANONICAL_HTML}/${version.payload.report_version_id}`,
         published_at: '2026-07-17T00:00:00.000Z'
       },
-      { validation, approval }
+      { validation, approval: approvalFor(version) },
+      { json: version.json, html: version.html }
     );
-    frozenReports.set(version.payload.report_version_id, { json: version.json, html: version.html });
   }
-  return { serviceMetadata: metadata, frozenReports };
+  return state;
 };
 
 describe('public report serving (§6 identities, fail-closed pre-approval)', () => {
@@ -145,7 +146,7 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
     const state = publishedState([r1]);
     const withUnregisteredContent: PublicReportServingState = {
       serviceMetadata: state.serviceMetadata,
-      frozenReports: new Map([...state.frozenReports, [R2_ID, { json: r2.json, html: r2.html }]])
+      frozenReports: new Map([...state.frozenReports, [R2_ID, { reportVersionId: R2_ID, json: r2.json, html: r2.html }]])
     };
     const base = await startServer(withUnregisteredContent);
     expect((await fetch(`${base}${CANONICAL_HTML}/${R2_ID}`)).status).toBe(404);
@@ -236,7 +237,10 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
           }
         ]
       },
-      frozenReports: new Map([...state.frozenReports, [foreignId, { json: r2.json, html: r2.html }]])
+      frozenReports: new Map([
+        ...state.frozenReports,
+        [foreignId, { reportVersionId: foreignId, json: r2.json, html: r2.html }]
+      ])
     };
     const base = await startServer(withForeignEntry);
     // The foreign entry is structurally valid and has frozen content, but it belongs to another
@@ -245,6 +249,57 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
     expect((await fetch(`${base}${CANONICAL_HTML}/${foreignId}.json`)).status).toBe(404);
     // The family's own version stays served.
     expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}.json`)).status).toBe(200);
+  });
+
+  it('a validation result for r1 can never publish r2 (binding is exact-version)', () => {
+    const state: PublicReportServingState = { serviceMetadata: LIVE_SERVICE_METADATA, frozenReports: new Map() };
+    const r1Validation = validateVersion(r1, state.serviceMetadata);
+    expect(r1Validation.publishable).toBe(true);
+    expect(() =>
+      publishPublicReportVersion(
+        state,
+        {
+          report_version_id: R2_ID,
+          canonical_url: CANONICAL_HTML,
+          version_url: `${CANONICAL_HTML}/${R2_ID}`,
+          published_at: '2026-07-17T00:00:00.000Z'
+        },
+        { validation: r1Validation, approval: approvalFor(r2) },
+        { json: r2.json, html: r2.html }
+      )
+    ).toThrow(/never transferable/);
+  });
+
+  it('content whose bytes differ from the validated binding digests can never be published', () => {
+    const state: PublicReportServingState = { serviceMetadata: LIVE_SERVICE_METADATA, frozenReports: new Map() };
+    const validation = validateVersion(r1, state.serviceMetadata);
+    expect(validation.publishable).toBe(true);
+    expect(() =>
+      publishPublicReportVersion(
+        state,
+        {
+          report_version_id: R1_ID,
+          canonical_url: CANONICAL_HTML,
+          version_url: `${CANONICAL_HTML}/${R1_ID}`,
+          published_at: '2026-07-17T00:00:00.000Z'
+        },
+        { validation, approval: approvalFor(r1) },
+        { json: r2.json, html: r1.html } // r2 bytes smuggled under an r1 publication
+      )
+    ).toThrow(/does not match the validated binding digest/);
+  });
+
+  it('frozen r2 bytes stored under the r1 key are never served (content-identity verification)', async () => {
+    const state = publishedState([r1]);
+    const corrupted: PublicReportServingState = {
+      serviceMetadata: state.serviceMetadata,
+      // Simulate a corrupted/bypassed store: r2 content sitting under the r1 key.
+      frozenReports: new Map([[R1_ID, { reportVersionId: R1_ID, json: r2.json, html: r2.html }]])
+    };
+    const base = await startServer(corrupted);
+    expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}`)).status).toBe(404);
+    expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}.json`)).status).toBe(404);
+    expect((await fetch(`${base}${CANONICAL_HTML}`)).status).toBe(404);
   });
 
   it('does not treat nested or malformed version paths as servable', async () => {

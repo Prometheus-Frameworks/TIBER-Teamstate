@@ -13,9 +13,10 @@
 
 import { createHash } from 'node:crypto';
 
-import type {
-  TeamWeekRawGovernedConsumption,
-  TeamWeekRawGovernedRow
+import {
+  adaptTeamWeekRawV0Governed,
+  type TeamWeekRawGovernedConsumption,
+  type TeamWeekRawGovernedRow
 } from '../adapters/teamWeekRawV0GovernedAdapter.js';
 import {
   PUBLIC_REPORT_2024_CANONICAL_URL_JSON,
@@ -356,3 +357,34 @@ export const buildPublicReport2024Payload = (
 /** Canonical, byte-stable serialization of a frozen payload (2-space indent, trailing newline). */
 export const serializePublicReport2024Payload = (payload: PublicReport2024Payload): string =>
   `${JSON.stringify(payload, null, 2)}\n`;
+
+export interface GeneratePublicReport2024Options {
+  generatedAt: string;
+  revision?: number;
+}
+
+/**
+ * Byte-bound generation: hash, parse, adapt, and derive from ONE exact byte buffer, so the
+ * governed-input checksum, the rows the derivation consumed, and the upstream source metadata are
+ * all non-forgeably bound to the same bytes — a caller can no longer pair an authentic checksum
+ * with different rows. This is the generation entry point the dry run and any future publication
+ * tooling must use; `buildPublicReport2024Payload` remains the derivation core underneath it.
+ */
+export const generatePublicReport2024FromGovernedBytes = (
+  governedSourceBytes: Buffer,
+  options: GeneratePublicReport2024Options
+): PublicReport2024Payload => {
+  const governedInputSha256 = computeSha256Hex(governedSourceBytes);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(governedSourceBytes.toString('utf-8')) as unknown;
+  } catch (error) {
+    throw new Error(`public report 2024 generation refused: governed source bytes are not valid JSON: ${(error as Error).message}`);
+  }
+  const consumption = adaptTeamWeekRawV0Governed(parsed, PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN.path);
+  return buildPublicReport2024Payload(consumption, {
+    generatedAt: options.generatedAt,
+    governedInputSha256,
+    revision: options.revision
+  });
+};

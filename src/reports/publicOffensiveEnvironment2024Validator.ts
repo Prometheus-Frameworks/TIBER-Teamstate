@@ -5,17 +5,32 @@
  * rejection codes. Behavior on any rejection is uniform and fail-closed: the report version must
  * not be published and no partial/best-effort route may be served.
  *
- * A publishable result requires a **complete evidence package**: the committed governed source
- * bytes (fresh local checksum recompute), the governed adapter rows (coverage + exact formula
- * conformance), the rendered HTML (identity + semantic parity), the registry state, and a
- * well-formed recorded human approval for the exact `report_version_id`. Missing evidence is
- * itself a rejection under the corresponding stable code — the validator never silently skips a
- * check it lacks the inputs to perform. A passing validation is necessary but NOT sufficient for
- * publication (invariant 12); the registry transition additionally requires this validator's
- * complete case-#20 result (see `applyPublicReportPublication`).
+ * Evidence is **internally bound**, not caller-asserted:
+ *
+ * - The governed rows and upstream source metadata used for coverage, formula-conformance, and
+ *   provenance checks are parsed/adapted from the EXACT byte buffer whose sha256 is recomputed —
+ *   a caller cannot pair the authentic checksum with different rows or forged source metadata.
+ * - The candidate's canonical JSON serialization is computed internally for the immutability
+ *   comparison; there is no caller-supplied serialization to substitute.
+ * - The supplied HTML must be byte-identical to the deterministic render of the validated payload
+ *   (§4/§6: same scope, provenance, warnings, and values — closed byte-for-byte), in addition to
+ *   the semantic extraction checks that give precise rejection codes.
+ * - A publishable result carries a `binding` (exact `report_version_id` + sha256 digests of the
+ *   canonical JSON and validated HTML), generated internally. The publication transition
+ *   (`applyPublicReportPublication` / `publishPublicReportVersion`) accepts only a result whose
+ *   binding names the exact entry being published and whose content matches those digests — a
+ *   genuine case-#20 result for one version can never publish another.
+ *
+ * Missing evidence is itself a rejection under the corresponding stable code — the validator
+ * never silently skips a check it lacks the inputs to perform. A passing validation is necessary
+ * but NOT sufficient for publication (invariant 12).
  */
 
-import type { TeamWeekRawGovernedRow } from '../adapters/teamWeekRawV0GovernedAdapter.js';
+import {
+  adaptTeamWeekRawV0Governed,
+  type TeamWeekRawGovernedInputSource,
+  type TeamWeekRawGovernedRow
+} from '../adapters/teamWeekRawV0GovernedAdapter.js';
 import {
   PUBLIC_REPORT_2024_APPROVED_METHODOLOGY_VERSIONS,
   PUBLIC_REPORT_2024_BLOCKED_DENOMINATOR_FIELDS,
@@ -40,13 +55,15 @@ import {
 } from '../contracts/teamstatePublicOffensiveEnvironment2024V1.js';
 import {
   extractPublicReport2024HtmlSemantics,
-  formatPublicReport2024Value
+  formatPublicReport2024Value,
+  renderPublicReport2024Html
 } from './publicOffensiveEnvironment2024Html.js';
 import {
   computePublicReport2024Coverage,
   computeSha256Hex,
   deriveTeamSeasonRecord,
-  roundHalfAwayFromZero
+  roundHalfAwayFromZero,
+  serializePublicReport2024Payload
 } from './publicOffensiveEnvironment2024Report.js';
 import {
   validatePublicReportRegistry,
@@ -67,23 +84,18 @@ export interface PublicationApprovalRecord {
 
 export interface ValidatePublicReport2024Context {
   /**
-   * The committed governed source bytes, for the fresh local checksum recompute (§8 invariant 3).
-   * Absent bytes are a rejection (`E_GOVERNED_INPUT_CHECKSUM_MISMATCH`) — the recompute is
-   * mandatory evidence, never skippable.
+   * The committed governed source bytes — the single root of trust. The sha256 recompute, the
+   * rows used for coverage/formula conformance, and the upstream source metadata are all derived
+   * from this exact buffer. Absent bytes fail closed.
    */
   governedSourceBytes?: Buffer;
   /**
-   * Governed adapter rows for coverage recomputation and exact formula conformance (§3, §9).
-   * Absent rows are a rejection (`E_UNWEIGHTED_AGGREGATION_USED`).
-   */
-  sourceRows?: readonly TeamWeekRawGovernedRow[];
-  /**
-   * Rendered HTML for this exact version, for identity and semantic-parity checks (§8 inv. 9/10).
-   * Absent HTML is a rejection (`E_HTML_JSON_SEMANTIC_MISMATCH`).
+   * Rendered HTML for this exact version. Must be byte-identical to the deterministic render of
+   * the validated payload. Absent HTML fails closed (`E_HTML_JSON_SEMANTIC_MISMATCH`).
    */
   html?: string;
   /**
-   * The mutable registry state (§8 invariant 11). Absent state is a rejection
+   * The mutable registry state (§8 invariant 11). Absent state fails closed
    * (`E_REGISTRY_STATE_INVALID`).
    */
   registry?: TeamstateServiceMetadata;
@@ -91,22 +103,29 @@ export interface ValidatePublicReport2024Context {
   approvals?: readonly PublicationApprovalRecord[];
   /**
    * Previously published frozen content for this `report_version_id`, if any (legitimately absent
-   * for a first publication): the candidate must reproduce it byte-identically or be rejected as
-   * a mutation (§8 invariant 9, matrix #15). When published content is supplied, the matching
-   * `candidateSerialized` form is mandatory — an incomparable candidate is itself a rejection.
+   * for a first publication). The candidate's canonical serialization/render are computed
+   * internally and must reproduce the published bytes exactly (§8 invariant 9, matrix #15) —
+   * there is no caller-supplied candidate serialization to substitute.
    */
   previouslyPublished?: { json?: string; html?: string };
-  /**
-   * Fresh serialization/render of the candidate payload, compared against `previouslyPublished`.
-   * Callers normally pass `serializePublicReport2024Payload(payload)` / the fresh render.
-   */
-  candidateSerialized?: { json?: string; html?: string };
+}
+
+/**
+ * Internally generated binding of a publishable result to the exact validated content: the
+ * publication transition requires it and verifies the frozen content against these digests.
+ */
+export interface PublicReport2024ValidationBinding {
+  report_version_id: string;
+  json_sha256: string;
+  html_sha256: string;
 }
 
 export interface PublicReport2024ValidationResult {
   rejections: PublicReport2024Rejection[];
   /** True only when zero rejections fired — §10 case #20 is the only publishable state. */
   publishable: boolean;
+  /** Present iff `publishable` — binds this result to the exact version and content validated. */
+  binding: PublicReport2024ValidationBinding | null;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -117,9 +136,13 @@ const isNonEmptyString = (value: unknown): value is string =>
 
 const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/;
 
-/** §5 checksum discipline: exactly `sha256` with a 64-character lowercase hex digest. */
+/** §5 checksum discipline: exactly `{algorithm: "sha256", value: <64-char lowercase hex>}`. */
 const isSha256Checksum = (value: unknown): value is { algorithm: 'sha256'; value: string } =>
-  isRecord(value) && value.algorithm === 'sha256' && typeof value.value === 'string' && SHA256_HEX_PATTERN.test(value.value);
+  isRecord(value) &&
+  Object.keys(value).length === 2 &&
+  value.algorithm === 'sha256' &&
+  typeof value.value === 'string' &&
+  SHA256_HEX_PATTERN.test(value.value);
 
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
 
@@ -131,7 +154,7 @@ const REPORT_VERSION_ID_PATTERN = new RegExp(
   `^${TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_ARTIFACT.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.r[1-9]\\d*$`
 );
 
-/** §5 top-level payload shape — exactly these keys, in this order. */
+/** §5 top-level payload shape — exactly these keys. */
 const PAYLOAD_TOP_LEVEL_KEYS = [
   'artifact',
   'schema_version',
@@ -153,6 +176,21 @@ const PAYLOAD_TOP_LEVEL_KEYS = [
   'warnings',
   'teams'
 ] as const;
+
+const COVERAGE_KEYS = [
+  'team_count',
+  'expected_team_count',
+  'team_game_row_count',
+  'expected_team_game_rows',
+  'missing_teams',
+  'unexpected_teams',
+  'is_full_league',
+  'satisfies_declared_scope'
+] as const;
+
+const GOVERNED_INPUT_KEYS = ['artifact_id', 'repository', 'path', 'checksum', 'checksum_verification'] as const;
+
+const UPSTREAM_SOURCE_KEYS = ['source_ref', 'source_snapshot_at', 'checksum', 'checksum_verification'] as const;
 
 /** Keys rejected as supersession smuggling (E_VERSION_IDENTITY_MUTABLE), not merely undocumented. */
 const SUPERSESSION_KEYS = ['supersession_status', 'superseded_by', 'status'] as const;
@@ -176,6 +214,40 @@ export const validatePublicReport2024 = (
     rejections.push({ code, detail });
   };
   const raw = payload as unknown as Record<string, unknown>;
+
+  // --- Root of trust: parse rows + upstream metadata from the exact bytes being hashed ---
+  let sourceRows: TeamWeekRawGovernedRow[] | undefined;
+  let sourceInputSources: TeamWeekRawGovernedInputSource[] | undefined;
+  if (context.governedSourceBytes === undefined) {
+    reject(
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
+      'committed governed source bytes not supplied — the mandatory fresh local recompute could not be performed; failing closed'
+    );
+    reject(
+      'E_UNWEIGHTED_AGGREGATION_USED',
+      'governed rows unavailable without the governed source bytes — coverage and §3 formula conformance could not be verified; failing closed'
+    );
+  } else {
+    try {
+      const adapted = adaptTeamWeekRawV0Governed(
+        JSON.parse(context.governedSourceBytes.toString('utf-8')) as unknown,
+        'governed-bytes-under-validation'
+      );
+      sourceRows = adapted.rows;
+      sourceInputSources = adapted.upstream.inputSources;
+    } catch (error) {
+      // An unparseable or fail-closed-refused governed source is by definition not acceptably
+      // governed; rows/metadata are unavailable, so those checks fail closed too.
+      reject(
+        'E_PROVENANCE_NOT_GOVERNED',
+        `governed source bytes failed fail-closed adaptation: ${(error as Error).message}`
+      );
+      reject(
+        'E_UNWEIGHTED_AGGREGATION_USED',
+        'governed rows unavailable (bytes failed adaptation) — §3 formula conformance could not be verified; failing closed'
+      );
+    }
+  }
 
   // --- Exact §5 top-level shape ---
   for (const key of Object.keys(raw)) {
@@ -252,9 +324,8 @@ export const validatePublicReport2024 = (
     }
   }
 
-  // --- Coverage (§8 invariant 2), recomputed from rows when available, never metadata-trusted ---
-  const coverage =
-    context.sourceRows !== undefined ? computePublicReport2024Coverage(context.sourceRows) : payload.coverage;
+  // --- Coverage (§8 invariant 2), recomputed from bytes-derived rows, never metadata-trusted ---
+  const coverage = sourceRows !== undefined ? computePublicReport2024Coverage(sourceRows) : payload.coverage;
   if (isRecord(coverage)) {
     if (coverage.missing_teams.length > 0) {
       reject('E_COVERAGE_TEAM_MISSING', `missing_teams: ${coverage.missing_teams.join(', ')}`);
@@ -269,17 +340,24 @@ export const validatePublicReport2024 = (
       );
     }
   }
-  if (context.sourceRows !== undefined) {
+  if (isRecord(raw.coverage)) {
+    for (const key of Object.keys(raw.coverage)) {
+      if (!(COVERAGE_KEYS as readonly string[]).includes(key)) {
+        reject('E_UNDOCUMENTED_FIELD_PRESENT', `coverage.${key} is not part of the §5 contract shape`);
+      }
+    }
+  }
+  if (sourceRows !== undefined) {
     // The emitted coverage block must equal the recomputation exactly — a payload may not claim
-    // better (or different) coverage than its rows support.
+    // better (or different) coverage than the governed bytes support.
     if (JSON.stringify(raw.coverage) !== JSON.stringify(coverage)) {
       reject(
         'E_COVERAGE_ROW_COUNT_MISMATCH',
-        'payload.coverage does not match the coverage recomputed from the governed source rows'
+        'payload.coverage does not match the coverage recomputed from the governed source bytes'
       );
     }
     const rowCounts = new Map<string, number>();
-    for (const row of context.sourceRows) {
+    for (const row of sourceRows) {
       rowCounts.set(row.teamCode, (rowCounts.get(row.teamCode) ?? 0) + 1);
     }
     for (const [team, count] of rowCounts) {
@@ -290,11 +368,6 @@ export const validatePublicReport2024 = (
         );
       }
     }
-  } else {
-    reject(
-      'E_UNWEIGHTED_AGGREGATION_USED',
-      'governed source rows not supplied — coverage and §3 formula conformance could not be verified; failing closed'
-    );
   }
 
   // --- Governed-input pin (§8 invariant 3): identity, checksum shape, fresh local recompute ---
@@ -302,10 +375,15 @@ export const validatePublicReport2024 = (
   if (!isRecord(governedInput) || !isSha256Checksum(governedInput.checksum)) {
     reject(
       'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
-      'governed_input.checksum is absent or malformed (requires algorithm sha256 and a 64-character lowercase hex digest)'
+      'governed_input.checksum is absent or malformed (requires exactly {algorithm: sha256, value: 64-char lowercase hex})'
     );
   } else {
     const pin = PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN;
+    for (const key of Object.keys(governedInput)) {
+      if (!(GOVERNED_INPUT_KEYS as readonly string[]).includes(key)) {
+        reject('E_UNDOCUMENTED_FIELD_PRESENT', `governed_input.${key} is not part of the §5 contract shape`);
+      }
+    }
     for (const key of ['artifact_id', 'repository', 'path', 'checksum_verification'] as const) {
       if (governedInput[key] !== pin[key]) {
         reject(
@@ -337,14 +415,9 @@ export const validatePublicReport2024 = (
       );
     }
   }
-  if (context.governedSourceBytes === undefined) {
-    reject(
-      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
-      'committed governed source bytes not supplied — the mandatory fresh local recompute could not be performed; failing closed'
-    );
-  }
 
-  // --- Upstream source records (§8 invariant 3): presence/well-formedness only, no re-fetch ---
+  // --- Upstream source records (§8 invariant 3): shape, and equality with the governed bytes' own
+  // metadata — a syntactically valid but forged source_ref/snapshot/checksum must not survive ---
   const upstreamSources = raw.upstream_sources;
   if (!Array.isArray(upstreamSources) || upstreamSources.length === 0) {
     reject('E_UPSTREAM_SOURCE_CHECKSUM_MISSING', 'upstream_sources is absent or empty');
@@ -357,7 +430,7 @@ export const validatePublicReport2024 = (
       if (!isSha256Checksum(source.checksum)) {
         reject(
           'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
-          `upstream_sources[${index}].checksum is absent or malformed (requires algorithm sha256 and a 64-character lowercase hex digest)`
+          `upstream_sources[${index}].checksum is absent or malformed (requires exactly {algorithm: sha256, value: 64-char lowercase hex})`
         );
       }
       if (!isNonEmptyString(source.source_ref)) {
@@ -371,11 +444,52 @@ export const validatePublicReport2024 = (
         );
       }
       for (const key of Object.keys(source)) {
-        if (!['source_ref', 'source_snapshot_at', 'checksum', 'checksum_verification'].includes(key)) {
+        if (!(UPSTREAM_SOURCE_KEYS as readonly string[]).includes(key)) {
           reject('E_UNDOCUMENTED_FIELD_PRESENT', `upstream_sources[${index}].${key} is not part of the §5 contract shape`);
         }
       }
     });
+    if (sourceInputSources !== undefined) {
+      if (upstreamSources.length !== sourceInputSources.length) {
+        reject(
+          'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+          `upstream_sources has ${upstreamSources.length} entr(ies) but the governed bytes record ` +
+            `${sourceInputSources.length} input source(s)`
+        );
+      } else {
+        sourceInputSources.forEach((recorded, index) => {
+          const emitted = upstreamSources[index];
+          if (!isRecord(emitted)) {
+            return; // Already rejected above.
+          }
+          const recordedRef = recorded.sourceRefs.length === 1 ? recorded.sourceRefs[0] : null;
+          if (emitted.source_ref !== recordedRef) {
+            reject(
+              'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+              `upstream_sources[${index}].source_ref ${String(emitted.source_ref)} does not match the governed ` +
+                `bytes' recorded source ref ${String(recordedRef)}`
+            );
+          }
+          if (emitted.source_snapshot_at !== recorded.sourceSnapshotAt) {
+            reject(
+              'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+              `upstream_sources[${index}].source_snapshot_at ${String(emitted.source_snapshot_at)} does not match ` +
+                `the governed bytes' recorded snapshot ${String(recorded.sourceSnapshotAt)}`
+            );
+          }
+          const emittedChecksum = isRecord(emitted.checksum) ? emitted.checksum : null;
+          if (
+            emittedChecksum?.algorithm !== recorded.checksum?.algorithm ||
+            emittedChecksum?.value !== recorded.checksum?.value
+          ) {
+            reject(
+              'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+              `upstream_sources[${index}].checksum does not match the checksum recorded in the governed bytes' metadata`
+            );
+          }
+        });
+      }
+    }
   }
 
   // --- Repository-qualified TIBER-Data references (§5 literals) ---
@@ -526,10 +640,11 @@ export const validatePublicReport2024 = (
     );
   }
 
-  // --- Formula conformance (§3 / §9 E_UNWEIGHTED_AGGREGATION_USED), exact recompute from rows ---
-  if (context.sourceRows !== undefined && rejections.every((r) => r.code !== 'E_COVERAGE_TEAM_MISSING')) {
+  // --- Formula conformance (§3 / §9 E_UNWEIGHTED_AGGREGATION_USED): exact recompute from the
+  // bytes-derived rows, including the warnings the recomputation itself produces ---
+  if (sourceRows !== undefined && rejections.every((r) => r.code !== 'E_COVERAGE_TEAM_MISSING')) {
     const rowsByTeam = new Map<string, TeamWeekRawGovernedRow[]>();
-    for (const row of context.sourceRows) {
+    for (const row of sourceRows) {
       const teamRows = rowsByTeam.get(row.teamCode) ?? [];
       teamRows.push(row);
       rowsByTeam.set(row.teamCode, teamRows);
@@ -590,6 +705,15 @@ export const validatePublicReport2024 = (
           }
           reject('E_UNWEIGHTED_AGGREGATION_USED', detail);
         }
+      }
+      // Warnings are §3 derivation output too — a fabricated (or suppressed) warning that is
+      // internally consistent within the payload must still match the recomputation.
+      if (JSON.stringify(teamEntry.warnings) !== JSON.stringify(expected.warnings)) {
+        reject(
+          'E_UNWEIGHTED_AGGREGATION_USED',
+          `${teamEntry.team}.warnings ${JSON.stringify(teamEntry.warnings)} do not match the §3 recomputation ` +
+            `${JSON.stringify(expected.warnings)}`
+        );
       }
     }
   }
@@ -690,13 +814,32 @@ export const validatePublicReport2024 = (
     }
   }
 
-  // --- HTML checks: identity presence, immutable-page discipline, semantic parity ---
+  // --- HTML checks: byte-exactness against the internal render, identity presence, immutable-page
+  // discipline, and semantic parity (the extraction checks give precise rejection codes) ---
   if (context.html === undefined) {
     reject(
       'E_HTML_JSON_SEMANTIC_MISMATCH',
       'rendered HTML not supplied — HTML/JSON semantic parity could not be verified; failing closed'
     );
   } else {
+    // §4/§6/§8 invariant 10, closed byte-for-byte: the only acceptable HTML for a payload is the
+    // deterministic render of that exact payload — any visible divergence (scope, provenance,
+    // values, anything) is a semantic mismatch even if the extracted fields happen to agree.
+    let freshRender: string | null = null;
+    try {
+      freshRender = renderPublicReport2024Html(payload);
+    } catch (error) {
+      reject(
+        'E_HTML_JSON_SEMANTIC_MISMATCH',
+        `the validated payload could not be deterministically rendered for comparison: ${(error as Error).message}`
+      );
+    }
+    if (freshRender !== null && context.html !== freshRender) {
+      reject(
+        'E_HTML_JSON_SEMANTIC_MISMATCH',
+        'supplied HTML is not byte-identical to the deterministic render of the validated payload'
+      );
+    }
     const semantics = extractPublicReport2024HtmlSemantics(context.html);
     for (const pattern of FORBIDDEN_HTML_STATUS_PATTERNS) {
       if (pattern.test(context.html)) {
@@ -773,16 +916,20 @@ export const validatePublicReport2024 = (
     }
   }
 
-  // --- Published-content immutability (§8 invariant 9, matrix #15) ---
+  // --- Published-content immutability (§8 invariant 9, matrix #15): the candidate serialization
+  // is computed internally — a caller cannot substitute a stale one to mask a mutation ---
+  let candidateJson: string | null = null;
+  try {
+    candidateJson = serializePublicReport2024Payload(payload);
+  } catch {
+    candidateJson = null;
+  }
   if (context.previouslyPublished !== undefined) {
-    const { previouslyPublished, candidateSerialized } = context;
+    const { previouslyPublished } = context;
     if (previouslyPublished.json !== undefined) {
-      if (candidateSerialized?.json === undefined) {
-        reject(
-          'E_VERSION_IDENTITY_MUTABLE',
-          'published JSON exists for this report_version_id but no candidate serialization was supplied to compare; failing closed'
-        );
-      } else if (previouslyPublished.json !== candidateSerialized.json) {
+      if (candidateJson === null) {
+        reject('E_VERSION_IDENTITY_MUTABLE', 'candidate payload could not be serialized for the immutability comparison');
+      } else if (previouslyPublished.json !== candidateJson) {
         reject(
           'E_VERSION_IDENTITY_MUTABLE',
           `regenerating ${String(raw.report_version_id)} produced different JSON content than the published ` +
@@ -791,12 +938,12 @@ export const validatePublicReport2024 = (
       }
     }
     if (previouslyPublished.html !== undefined) {
-      if (candidateSerialized?.html === undefined) {
+      if (context.html === undefined) {
         reject(
           'E_VERSION_IDENTITY_MUTABLE',
           'published HTML exists for this report_version_id but no candidate render was supplied to compare; failing closed'
         );
-      } else if (previouslyPublished.html !== candidateSerialized.html) {
+      } else if (previouslyPublished.html !== context.html) {
         reject(
           'E_VERSION_IDENTITY_MUTABLE',
           `regenerating ${String(raw.report_version_id)} produced different HTML content than the published version`
@@ -831,5 +978,16 @@ export const validatePublicReport2024 = (
     );
   }
 
-  return { rejections, publishable: rejections.length === 0 };
+  const publishable = rejections.length === 0;
+  // The binding is generated here, from the validated inputs themselves — never caller-supplied —
+  // so a publishable result is usable only for this exact version and this exact frozen content.
+  const binding: PublicReport2024ValidationBinding | null =
+    publishable && candidateJson !== null && context.html !== undefined
+      ? {
+          report_version_id: payload.report_version_id,
+          json_sha256: computeSha256Hex(candidateJson),
+          html_sha256: computeSha256Hex(context.html)
+        }
+      : null;
+  return { rejections, publishable: publishable && binding !== null, binding };
 };

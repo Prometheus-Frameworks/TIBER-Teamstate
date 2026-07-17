@@ -3,10 +3,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { PUBLIC_REPORT_2024_CANONICAL_URL_HTML } from './contracts/teamstatePublicOffensiveEnvironment2024V1.js';
+import { computeSha256Hex } from './reports/publicOffensiveEnvironment2024Report.js';
 import {
   LIVE_SERVICE_METADATA,
+  applyPublicReportPublication,
   resolveCurrentRegistryEntry,
   validatePublicReportRegistry,
+  type PublicReportPublicationEvidence,
+  type PublicReportPublicationInput,
   type TeamstateServiceMetadata
 } from './reports/publicReportRegistry.js';
 
@@ -31,6 +35,8 @@ const HTML_PAGE = `<!doctype html>
 
 /** Frozen, byte-stable content for one published report version (§6): never mutated after publish. */
 export interface FrozenPublicReportContent {
+  /** The version this content was validated and published as — serving re-verifies it. */
+  reportVersionId: string;
   json: string;
   html: string;
 }
@@ -109,7 +115,24 @@ function resolvePublicReportRoute(
       return null;
     }
     const content = frozenReports.get(reportVersionId);
-    return content === undefined ? null : { content, format };
+    if (content === undefined || content.reportVersionId !== reportVersionId) {
+      return null;
+    }
+    // Content-identity verification: the frozen bytes themselves must declare exactly this
+    // version. Content stored under the wrong key (e.g. r2 bytes under the r1 key) fails closed
+    // instead of being served under a version identity it was never validated as.
+    try {
+      const declared = (JSON.parse(content.json) as { report_version_id?: unknown }).report_version_id;
+      if (declared !== reportVersionId) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+    if (!content.html.includes(`data-report-version-id="${reportVersionId}"`)) {
+      return null;
+    }
+    return { content, format };
   };
 
   if (pathname === PUBLIC_REPORT_2024_CANONICAL_URL_HTML || pathname === `${PUBLIC_REPORT_2024_CANONICAL_URL_HTML}.json`) {
@@ -135,6 +158,54 @@ function resolvePublicReportRoute(
   }
 
   return null;
+}
+
+/**
+ * Atomically publish one report version: the registry flip (gated on complete case-#20 evidence,
+ * see `applyPublicReportPublication`) and the frozen-content registration happen in one pure step
+ * producing a new serving state. The content is verified against the validator's internally
+ * generated binding digests — bytes that are not exactly what was validated cannot be published,
+ * and already-frozen content is never overwritten.
+ */
+export function publishPublicReportVersion(
+  state: PublicReportServingState,
+  entry: PublicReportPublicationInput,
+  evidence: PublicReportPublicationEvidence,
+  content: { json: string; html: string }
+): PublicReportServingState {
+  const binding = evidence.validation.binding;
+  if (binding === null) {
+    throw new Error('publication refused: validation evidence carries no content binding.');
+  }
+  if (binding.report_version_id !== entry.report_version_id) {
+    throw new Error(
+      `publication refused: validation evidence is bound to ${binding.report_version_id}, not ` +
+        `${entry.report_version_id}; a validation result is never transferable across versions.`
+    );
+  }
+  if (computeSha256Hex(content.json) !== binding.json_sha256) {
+    throw new Error(
+      `publication refused: supplied JSON content does not match the validated binding digest for ${entry.report_version_id}.`
+    );
+  }
+  if (computeSha256Hex(content.html) !== binding.html_sha256) {
+    throw new Error(
+      `publication refused: supplied HTML content does not match the validated binding digest for ${entry.report_version_id}.`
+    );
+  }
+  if (state.frozenReports.has(entry.report_version_id)) {
+    throw new Error(
+      `publication refused: frozen content already exists for ${entry.report_version_id} and is never overwritten (§6).`
+    );
+  }
+  const serviceMetadata = applyPublicReportPublication(state.serviceMetadata, entry, evidence);
+  const frozenReports = new Map(state.frozenReports);
+  frozenReports.set(entry.report_version_id, {
+    reportVersionId: entry.report_version_id,
+    json: content.json,
+    html: content.html
+  });
+  return { serviceMetadata, frozenReports };
 }
 
 export function handleRequest(
