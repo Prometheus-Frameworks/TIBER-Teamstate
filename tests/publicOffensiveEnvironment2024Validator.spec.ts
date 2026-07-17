@@ -294,6 +294,210 @@ describe('validatePublicReport2024 — §10 fail-closed acceptance matrix', () =
   });
 });
 
+describe('validatePublicReport2024 — mandatory evidence package (fail closed on omission)', () => {
+  const omissions: Array<[keyof ValidatePublicReport2024Context, string]> = [
+    ['governedSourceBytes', 'E_GOVERNED_INPUT_CHECKSUM_MISMATCH'],
+    ['sourceRows', 'E_UNWEIGHTED_AGGREGATION_USED'],
+    ['html', 'E_HTML_JSON_SEMANTIC_MISMATCH'],
+    ['registry', 'E_REGISTRY_STATE_INVALID']
+  ];
+
+  for (const [evidenceKey, expectedCode] of omissions) {
+    it(`omitting ${String(evidenceKey)} can never produce publishable: true (${expectedCode})`, () => {
+      const partialContext = { ...fullContext };
+      delete partialContext[evidenceKey];
+      const result = validatePublicReport2024(payload, partialContext);
+      expect(codesOf(result)).toContain(expectedCode);
+      expect(result.publishable).toBe(false);
+    });
+  }
+
+  it('an approval alone (no other evidence) can never produce publishable: true', () => {
+    const result = validatePublicReport2024(payload, { approvals: [APPROVAL] });
+    expect(result.publishable).toBe(false);
+    expect(codesOf(result)).toEqual(
+      expect.arrayContaining([
+        'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
+        'E_UNWEIGHTED_AGGREGATION_USED',
+        'E_HTML_JSON_SEMANTIC_MISMATCH',
+        'E_REGISTRY_STATE_INVALID'
+      ])
+    );
+  });
+
+  it('published content without a comparable candidate serialization fails closed', () => {
+    const result = validatePublicReport2024(payload, {
+      ...fullContext,
+      previouslyPublished: { json: serializePublicReport2024Payload(payload) }
+      // candidateSerialized deliberately omitted
+    });
+    expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('rejects malformed approval records: empty approved_by or invalid approved_at', () => {
+    const emptyApprover = validatePublicReport2024(payload, {
+      ...fullContext,
+      approvals: [{ ...APPROVAL, approved_by: '   ' }]
+    });
+    expect(codesOf(emptyApprover)).toContain('E_PUBLICATION_NOT_APPROVED');
+    expect(emptyApprover.publishable).toBe(false);
+
+    const badTimestamp = validatePublicReport2024(payload, {
+      ...fullContext,
+      approvals: [{ ...APPROVAL, approved_at: 'yesterday' }]
+    });
+    expect(codesOf(badTimestamp)).toContain('E_PUBLICATION_NOT_APPROVED');
+    expect(badTimestamp.publishable).toBe(false);
+  });
+});
+
+describe('validatePublicReport2024 — adversarial full-context payloads (§5 exactness)', () => {
+  // Every case here supplies the COMPLETE evidence package and re-renders HTML from the doctored
+  // payload (so parity alone cannot catch it) — the payload-level checks must fail closed.
+  const doctoredFullContext = (doctored: PublicReport2024Payload): ValidatePublicReport2024Context => ({
+    governedSourceBytes,
+    sourceRows: consumption.rows,
+    html: renderPublicReport2024Html(doctored),
+    registry: LIVE_SERVICE_METADATA,
+    approvals: [APPROVAL]
+  });
+
+  it('an altered derived value with matching HTML still fails closed (formula conformance)', () => {
+    const doctored = clone();
+    doctored.teams[0].derived.epaPerPlay = 0.9999;
+    const result = validatePublicReport2024(doctored, doctoredFullContext(doctored));
+    expect(codesOf(result)).toContain('E_UNWEIGHTED_AGGREGATION_USED');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('altered coverage metadata with matching HTML fails closed against recomputation', () => {
+    const doctored = clone();
+    doctored.coverage.team_count = 31;
+    doctored.coverage.team_game_row_count = 527;
+    doctored.coverage.satisfies_declared_scope = false;
+    const result = validatePublicReport2024(doctored, doctoredFullContext(doctored));
+    expect(codesOf(result)).toContain('E_COVERAGE_ROW_COUNT_MISMATCH');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('altered artifact/schema identity fails closed', () => {
+    const wrongArtifact = clone();
+    wrongArtifact.artifact = 'teamstate_public_defensive_environment_2024_v1';
+    expect(codesOf(validatePublicReport2024(wrongArtifact, doctoredFullContext(wrongArtifact)))).toContain(
+      'E_METHODOLOGY_VERSION_UNKNOWN'
+    );
+
+    const wrongSchema = clone();
+    wrongSchema.schema_version = '2.0.0';
+    expect(codesOf(validatePublicReport2024(wrongSchema, doctoredFullContext(wrongSchema)))).toContain(
+      'E_METHODOLOGY_VERSION_UNKNOWN'
+    );
+  });
+
+  it('altered canonical/version URLs fail closed', () => {
+    const wrongCanonical = clone();
+    wrongCanonical.canonical_url = '/nfl/2024/offensive-environments-v2.json';
+    expect(codesOf(validatePublicReport2024(wrongCanonical, doctoredFullContext(wrongCanonical)))).toContain(
+      'E_VERSION_IDENTITY_MISSING'
+    );
+
+    const wrongVersionUrl = clone();
+    wrongVersionUrl.version_url = '/nfl/2024/offensive-environments/teamstate_public_offensive_environment_2024_v1.r9.json';
+    expect(codesOf(validatePublicReport2024(wrongVersionUrl, doctoredFullContext(wrongVersionUrl)))).toContain(
+      'E_VERSION_IDENTITY_MISSING'
+    );
+  });
+
+  it('altered declared scope, excluded lanes, or provenance references fail closed', () => {
+    const wrongScope = clone();
+    wrongScope.declared_scope.output_meaning = 'current_state_ranking';
+    expect(codesOf(validatePublicReport2024(wrongScope, doctoredFullContext(wrongScope)))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+
+    const droppedLane = clone();
+    droppedLane.excluded_lanes = droppedLane.excluded_lanes.filter((lane) => lane.field !== 'passRate');
+    expect(codesOf(validatePublicReport2024(droppedLane, doctoredFullContext(droppedLane)))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+
+    const wrongGovernedPath = clone();
+    wrongGovernedPath.governed_input.path = 'output/team_environment_profiles_v0.json';
+    expect(codesOf(validatePublicReport2024(wrongGovernedPath, doctoredFullContext(wrongGovernedPath)))).toContain(
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH'
+    );
+
+    const wrongValidationRef = clone();
+    wrongValidationRef.validation_report.path = 'somewhere/else.json';
+    expect(codesOf(validatePublicReport2024(wrongValidationRef, doctoredFullContext(wrongValidationRef)))).toContain(
+      'E_UNDOCUMENTED_FIELD_PRESENT'
+    );
+  });
+
+  it('malformed checksums fail closed: wrong algorithm, short digest, uppercase hex', () => {
+    const wrongAlgorithm = clone();
+    wrongAlgorithm.governed_input.checksum.algorithm = 'md5';
+    expect(codesOf(validatePublicReport2024(wrongAlgorithm, doctoredFullContext(wrongAlgorithm)))).toContain(
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH'
+    );
+
+    const shortDigest = clone();
+    shortDigest.upstream_sources[0].checksum = { algorithm: 'sha256', value: 'abc123' };
+    expect(codesOf(validatePublicReport2024(shortDigest, doctoredFullContext(shortDigest)))).toContain(
+      'E_UPSTREAM_SOURCE_CHECKSUM_MISSING'
+    );
+
+    const uppercaseDigest = clone();
+    uppercaseDigest.upstream_sources[1].checksum = {
+      algorithm: 'sha256',
+      value: uppercaseDigest.upstream_sources[1].checksum!.value.toUpperCase()
+    };
+    expect(codesOf(validatePublicReport2024(uppercaseDigest, doctoredFullContext(uppercaseDigest)))).toContain(
+      'E_UPSTREAM_SOURCE_CHECKSUM_MISSING'
+    );
+  });
+
+  it('invalid timestamp strings fail closed instead of passing through Date.parse', () => {
+    const badGeneratedAt = clone();
+    badGeneratedAt.generated_at = 'not-a-date';
+    expect(codesOf(validatePublicReport2024(badGeneratedAt, doctoredFullContext(badGeneratedAt)))).toContain(
+      'E_TEMPORAL_METADATA_MISSING'
+    );
+
+    const badSnapshot = clone();
+    badSnapshot.source_snapshot_at = '2026-13-99T99:99:99+00:00';
+    expect(codesOf(validatePublicReport2024(badSnapshot, doctoredFullContext(badSnapshot)))).toContain(
+      'E_TEMPORAL_METADATA_MISSING'
+    );
+
+    const badUpstreamSnapshot = clone();
+    badUpstreamSnapshot.upstream_sources[0].source_snapshot_at = 'last june';
+    expect(codesOf(validatePublicReport2024(badUpstreamSnapshot, doctoredFullContext(badUpstreamSnapshot)))).toContain(
+      'E_TEMPORAL_METADATA_MISSING'
+    );
+  });
+
+  it('undocumented top-level payload fields fail closed', () => {
+    const doctored = clone() as unknown as Record<string, unknown>;
+    doctored.extra_commentary = 'exciting season!';
+    const result = validatePublicReport2024(
+      doctored as unknown as PublicReport2024Payload,
+      doctoredFullContext(doctored as unknown as PublicReport2024Payload)
+    );
+    expect(codesOf(result)).toContain('E_UNDOCUMENTED_FIELD_PRESENT');
+    expect(result.publishable).toBe(false);
+  });
+
+  it('doctored payload-level warnings that disagree with per-team warnings fail closed', () => {
+    const doctored = clone();
+    doctored.warnings = [{ team: 'ARI', code: 'W_ZERO_REDZONE_OPPORTUNITIES' }];
+    const result = validatePublicReport2024(doctored, doctoredFullContext(doctored));
+    expect(codesOf(result)).toContain('E_UNDOCUMENTED_FIELD_PRESENT');
+    expect(result.publishable).toBe(false);
+  });
+});
+
 describe('validatePublicReport2024 — remaining §9 rejection codes', () => {
   it('rejects an unknown methodology_version → E_METHODOLOGY_VERSION_UNKNOWN', () => {
     const doctored = clone();

@@ -82,15 +82,72 @@ export interface PublicReportPublicationInput {
 }
 
 /**
+ * The complete evidence the publication transition requires (§8 invariant 12, §10 case #20):
+ * a fully successful validation result for the exact candidate (zero rejections — a case-#20
+ * outcome, produced by `validatePublicReport2024` with its complete evidence package) and the
+ * recorded explicit human approval for the exact `report_version_id` being published. Structural
+ * types are used (not the validator's own) to keep this module dependency-free; the fields carry
+ * the validator's result and approval record verbatim.
+ */
+export interface PublicReportPublicationEvidence {
+  validation: {
+    publishable: boolean;
+    rejections: ReadonlyArray<unknown>;
+  };
+  approval: {
+    report_version_id: string;
+    approved_by: string;
+    approved_at: string;
+  };
+}
+
+const PUBLICATION_ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
+
+const isWellFormedApproval = (approval: PublicReportPublicationEvidence['approval']): boolean =>
+  typeof approval.report_version_id === 'string' &&
+  approval.report_version_id.length > 0 &&
+  typeof approval.approved_by === 'string' &&
+  approval.approved_by.trim().length > 0 &&
+  typeof approval.approved_at === 'string' &&
+  PUBLICATION_ISO_TIMESTAMP_PATTERN.test(approval.approved_at) &&
+  Number.isFinite(Date.parse(approval.approved_at));
+
+/**
  * Atomically publish `entry` as the current version of its report family, flipping any prior
  * current entry to `superseded` (with `superseded_by` pointing at the new version) in the same
  * pure step. Returns a new metadata value; never mutates the input, and never touches frozen
  * report payloads. Throws (publishing nothing) rather than returning an invalid registry.
+ *
+ * This is the ONLY path that may set `artifact_publication_enabled: true`, and it is gated on
+ * `evidence`: a complete, successful (zero-rejection) validation result plus a well-formed
+ * explicit human approval for exactly `entry.report_version_id`. Anything less throws — a
+ * validator pass alone is necessary but not sufficient, and an approval alone proves nothing
+ * about the payload (§8 invariant 12; §10 case #20 is the only publishable state).
  */
 export const applyPublicReportPublication = (
   metadata: TeamstateServiceMetadata,
-  entry: PublicReportPublicationInput
+  entry: PublicReportPublicationInput,
+  evidence: PublicReportPublicationEvidence
 ): TeamstateServiceMetadata => {
+  if (evidence.validation.publishable !== true || evidence.validation.rejections.length !== 0) {
+    throw new Error(
+      `registry publication refused: validation evidence for ${entry.report_version_id} is not a complete ` +
+        `case-#20 success (publishable=${String(evidence.validation.publishable)}, ` +
+        `${evidence.validation.rejections.length} rejection(s)); publication requires zero rejections.`
+    );
+  }
+  if (!isWellFormedApproval(evidence.approval)) {
+    throw new Error(
+      `registry publication refused: approval record for ${entry.report_version_id} is malformed; ` +
+        'approved_by must be a non-empty identity and approved_at a valid ISO-8601 timestamp (§8 invariant 12).'
+    );
+  }
+  if (evidence.approval.report_version_id !== entry.report_version_id) {
+    throw new Error(
+      `registry publication refused: approval names report_version_id ${evidence.approval.report_version_id}, ` +
+        `but the entry being published is ${entry.report_version_id}; approval is exact-version, never transferable.`
+    );
+  }
   if (metadata.public_reports.some((existing) => existing.report_version_id === entry.report_version_id)) {
     throw new Error(
       `registry publication refused: report_version_id ${entry.report_version_id} is already registered; ` +

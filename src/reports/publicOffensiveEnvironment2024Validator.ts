@@ -3,23 +3,38 @@
  *
  * Enforces every publication invariant in §8 and returns the contract's stable, machine-readable
  * rejection codes. Behavior on any rejection is uniform and fail-closed: the report version must
- * not be published and no partial/best-effort route may be served. A passing validation is
- * necessary but NOT sufficient for publication — invariant 12 additionally requires a recorded
- * explicit human approval for the exact `report_version_id`, and that approval is itself one of
- * the validated inputs here (`E_PUBLICATION_NOT_APPROVED`).
+ * not be published and no partial/best-effort route may be served.
+ *
+ * A publishable result requires a **complete evidence package**: the committed governed source
+ * bytes (fresh local checksum recompute), the governed adapter rows (coverage + exact formula
+ * conformance), the rendered HTML (identity + semantic parity), the registry state, and a
+ * well-formed recorded human approval for the exact `report_version_id`. Missing evidence is
+ * itself a rejection under the corresponding stable code — the validator never silently skips a
+ * check it lacks the inputs to perform. A passing validation is necessary but NOT sufficient for
+ * publication (invariant 12); the registry transition additionally requires this validator's
+ * complete case-#20 result (see `applyPublicReportPublication`).
  */
 
 import type { TeamWeekRawGovernedRow } from '../adapters/teamWeekRawV0GovernedAdapter.js';
 import {
   PUBLIC_REPORT_2024_APPROVED_METHODOLOGY_VERSIONS,
   PUBLIC_REPORT_2024_BLOCKED_DENOMINATOR_FIELDS,
+  PUBLIC_REPORT_2024_CANONICAL_URL_JSON,
   PUBLIC_REPORT_2024_DECLARED_SCOPE,
   PUBLIC_REPORT_2024_DERIVED_FIELDS,
   PUBLIC_REPORT_2024_DERIVED_PRECISION,
+  PUBLIC_REPORT_2024_EXCLUDED_LANES,
   PUBLIC_REPORT_2024_EXPECTED_TEAMS,
   PUBLIC_REPORT_2024_FORBIDDEN_TEAM_FIELDS,
   PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN,
+  PUBLIC_REPORT_2024_LINEAGE_MANIFEST_REF,
   PUBLIC_REPORT_2024_OBSERVED_FIELDS,
+  PUBLIC_REPORT_2024_UPSTREAM_CHECKSUM_VERIFICATION,
+  PUBLIC_REPORT_2024_VALIDATION_REPORT_REF,
+  PUBLIC_REPORT_2024_WARNING_CODES,
+  TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_ARTIFACT,
+  TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_SCHEMA_VERSION,
+  buildPublicReport2024VersionUrlJson,
   type PublicReport2024Payload,
   type PublicReport2024RejectionCode
 } from '../contracts/teamstatePublicOffensiveEnvironment2024V1.js';
@@ -53,20 +68,32 @@ export interface PublicationApprovalRecord {
 export interface ValidatePublicReport2024Context {
   /**
    * The committed governed source bytes, for the fresh local checksum recompute (§8 invariant 3).
-   * When absent, checksum presence/pin conformance is still checked; recompute is skipped.
+   * Absent bytes are a rejection (`E_GOVERNED_INPUT_CHECKSUM_MISMATCH`) — the recompute is
+   * mandatory evidence, never skippable.
    */
   governedSourceBytes?: Buffer;
-  /** Governed adapter rows for exact formula-conformance recomputation (§3, §9). */
+  /**
+   * Governed adapter rows for coverage recomputation and exact formula conformance (§3, §9).
+   * Absent rows are a rejection (`E_UNWEIGHTED_AGGREGATION_USED`).
+   */
   sourceRows?: readonly TeamWeekRawGovernedRow[];
-  /** Rendered HTML for this exact version, for identity and semantic-parity checks (§8 inv. 9/10). */
+  /**
+   * Rendered HTML for this exact version, for identity and semantic-parity checks (§8 inv. 9/10).
+   * Absent HTML is a rejection (`E_HTML_JSON_SEMANTIC_MISMATCH`).
+   */
   html?: string;
-  /** The mutable registry state (§8 invariant 11). */
+  /**
+   * The mutable registry state (§8 invariant 11). Absent state is a rejection
+   * (`E_REGISTRY_STATE_INVALID`).
+   */
   registry?: TeamstateServiceMetadata;
   /** Recorded human publication approvals (§8 invariant 12). */
   approvals?: readonly PublicationApprovalRecord[];
   /**
-   * Previously published frozen content for this `report_version_id`, if any: the candidate must
-   * reproduce it byte-identically or be rejected as a mutation (§8 invariant 9, matrix #15).
+   * Previously published frozen content for this `report_version_id`, if any (legitimately absent
+   * for a first publication): the candidate must reproduce it byte-identically or be rejected as
+   * a mutation (§8 invariant 9, matrix #15). When published content is supplied, the matching
+   * `candidateSerialized` form is mandatory — an incomparable candidate is itself a rejection.
    */
   previouslyPublished?: { json?: string; html?: string };
   /**
@@ -85,10 +112,52 @@ export interface PublicReport2024ValidationResult {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
 
-const isWellFormedChecksum = (value: unknown): boolean =>
-  isRecord(value) && isNonEmptyString(value.algorithm) && isNonEmptyString(value.value);
+const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/;
+
+/** §5 checksum discipline: exactly `sha256` with a 64-character lowercase hex digest. */
+const isSha256Checksum = (value: unknown): value is { algorithm: 'sha256'; value: string } =>
+  isRecord(value) && value.algorithm === 'sha256' && typeof value.value === 'string' && SHA256_HEX_PATTERN.test(value.value);
+
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
+
+/** A real ISO-8601 timestamp: pattern-conformant and parseable to a finite instant. */
+const isIsoTimestamp = (value: unknown): value is string =>
+  typeof value === 'string' && ISO_TIMESTAMP_PATTERN.test(value) && Number.isFinite(Date.parse(value));
+
+const REPORT_VERSION_ID_PATTERN = new RegExp(
+  `^${TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_ARTIFACT.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.r[1-9]\\d*$`
+);
+
+/** §5 top-level payload shape — exactly these keys, in this order. */
+const PAYLOAD_TOP_LEVEL_KEYS = [
+  'artifact',
+  'schema_version',
+  'report_version_id',
+  'canonical_url',
+  'version_url',
+  'declared_scope',
+  'coverage',
+  'source_snapshot_at',
+  'generated_at',
+  'provenance_status',
+  'governance',
+  'methodology_version',
+  'governed_input',
+  'upstream_sources',
+  'validation_report',
+  'lineage_manifest',
+  'excluded_lanes',
+  'warnings',
+  'teams'
+] as const;
+
+/** Keys rejected as supersession smuggling (E_VERSION_IDENTITY_MUTABLE), not merely undocumented. */
+const SUPERSESSION_KEYS = ['supersession_status', 'superseded_by', 'status'] as const;
+
+const KNOWN_WARNING_CODES = new Set<string>(Object.values(PUBLIC_REPORT_2024_WARNING_CODES));
 
 /** HTML status-text patterns that would render registry state into an immutable page (§6). */
 const FORBIDDEN_HTML_STATUS_PATTERNS: RegExp[] = [
@@ -108,6 +177,40 @@ export const validatePublicReport2024 = (
   };
   const raw = payload as unknown as Record<string, unknown>;
 
+  // --- Exact §5 top-level shape ---
+  for (const key of Object.keys(raw)) {
+    if ((SUPERSESSION_KEYS as readonly string[]).includes(key)) {
+      continue; // Rejected below as E_VERSION_IDENTITY_MUTABLE, the more specific violation.
+    }
+    if (!(PAYLOAD_TOP_LEVEL_KEYS as readonly string[]).includes(key)) {
+      reject('E_UNDOCUMENTED_FIELD_PRESENT', `payload top-level field ${key} is not part of the §5 contract shape`);
+    }
+  }
+  for (const key of PAYLOAD_TOP_LEVEL_KEYS) {
+    if (!(key in raw)) {
+      reject('E_UNDOCUMENTED_FIELD_PRESENT', `payload is missing required §5 field ${key}`);
+    }
+  }
+
+  // --- Artifact / schema / methodology identity (§5 literals, §8 invariant 4) ---
+  if (raw.artifact !== TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_ARTIFACT) {
+    reject(
+      'E_METHODOLOGY_VERSION_UNKNOWN',
+      `artifact ${String(raw.artifact)} is not the approved report artifact ` +
+        TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_ARTIFACT
+    );
+  }
+  if (raw.schema_version !== TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_SCHEMA_VERSION) {
+    reject(
+      'E_METHODOLOGY_VERSION_UNKNOWN',
+      `schema_version ${String(raw.schema_version)} is not the contract schema version ` +
+        TEAMSTATE_PUBLIC_OFFENSIVE_ENVIRONMENT_2024_V1_SCHEMA_VERSION
+    );
+  }
+  if (!(PUBLIC_REPORT_2024_APPROVED_METHODOLOGY_VERSIONS as readonly string[]).includes(payload.methodology_version)) {
+    reject('E_METHODOLOGY_VERSION_UNKNOWN', `methodology_version ${String(payload.methodology_version)} is not approved`);
+  }
+
   // --- Provenance (§8 invariant 1) ---
   const governanceRaw = raw.governance;
   if (!isNonEmptyString(raw.provenance_status) || !isRecord(governanceRaw)) {
@@ -122,6 +225,31 @@ export const validatePublicReport2024 = (
       `provenance_status=${String(raw.provenance_status)}, governance_status=${String(governanceRaw.governance_status)}, ` +
         `governance_source=${String(governanceRaw.governance_source)}`
     );
+  } else {
+    for (const key of Object.keys(governanceRaw)) {
+      if (key !== 'governance_status' && key !== 'governance_source') {
+        reject('E_UNDOCUMENTED_FIELD_PRESENT', `governance.${key} is not part of the §5 contract shape`);
+      }
+    }
+  }
+
+  // --- Declared scope: pinned §1 constants (data_through handled by the temporal checks) ---
+  const declaredScope = isRecord(raw.declared_scope) ? raw.declared_scope : {};
+  for (const [key, pinnedValue] of Object.entries(PUBLIC_REPORT_2024_DECLARED_SCOPE)) {
+    if (key === 'data_through') {
+      continue;
+    }
+    if (declaredScope[key] !== pinnedValue) {
+      reject(
+        'E_UNDOCUMENTED_FIELD_PRESENT',
+        `declared_scope.${key} = ${String(declaredScope[key])} deviates from the pinned contract constant ${String(pinnedValue)}`
+      );
+    }
+  }
+  for (const key of Object.keys(declaredScope)) {
+    if (!(key in PUBLIC_REPORT_2024_DECLARED_SCOPE)) {
+      reject('E_UNDOCUMENTED_FIELD_PRESENT', `declared_scope.${key} is not part of the §5 contract shape`);
+    }
   }
 
   // --- Coverage (§8 invariant 2), recomputed from rows when available, never metadata-trusted ---
@@ -142,6 +270,14 @@ export const validatePublicReport2024 = (
     }
   }
   if (context.sourceRows !== undefined) {
+    // The emitted coverage block must equal the recomputation exactly — a payload may not claim
+    // better (or different) coverage than its rows support.
+    if (JSON.stringify(raw.coverage) !== JSON.stringify(coverage)) {
+      reject(
+        'E_COVERAGE_ROW_COUNT_MISMATCH',
+        'payload.coverage does not match the coverage recomputed from the governed source rows'
+      );
+    }
     const rowCounts = new Map<string, number>();
     for (const row of context.sourceRows) {
       rowCounts.set(row.teamCode, (rowCounts.get(row.teamCode) ?? 0) + 1);
@@ -154,13 +290,30 @@ export const validatePublicReport2024 = (
         );
       }
     }
+  } else {
+    reject(
+      'E_UNWEIGHTED_AGGREGATION_USED',
+      'governed source rows not supplied — coverage and §3 formula conformance could not be verified; failing closed'
+    );
   }
 
-  // --- Governed-input checksum (§8 invariant 3): fresh local recompute, no network ---
+  // --- Governed-input pin (§8 invariant 3): identity, checksum shape, fresh local recompute ---
   const governedInput = raw.governed_input;
-  if (!isRecord(governedInput) || !isWellFormedChecksum(governedInput.checksum)) {
-    reject('E_GOVERNED_INPUT_CHECKSUM_MISMATCH', 'governed_input.checksum is absent or malformed');
+  if (!isRecord(governedInput) || !isSha256Checksum(governedInput.checksum)) {
+    reject(
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
+      'governed_input.checksum is absent or malformed (requires algorithm sha256 and a 64-character lowercase hex digest)'
+    );
   } else {
+    const pin = PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN;
+    for (const key of ['artifact_id', 'repository', 'path', 'checksum_verification'] as const) {
+      if (governedInput[key] !== pin[key]) {
+        reject(
+          'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
+          `governed_input.${key} = ${String(governedInput[key])} does not match the contract pin ${pin[key]}`
+        );
+      }
+    }
     const declared = (governedInput.checksum as { value: string }).value;
     if (context.governedSourceBytes !== undefined) {
       const recomputed = computeSha256Hex(context.governedSourceBytes);
@@ -170,48 +323,76 @@ export const validatePublicReport2024 = (
           `payload governed_input.checksum ${declared} does not match fresh local recompute ${recomputed}`
         );
       }
-      if (recomputed !== PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN.checksum.value) {
+      if (recomputed !== pin.checksum.value) {
         reject(
           'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
           `committed governed source bytes have drifted from the contract-pinned checksum ` +
-            `${PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN.checksum.value} (recomputed ${recomputed})`
+            `${pin.checksum.value} (recomputed ${recomputed})`
         );
       }
-    } else if (declared !== PUBLIC_REPORT_2024_GOVERNED_INPUT_PIN.checksum.value) {
+    } else if (declared !== pin.checksum.value) {
       reject(
         'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
         `governed_input.checksum ${declared} does not match the contract-pinned value`
       );
     }
   }
+  if (context.governedSourceBytes === undefined) {
+    reject(
+      'E_GOVERNED_INPUT_CHECKSUM_MISMATCH',
+      'committed governed source bytes not supplied — the mandatory fresh local recompute could not be performed; failing closed'
+    );
+  }
 
-  // --- Upstream source checksums (§8 invariant 3): presence/well-formedness only ---
+  // --- Upstream source records (§8 invariant 3): presence/well-formedness only, no re-fetch ---
   const upstreamSources = raw.upstream_sources;
   if (!Array.isArray(upstreamSources) || upstreamSources.length === 0) {
     reject('E_UPSTREAM_SOURCE_CHECKSUM_MISSING', 'upstream_sources is absent or empty');
   } else {
     upstreamSources.forEach((source, index) => {
-      if (!isRecord(source) || !isWellFormedChecksum(source.checksum)) {
-        reject('E_UPSTREAM_SOURCE_CHECKSUM_MISSING', `upstream_sources[${index}].checksum is absent or malformed`);
+      if (!isRecord(source)) {
+        reject('E_UPSTREAM_SOURCE_CHECKSUM_MISSING', `upstream_sources[${index}] is not an object`);
+        return;
+      }
+      if (!isSha256Checksum(source.checksum)) {
+        reject(
+          'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+          `upstream_sources[${index}].checksum is absent or malformed (requires algorithm sha256 and a 64-character lowercase hex digest)`
+        );
+      }
+      if (!isNonEmptyString(source.source_ref)) {
+        reject('E_UPSTREAM_SOURCE_CHECKSUM_MISSING', `upstream_sources[${index}].source_ref is absent`);
+      }
+      if (source.checksum_verification !== PUBLIC_REPORT_2024_UPSTREAM_CHECKSUM_VERIFICATION) {
+        reject(
+          'E_UPSTREAM_SOURCE_CHECKSUM_MISSING',
+          `upstream_sources[${index}].checksum_verification = ${String(source.checksum_verification)} is not the ` +
+            `contract literal ${PUBLIC_REPORT_2024_UPSTREAM_CHECKSUM_VERIFICATION}`
+        );
+      }
+      for (const key of Object.keys(source)) {
+        if (!['source_ref', 'source_snapshot_at', 'checksum', 'checksum_verification'].includes(key)) {
+          reject('E_UNDOCUMENTED_FIELD_PRESENT', `upstream_sources[${index}].${key} is not part of the §5 contract shape`);
+        }
       }
     });
   }
 
-  // --- Methodology version (§8 invariant 4) ---
-  if (!(PUBLIC_REPORT_2024_APPROVED_METHODOLOGY_VERSIONS as readonly string[]).includes(payload.methodology_version)) {
-    reject('E_METHODOLOGY_VERSION_UNKNOWN', `methodology_version ${String(payload.methodology_version)} is not approved`);
+  // --- Repository-qualified TIBER-Data references (§5 literals) ---
+  if (JSON.stringify(raw.validation_report) !== JSON.stringify(PUBLIC_REPORT_2024_VALIDATION_REPORT_REF)) {
+    reject('E_UNDOCUMENTED_FIELD_PRESENT', 'validation_report deviates from the §5 repository-qualified reference');
+  }
+  if (JSON.stringify(raw.lineage_manifest) !== JSON.stringify(PUBLIC_REPORT_2024_LINEAGE_MANIFEST_REF)) {
+    reject('E_UNDOCUMENTED_FIELD_PRESENT', 'lineage_manifest deviates from the §5 repository-qualified reference');
   }
 
-  // --- Team records: field discipline (§8 invariants 5/6) and red-zone nulls (invariant 7) ---
-  const observedSet = new Set<string>(PUBLIC_REPORT_2024_OBSERVED_FIELDS);
-  const derivedSet = new Set<string>(PUBLIC_REPORT_2024_DERIVED_FIELDS);
-  const forbiddenSet = new Set<string>(PUBLIC_REPORT_2024_FORBIDDEN_TEAM_FIELDS);
-  const blockedSet = new Set<string>(PUBLIC_REPORT_2024_BLOCKED_DENOMINATOR_FIELDS);
-  const teams = Array.isArray(raw.teams) ? (raw.teams as unknown[]) : [];
+  // --- Excluded lanes (§2/§5): exact fields, reasons, and order ---
+  if (JSON.stringify(raw.excluded_lanes) !== JSON.stringify(PUBLIC_REPORT_2024_EXCLUDED_LANES)) {
+    reject('E_UNDOCUMENTED_FIELD_PRESENT', 'excluded_lanes deviates from the exact §5 list (fields, reasons, order)');
+  }
 
-  // The payload's own team records must cover exactly the declared scope (§1/§5): a payload that
-  // omits team records (e.g. `teams: []`) is not a smaller report, it is an invalid one — without
-  // this, empty content could pass every metadata-level check and reach the publication gate.
+  // --- Team records: declared-scope coverage of the payload content itself (§1/§5) ---
+  const teams = Array.isArray(raw.teams) ? (raw.teams as unknown[]) : [];
   const payloadTeamCodes = teams
     .filter(isRecord)
     .map((entry) => entry.team)
@@ -232,15 +413,13 @@ export const validatePublicReport2024 = (
   if (unexpectedTeamRecords.length > 0) {
     reject('E_COVERAGE_TEAM_UNEXPECTED', `teams[] contains unexpected team record(s): ${unexpectedTeamRecords.join(', ')}`);
   }
-  for (const teamEntry of teams) {
-    if (isRecord(teamEntry) && isNonEmptyString(teamEntry.team) && teamEntry.gamesPlayed !== PUBLIC_REPORT_2024_DECLARED_SCOPE.expected_games_per_team) {
-      reject(
-        'E_COVERAGE_ROW_COUNT_MISMATCH',
-        `teams[] record ${teamEntry.team} has gamesPlayed ${String(teamEntry.gamesPlayed)}, expected ` +
-          `${PUBLIC_REPORT_2024_DECLARED_SCOPE.expected_games_per_team}`
-      );
-    }
-  }
+
+  // --- Team records: field discipline (§8 invariants 5/6), shape, and red-zone nulls (inv. 7) ---
+  const observedSet = new Set<string>(PUBLIC_REPORT_2024_OBSERVED_FIELDS);
+  const derivedSet = new Set<string>(PUBLIC_REPORT_2024_DERIVED_FIELDS);
+  const forbiddenSet = new Set<string>(PUBLIC_REPORT_2024_FORBIDDEN_TEAM_FIELDS);
+  const blockedSet = new Set<string>(PUBLIC_REPORT_2024_BLOCKED_DENOMINATOR_FIELDS);
+  const NULLABLE_DERIVED_FIELDS = new Set(['neutralPassRate', 'pointsPerDrive', 'redZoneTdRate']);
 
   const flagField = (team: string, field: string, value: unknown, location: string): void => {
     if (blockedSet.has(field)) {
@@ -270,6 +449,14 @@ export const validatePublicReport2024 = (
         flagField(teamCode, key, teamEntry[key], 'record');
       }
     }
+    if (teamEntry.gamesPlayed !== PUBLIC_REPORT_2024_DECLARED_SCOPE.expected_games_per_team) {
+      reject(
+        'E_COVERAGE_ROW_COUNT_MISMATCH',
+        `teams[] record ${teamCode} has gamesPlayed ${String(teamEntry.gamesPlayed)}, expected ` +
+          `${PUBLIC_REPORT_2024_DECLARED_SCOPE.expected_games_per_team}`
+      );
+    }
+
     const observed = isRecord(teamEntry.observed) ? teamEntry.observed : {};
     const derived = isRecord(teamEntry.derived) ? teamEntry.derived : {};
     for (const key of Object.keys(observed)) {
@@ -281,6 +468,29 @@ export const validatePublicReport2024 = (
       if (!derivedSet.has(key)) {
         flagField(teamCode, key, derived[key], 'derived');
       }
+    }
+    for (const field of PUBLIC_REPORT_2024_OBSERVED_FIELDS) {
+      const value = observed[field];
+      if (typeof value !== 'number' || !Number.isInteger(value)) {
+        reject(
+          'E_UNDOCUMENTED_FIELD_PRESENT',
+          `${teamCode}.observed.${field} = ${String(value)} is not the §3-required integer total`
+        );
+      }
+    }
+    for (const field of PUBLIC_REPORT_2024_DERIVED_FIELDS) {
+      const value = derived[field];
+      const typeOk =
+        (typeof value === 'number' && Number.isFinite(value)) || (value === null && NULLABLE_DERIVED_FIELDS.has(field));
+      if (!typeOk) {
+        reject(
+          'E_UNDOCUMENTED_FIELD_PRESENT',
+          `${teamCode}.derived.${field} = ${String(value)} is not a §3-conformant value`
+        );
+      }
+    }
+    if (!Array.isArray(teamEntry.warnings) || teamEntry.warnings.some((code) => !KNOWN_WARNING_CODES.has(String(code)))) {
+      reject('E_UNDOCUMENTED_FIELD_PRESENT', `${teamCode}.warnings must contain only the §3 warning codes`);
     }
 
     const redZoneTripsTotal = observed.redZoneTripsTotal;
@@ -299,6 +509,21 @@ export const validatePublicReport2024 = (
         );
       }
     }
+  }
+
+  // --- Payload-level warnings must be exactly the union of per-team warnings (§3/§5) ---
+  const expectedPayloadWarnings = teams
+    .filter(isRecord)
+    .flatMap((teamEntry) =>
+      Array.isArray(teamEntry.warnings) && isNonEmptyString(teamEntry.team)
+        ? teamEntry.warnings.map((code) => ({ team: teamEntry.team, code: String(code) }))
+        : []
+    );
+  if (JSON.stringify(raw.warnings) !== JSON.stringify(expectedPayloadWarnings)) {
+    reject(
+      'E_UNDOCUMENTED_FIELD_PRESENT',
+      'payload warnings do not equal the union of per-team warnings (§3 zero-denominator warnings)'
+    );
   }
 
   // --- Formula conformance (§3 / §9 E_UNWEIGHTED_AGGREGATION_USED), exact recompute from rows ---
@@ -370,14 +595,15 @@ export const validatePublicReport2024 = (
   }
 
   // --- Temporal metadata (§7, §8 invariant 8) ---
-  const declaredScope = isRecord(raw.declared_scope) ? raw.declared_scope : {};
   const dataThrough = declaredScope.data_through;
   const sourceSnapshotAt = raw.source_snapshot_at;
   const generatedAt = raw.generated_at;
-  if (!isNonEmptyString(dataThrough) || !isNonEmptyString(sourceSnapshotAt) || !isNonEmptyString(generatedAt)) {
+  if (!isNonEmptyString(dataThrough) || !isIsoTimestamp(sourceSnapshotAt) || !isIsoTimestamp(generatedAt)) {
     reject(
       'E_TEMPORAL_METADATA_MISSING',
-      `data_through=${String(dataThrough)}, source_snapshot_at=${String(sourceSnapshotAt)}, generated_at=${String(generatedAt)}`
+      `data_through=${String(dataThrough)}, source_snapshot_at=${String(sourceSnapshotAt)}, ` +
+        `generated_at=${String(generatedAt)} — all three must be present and well-formed ` +
+        '(source_snapshot_at/generated_at as valid ISO-8601 timestamps)'
     );
   } else {
     // §8 invariant 8: the three temporal fields must not be the identical literal value — two
@@ -405,7 +631,7 @@ export const validatePublicReport2024 = (
       const snapshots = upstreamSources
         .filter(isRecord)
         .map((source) => source.source_snapshot_at)
-        .filter(isNonEmptyString);
+        .filter(isIsoTimestamp);
       if (snapshots.length === upstreamSources.length) {
         const expectedMax = snapshots.reduce((latest, candidate) =>
           Date.parse(candidate) > Date.parse(latest) ? candidate : latest
@@ -417,28 +643,60 @@ export const validatePublicReport2024 = (
           );
         }
       } else {
-        reject('E_TEMPORAL_METADATA_MISSING', 'one or more upstream_sources[].source_snapshot_at are absent');
+        reject(
+          'E_TEMPORAL_METADATA_MISSING',
+          'one or more upstream_sources[].source_snapshot_at are absent or not valid ISO-8601 timestamps'
+        );
       }
     }
   }
 
-  // --- Version identity (§8 invariant 9) ---
+  // --- Version identity (§8 invariant 9): presence, pattern, and exact contract URLs ---
   if (
     !isNonEmptyString(raw.report_version_id) ||
     !isNonEmptyString(raw.canonical_url) ||
     !isNonEmptyString(raw.version_url)
   ) {
     reject('E_VERSION_IDENTITY_MISSING', 'report_version_id/canonical_url/version_url must all be present');
+  } else {
+    const reportVersionId = raw.report_version_id as string;
+    const canonicalUrl = raw.canonical_url as string;
+    const versionUrl = raw.version_url as string;
+    if (!REPORT_VERSION_ID_PATTERN.test(reportVersionId)) {
+      reject(
+        'E_VERSION_IDENTITY_MISSING',
+        `report_version_id ${reportVersionId} does not follow the {methodology_version}.r{n} identity pattern`
+      );
+    }
+    if (canonicalUrl !== PUBLIC_REPORT_2024_CANONICAL_URL_JSON) {
+      reject(
+        'E_VERSION_IDENTITY_MISSING',
+        `canonical_url ${canonicalUrl} is not the contract canonical alias ${PUBLIC_REPORT_2024_CANONICAL_URL_JSON}`
+      );
+    }
+    if (versionUrl !== buildPublicReport2024VersionUrlJson(reportVersionId)) {
+      reject(
+        'E_VERSION_IDENTITY_MISSING',
+        `version_url ${versionUrl} is not the immutable identity URL for report_version_id ${reportVersionId}`
+      );
+    }
   }
-  if ('supersession_status' in raw || 'superseded_by' in raw || 'status' in raw) {
-    reject(
-      'E_VERSION_IDENTITY_MUTABLE',
-      'payload carries a supersession/status field; current/superseded state lives only in the registry (§6)'
-    );
+  for (const key of SUPERSESSION_KEYS) {
+    if (key in raw) {
+      reject(
+        'E_VERSION_IDENTITY_MUTABLE',
+        `payload carries a ${key} field; current/superseded state lives only in the registry (§6)`
+      );
+    }
   }
 
   // --- HTML checks: identity presence, immutable-page discipline, semantic parity ---
-  if (context.html !== undefined) {
+  if (context.html === undefined) {
+    reject(
+      'E_HTML_JSON_SEMANTIC_MISMATCH',
+      'rendered HTML not supplied — HTML/JSON semantic parity could not be verified; failing closed'
+    );
+  } else {
     const semantics = extractPublicReport2024HtmlSemantics(context.html);
     for (const pattern of FORBIDDEN_HTML_STATUS_PATTERNS) {
       if (pattern.test(context.html)) {
@@ -459,7 +717,11 @@ export const validatePublicReport2024 = (
     const parity: Array<[string, string | number | null, string | number | null]> = [
       ['methodology_version', payload.methodology_version, semantics.methodologyVersion],
       ['data_through', isNonEmptyString(dataThrough) ? dataThrough : null, semantics.dataThrough],
-      ['source_snapshot_at', isNonEmptyString(sourceSnapshotAt) ? sourceSnapshotAt : null, semantics.sourceSnapshotAt],
+      [
+        'source_snapshot_at',
+        isNonEmptyString(sourceSnapshotAt) ? sourceSnapshotAt : null,
+        semantics.sourceSnapshotAt
+      ],
       ['generated_at', isNonEmptyString(generatedAt) ? generatedAt : null, semantics.generatedAt],
       ['coverage.team_count', payload.coverage?.team_count ?? null, semantics.teamCount],
       ['coverage.team_game_row_count', payload.coverage?.team_game_row_count ?? null, semantics.teamGameRowCount]
@@ -514,8 +776,13 @@ export const validatePublicReport2024 = (
   // --- Published-content immutability (§8 invariant 9, matrix #15) ---
   if (context.previouslyPublished !== undefined) {
     const { previouslyPublished, candidateSerialized } = context;
-    if (previouslyPublished.json !== undefined && candidateSerialized?.json !== undefined) {
-      if (previouslyPublished.json !== candidateSerialized.json) {
+    if (previouslyPublished.json !== undefined) {
+      if (candidateSerialized?.json === undefined) {
+        reject(
+          'E_VERSION_IDENTITY_MUTABLE',
+          'published JSON exists for this report_version_id but no candidate serialization was supplied to compare; failing closed'
+        );
+      } else if (previouslyPublished.json !== candidateSerialized.json) {
         reject(
           'E_VERSION_IDENTITY_MUTABLE',
           `regenerating ${String(raw.report_version_id)} produced different JSON content than the published ` +
@@ -523,8 +790,13 @@ export const validatePublicReport2024 = (
         );
       }
     }
-    if (previouslyPublished.html !== undefined && candidateSerialized?.html !== undefined) {
-      if (previouslyPublished.html !== candidateSerialized.html) {
+    if (previouslyPublished.html !== undefined) {
+      if (candidateSerialized?.html === undefined) {
+        reject(
+          'E_VERSION_IDENTITY_MUTABLE',
+          'published HTML exists for this report_version_id but no candidate render was supplied to compare; failing closed'
+        );
+      } else if (previouslyPublished.html !== candidateSerialized.html) {
         reject(
           'E_VERSION_IDENTITY_MUTABLE',
           `regenerating ${String(raw.report_version_id)} produced different HTML content than the published version`
@@ -534,19 +806,28 @@ export const validatePublicReport2024 = (
   }
 
   // --- Registry state (§8 invariant 11) ---
-  if (context.registry !== undefined) {
+  if (context.registry === undefined) {
+    reject('E_REGISTRY_STATE_INVALID', 'registry state not supplied — §8 invariant 11 could not be verified; failing closed');
+  } else {
     const registryErrors = validatePublicReportRegistry(context.registry.public_reports);
     for (const error of registryErrors) {
       reject('E_REGISTRY_STATE_INVALID', error);
     }
   }
 
-  // --- Explicit human publication approval (§8 invariant 12) ---
+  // --- Explicit human publication approval (§8 invariant 12): exact version, well-formed record ---
   const approvals = context.approvals ?? [];
-  if (!approvals.some((approval) => approval.report_version_id === raw.report_version_id)) {
+  const approval = approvals.find((record) => record.report_version_id === raw.report_version_id);
+  if (approval === undefined) {
     reject(
       'E_PUBLICATION_NOT_APPROVED',
       `no recorded explicit human approval for report_version_id ${String(raw.report_version_id)}`
+    );
+  } else if (!isNonEmptyString(approval.approved_by) || !isIsoTimestamp(approval.approved_at)) {
+    reject(
+      'E_PUBLICATION_NOT_APPROVED',
+      `approval record for ${String(raw.report_version_id)} is malformed: approved_by must be a non-empty ` +
+        'identity and approved_at a valid ISO-8601 timestamp'
     );
   }
 

@@ -5,6 +5,7 @@ import {
   applyPublicReportPublication,
   resolveCurrentRegistryEntry,
   validatePublicReportRegistry,
+  type PublicReportPublicationEvidence,
   type PublicReportRegistryEntry,
   type TeamstateServiceMetadata
 } from '../src/reports/publicReportRegistry.js';
@@ -16,6 +17,15 @@ const entryInput = (revision: number) => ({
   canonical_url: CANONICAL,
   version_url: `${CANONICAL}/teamstate_public_offensive_environment_2024_v1.r${revision}`,
   published_at: `2026-07-1${revision}T00:00:00.000Z`
+});
+
+const evidenceFor = (revision: number): PublicReportPublicationEvidence => ({
+  validation: { publishable: true, rejections: [] },
+  approval: {
+    report_version_id: `teamstate_public_offensive_environment_2024_v1.r${revision}`,
+    approved_by: 'test-operator',
+    approved_at: '2026-07-17T00:00:00.000Z'
+  }
 });
 
 describe('public report registry (§6)', () => {
@@ -30,7 +40,7 @@ describe('public report registry (§6)', () => {
 
   it('publishes a first version as current without mutating the input metadata', () => {
     const before = JSON.parse(JSON.stringify(LIVE_SERVICE_METADATA));
-    const next = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1));
+    const next = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), evidenceFor(1));
 
     expect(LIVE_SERVICE_METADATA).toEqual(before);
     expect(next.artifact_publication_enabled).toBe(true);
@@ -44,8 +54,8 @@ describe('public report registry (§6)', () => {
   });
 
   it('flips current → superseded atomically in a single pure step when publishing a successor', () => {
-    const first = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1));
-    const second = applyPublicReportPublication(first, entryInput(2));
+    const first = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), evidenceFor(1));
+    const second = applyPublicReportPublication(first, entryInput(2), evidenceFor(2));
 
     // The prior state object is untouched (no intermediate/partial mutation is observable).
     expect(first.public_reports).toHaveLength(1);
@@ -64,8 +74,50 @@ describe('public report registry (§6)', () => {
   });
 
   it('refuses to re-register an already-registered report_version_id', () => {
-    const first = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1));
-    expect(() => applyPublicReportPublication(first, entryInput(1))).toThrow(/already registered/);
+    const first = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), evidenceFor(1));
+    expect(() => applyPublicReportPublication(first, entryInput(1), evidenceFor(1))).toThrow(/already registered/);
+  });
+
+  it('refuses publication without a complete case-#20 validation result', () => {
+    const notPublishable: PublicReportPublicationEvidence = {
+      ...evidenceFor(1),
+      validation: { publishable: false, rejections: [] }
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), notPublishable)).toThrow(
+      /not a complete case-#20 success/
+    );
+
+    const withRejections: PublicReportPublicationEvidence = {
+      ...evidenceFor(1),
+      validation: { publishable: true, rejections: [{ code: 'E_PUBLICATION_NOT_APPROVED', detail: 'x' }] }
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), withRejections)).toThrow(
+      /not a complete case-#20 success/
+    );
+  });
+
+  it('refuses publication on a malformed or wrong-version approval record', () => {
+    const emptyApprover: PublicReportPublicationEvidence = {
+      ...evidenceFor(1),
+      approval: { ...evidenceFor(1).approval, approved_by: '   ' }
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), emptyApprover)).toThrow(
+      /malformed/
+    );
+
+    const invalidTimestamp: PublicReportPublicationEvidence = {
+      ...evidenceFor(1),
+      approval: { ...evidenceFor(1).approval, approved_at: 'yesterday' }
+    };
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), invalidTimestamp)).toThrow(
+      /malformed/
+    );
+
+    // An approval for a different version can never publish this one — approval is exact-version.
+    const wrongVersion: PublicReportPublicationEvidence = evidenceFor(2);
+    expect(() => applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), wrongVersion)).toThrow(
+      /exact-version/
+    );
   });
 
   it('validatePublicReportRegistry flags duplicate currents, dangling pointers, and orphaned superseded entries', () => {
@@ -88,7 +140,7 @@ describe('public report registry (§6)', () => {
   });
 
   it('resolveCurrentRegistryEntry fails closed to null on ambiguous registries', () => {
-    const first = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1));
+    const first = applyPublicReportPublication(LIVE_SERVICE_METADATA, entryInput(1), evidenceFor(1));
     expect(resolveCurrentRegistryEntry(first, CANONICAL)?.report_version_id).toBe(
       'teamstate_public_offensive_environment_2024_v1.r1'
     );

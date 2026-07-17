@@ -96,8 +96,15 @@ function resolvePublicReportRoute(
 
   const resolveVersion = (reportVersionId: string, format: 'html' | 'json') => {
     // Only registered versions are servable — frozen content alone (e.g. a candidate or fixture)
-    // must never be reachable without its registry entry.
-    const entry = serviceMetadata.public_reports.find((candidate) => candidate.report_version_id === reportVersionId);
+    // must never be reachable without its registry entry — and the entry must belong to THIS
+    // report family: a structurally valid entry registered under another canonical_url must not
+    // be reachable through the offensive-environments identity.
+    const entry = serviceMetadata.public_reports.find(
+      (candidate) =>
+        candidate.report_version_id === reportVersionId &&
+        candidate.canonical_url === PUBLIC_REPORT_2024_CANONICAL_URL_HTML &&
+        candidate.version_url === `${PUBLIC_REPORT_2024_CANONICAL_URL_HTML}/${reportVersionId}`
+    );
     if (entry === undefined) {
       return null;
     }

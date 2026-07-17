@@ -10,6 +10,7 @@ import {
   computeSha256Hex,
   serializePublicReport2024Payload
 } from '../src/reports/publicOffensiveEnvironment2024Report.js';
+import { validatePublicReport2024 } from '../src/reports/publicOffensiveEnvironment2024Validator.js';
 import {
   LIVE_SERVICE_METADATA,
   applyPublicReportPublication
@@ -49,16 +50,36 @@ const r2 = buildVersion(2);
 const R1_ID = r1.payload.report_version_id;
 const R2_ID = r2.payload.report_version_id;
 
-const publishedState = (versions: Array<{ payload: { report_version_id: string }; json: string; html: string }>): PublicReportServingState => {
+// Publish through the real gate: each version is validated end-to-end (complete evidence package)
+// against the pre-publication registry, and only its case-#20 result + a well-formed exact-version
+// approval can flip the registry — the same path production publication must take.
+const publishedState = (versions: Array<(typeof r1)>): PublicReportServingState => {
   let metadata = LIVE_SERVICE_METADATA;
   const frozenReports = new Map<string, { json: string; html: string }>();
   for (const version of versions) {
-    metadata = applyPublicReportPublication(metadata, {
+    const approval = {
       report_version_id: version.payload.report_version_id,
-      canonical_url: CANONICAL_HTML,
-      version_url: `${CANONICAL_HTML}/${version.payload.report_version_id}`,
-      published_at: '2026-07-17T00:00:00.000Z'
+      approved_by: 'test-operator',
+      approved_at: '2026-07-17T00:00:00.000Z'
+    };
+    const validation = validatePublicReport2024(version.payload, {
+      governedSourceBytes,
+      sourceRows: consumption.rows,
+      html: version.html,
+      registry: metadata,
+      approvals: [approval]
     });
+    expect(validation.publishable).toBe(true);
+    metadata = applyPublicReportPublication(
+      metadata,
+      {
+        report_version_id: version.payload.report_version_id,
+        canonical_url: CANONICAL_HTML,
+        version_url: `${CANONICAL_HTML}/${version.payload.report_version_id}`,
+        published_at: '2026-07-17T00:00:00.000Z'
+      },
+      { validation, approval }
+    );
     frozenReports.set(version.payload.report_version_id, { json: version.json, html: version.html });
   }
   return { serviceMetadata: metadata, frozenReports };
@@ -195,6 +216,35 @@ describe('public report serving (§6 identities, fail-closed pre-approval)', () 
     for (const route of [CANONICAL_HTML, CANONICAL_JSON, `${CANONICAL_HTML}/${R1_ID}`, `${CANONICAL_HTML}/${R2_ID}.json`]) {
       expect((await fetch(`${base}${route}`)).status).toBe(404);
     }
+  });
+
+  it("never serves another report family's registry entry through these routes", async () => {
+    const state = publishedState([r1]);
+    const foreignId = 'some_other_family_report_v1.r1';
+    const withForeignEntry: PublicReportServingState = {
+      serviceMetadata: {
+        ...state.serviceMetadata,
+        public_reports: [
+          ...state.serviceMetadata.public_reports,
+          {
+            report_version_id: foreignId,
+            canonical_url: '/nfl/2023/some-other-report',
+            version_url: `/nfl/2023/some-other-report/${foreignId}`,
+            status: 'current',
+            superseded_by: null,
+            published_at: '2026-07-17T00:00:00.000Z'
+          }
+        ]
+      },
+      frozenReports: new Map([...state.frozenReports, [foreignId, { json: r2.json, html: r2.html }]])
+    };
+    const base = await startServer(withForeignEntry);
+    // The foreign entry is structurally valid and has frozen content, but it belongs to another
+    // canonical_url family — the offensive-environments identity must not serve it.
+    expect((await fetch(`${base}${CANONICAL_HTML}/${foreignId}`)).status).toBe(404);
+    expect((await fetch(`${base}${CANONICAL_HTML}/${foreignId}.json`)).status).toBe(404);
+    // The family's own version stays served.
+    expect((await fetch(`${base}${CANONICAL_HTML}/${R1_ID}.json`)).status).toBe(200);
   });
 
   it('does not treat nested or malformed version paths as servable', async () => {
