@@ -46,6 +46,19 @@ export interface TeamWeekRawGovernedRow {
   turnovers: NullableNumber;
 }
 
+/**
+ * Read-only pass-through of one governed-source `metadata.inputSources` entry. Preserved verbatim
+ * as source metadata (same posture as `sourceArtifacts`/`validationReportPath`/
+ * `lineageManifestPath`): the adapter surfaces what the governed artifact recorded and makes no new
+ * governance judgment about it. Absent or malformed pieces are preserved as `[]`/`null` so
+ * downstream consumers (e.g. the public-report validator) can fail closed on them explicitly.
+ */
+export interface TeamWeekRawGovernedInputSource {
+  sourceRefs: string[];
+  sourceSnapshotAt: string | null;
+  checksum: { algorithm: string; value: string } | null;
+}
+
 export interface TeamWeekRawGovernedUpstream {
   sourceArtifactPath: string;
   artifact: 'team_week_raw_v0';
@@ -62,6 +75,8 @@ export interface TeamWeekRawGovernedUpstream {
   fieldReadiness: unknown;
   validationReportPath: string | null;
   lineageManifestPath: string | null;
+  /** Read-only pass-through of `metadata.inputSources` (`[]` when the governed source has none). */
+  inputSources: TeamWeekRawGovernedInputSource[];
 }
 
 export interface TeamWeekRawGovernedConsumption {
@@ -114,6 +129,49 @@ const stringArray = (value: unknown, label: string): string[] => {
 };
 
 const optionalString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+
+const passThroughChecksum = (value: unknown): TeamWeekRawGovernedInputSource['checksum'] => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (
+    typeof candidate.algorithm !== 'string' ||
+    candidate.algorithm.trim().length === 0 ||
+    typeof candidate.value !== 'string' ||
+    candidate.value.trim().length === 0
+  ) {
+    return null;
+  }
+  return { algorithm: candidate.algorithm, value: candidate.value };
+};
+
+/**
+ * Preserve `metadata.inputSources` verbatim as read-only source metadata. This is deliberately a
+ * pass-through, not a gate: entries are kept positionally (never dropped), and a missing/malformed
+ * `sourceRefs`/`sourceSnapshotAt`/`checksum` is represented as `[]`/`null` rather than rejected
+ * here, so the adapter adds no new governance judgment and downstream consumers that require these
+ * fields can fail closed on them with their own explicit rejection codes.
+ */
+const passThroughInputSources = (value: unknown): TeamWeekRawGovernedInputSource[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((entry) => {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+      return { sourceRefs: [], sourceSnapshotAt: null, checksum: null };
+    }
+    const candidate = entry as Record<string, unknown>;
+    const sourceRefs = Array.isArray(candidate.sourceRefs)
+      ? candidate.sourceRefs.filter((ref): ref is string => typeof ref === 'string' && ref.trim().length > 0)
+      : [];
+    return {
+      sourceRefs,
+      sourceSnapshotAt: optionalString(candidate.sourceSnapshotAt),
+      checksum: passThroughChecksum(candidate.checksum)
+    };
+  });
+};
 
 const validateRow = (row: unknown, index: number): TeamWeekRawGovernedRow => {
   if (typeof row !== 'object' || row === null || Array.isArray(row)) {
@@ -207,7 +265,8 @@ export const adaptTeamWeekRawV0Governed = (raw: unknown, sourceArtifactPath: str
       deferredFields,
       fieldReadiness: md.fieldReadiness ?? null,
       validationReportPath: optionalString(md.validationReportPath),
-      lineageManifestPath: optionalString(md.lineageManifestPath)
+      lineageManifestPath: optionalString(md.lineageManifestPath),
+      inputSources: passThroughInputSources(md.inputSources)
     },
     rows: artifact.rows.map(validateRow)
   };
