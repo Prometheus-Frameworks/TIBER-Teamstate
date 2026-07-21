@@ -16,10 +16,9 @@
  *   (§4/§6: same scope, provenance, warnings, and values — closed byte-for-byte), in addition to
  *   the semantic extraction checks that give precise rejection codes.
  * - A publishable result carries a `binding` (exact `report_version_id` + sha256 digests of the
- *   canonical JSON and validated HTML), generated internally. The publication transition
- *   (`applyPublicReportPublication` / `publishPublicReportVersion`) accepts only a result whose
- *   binding names the exact entry being published and whose content matches those digests — a
- *   genuine case-#20 result for one version can never publish another.
+ *   canonical JSON and validated HTML), generated internally. `publishPublicReportVersion` invokes
+ *   this validator itself and immediately uses that binding for the same frozen bytes; it never
+ *   accepts a validation result supplied by its caller.
  *
  * Missing evidence is itself a rejection under the corresponding stable code — the validator
  * never silently skips a check it lacks the inputs to perform. A passing validation is necessary
@@ -75,11 +74,16 @@ export interface PublicReport2024Rejection {
   detail: string;
 }
 
-/** §8 invariant 12: an explicit, recorded human publication approval for an exact version. */
+/**
+ * §8 invariant 12: an explicit, recorded human publication approval for an exact version and the
+ * exact frozen JSON/HTML bytes reviewed by that human.
+ */
 export interface PublicationApprovalRecord {
-  report_version_id: string;
-  approved_by: string;
-  approved_at: string;
+  readonly report_version_id: string;
+  readonly approved_by: string;
+  readonly approved_at: string;
+  readonly json_sha256: string;
+  readonly html_sha256: string;
 }
 
 export interface ValidatePublicReport2024Context {
@@ -95,7 +99,7 @@ export interface ValidatePublicReport2024Context {
    */
   html?: string;
   /**
-   * The mutable registry state (§8 invariant 11). Absent state fails closed
+   * The current registry snapshot (§8 invariant 11). Absent state fails closed
    * (`E_REGISTRY_STATE_INVALID`).
    */
   registry?: TeamstateServiceMetadata;
@@ -976,19 +980,38 @@ export const validatePublicReport2024 = (
     }
   }
 
-  // --- Explicit human publication approval (§8 invariant 12): exact version, well-formed record ---
+  // --- Explicit human publication approval (§8 invariant 12): exact version, exact content, and
+  // a well-formed recorded human identity/timestamp. The production publisher obtains this record
+  // from its internal approval registry; it is not part of the caller's publication request.
   const approvals = context.approvals ?? [];
   const approval = approvals.find((record) => record.report_version_id === raw.report_version_id);
+  const candidateJsonSha256 = candidateJson === null ? null : computeSha256Hex(candidateJson);
+  const candidateHtmlSha256 = context.html === undefined ? null : computeSha256Hex(context.html);
   if (approval === undefined) {
     reject(
       'E_PUBLICATION_NOT_APPROVED',
       `no recorded explicit human approval for report_version_id ${String(raw.report_version_id)}`
     );
-  } else if (!isNonEmptyString(approval.approved_by) || !isIsoTimestamp(approval.approved_at)) {
+  } else if (
+    !isNonEmptyString(approval.approved_by) ||
+    !isIsoTimestamp(approval.approved_at) ||
+    !SHA256_HEX_PATTERN.test(approval.json_sha256) ||
+    !SHA256_HEX_PATTERN.test(approval.html_sha256)
+  ) {
     reject(
       'E_PUBLICATION_NOT_APPROVED',
       `approval record for ${String(raw.report_version_id)} is malformed: approved_by must be a non-empty ` +
-        'identity and approved_at a valid ISO-8601 timestamp'
+        'identity, approved_at a valid ISO-8601 timestamp, and both content digests lowercase sha256'
+    );
+  } else if (
+    candidateJsonSha256 === null ||
+    candidateHtmlSha256 === null ||
+    approval.json_sha256 !== candidateJsonSha256 ||
+    approval.html_sha256 !== candidateHtmlSha256
+  ) {
+    reject(
+      'E_PUBLICATION_NOT_APPROVED',
+      `approval record for ${String(raw.report_version_id)} is not bound to the exact candidate JSON/HTML bytes`
     );
   }
 
@@ -999,8 +1022,8 @@ export const validatePublicReport2024 = (
     publishable && candidateJson !== null && context.html !== undefined
       ? {
           report_version_id: payload.report_version_id,
-          json_sha256: computeSha256Hex(candidateJson),
-          html_sha256: computeSha256Hex(context.html)
+          json_sha256: candidateJsonSha256 as string,
+          html_sha256: candidateHtmlSha256 as string
         }
       : null;
   return { rejections, publishable: publishable && binding !== null, binding };

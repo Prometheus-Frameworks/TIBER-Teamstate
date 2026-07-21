@@ -87,7 +87,9 @@ const hypothetical = validatePublicReport2024(payload, {
     {
       report_version_id: payload.report_version_id,
       approved_by: 'hypothetical-dry-run-only',
-      approved_at: generatedAt
+      approved_at: generatedAt,
+      json_sha256: computeSha256Hex(json),
+      html_sha256: computeSha256Hex(html)
     }
   ]
 });

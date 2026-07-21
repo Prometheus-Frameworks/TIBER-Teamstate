@@ -14,33 +14,47 @@
  */
 
 export interface PublicReportRegistryEntry {
-  report_version_id: string;
+  readonly report_version_id: string;
   /** Family identity: the canonical HTML alias (e.g. `/nfl/2024/offensive-environments`). */
-  canonical_url: string;
-  version_url: string;
-  status: 'current' | 'superseded';
-  superseded_by: string | null;
-  published_at: string;
+  readonly canonical_url: string;
+  readonly version_url: string;
+  readonly status: 'current' | 'superseded';
+  readonly superseded_by: string | null;
+  readonly published_at: string;
 }
 
 export interface TeamstateServiceMetadata {
-  service: string;
-  status: string;
-  public_reports: PublicReportRegistryEntry[];
-  artifact_publication_enabled: boolean;
+  readonly service: string;
+  readonly status: string;
+  readonly public_reports: readonly PublicReportRegistryEntry[];
+  readonly artifact_publication_enabled: boolean;
 }
+
+/**
+ * Return a detached, deeply frozen registry snapshot. The registry is mutable only by replacement:
+ * a publication transition creates a new frozen snapshot rather than exposing write authority to
+ * a server or caller that already holds an earlier state.
+ */
+export const freezeTeamstateServiceMetadata = (
+  metadata: TeamstateServiceMetadata
+): TeamstateServiceMetadata => {
+  const publicReports = Object.freeze(
+    metadata.public_reports.map((entry) => Object.freeze({ ...entry }))
+  );
+  return Object.freeze({ ...metadata, public_reports: publicReports });
+};
 
 /**
  * The live service state: deployment scaffold, no published reports, publication disabled. This is
  * the only state the deployed service may serve until an explicit, recorded operator approval for
  * a specific `report_version_id` (§8 invariant 12).
  */
-export const LIVE_SERVICE_METADATA: TeamstateServiceMetadata = {
+export const LIVE_SERVICE_METADATA: TeamstateServiceMetadata = freezeTeamstateServiceMetadata({
   service: 'tiber-teamstate',
   status: 'deployment_scaffold',
   public_reports: [],
   artifact_publication_enabled: false
-};
+});
 
 const REGISTRY_ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
 

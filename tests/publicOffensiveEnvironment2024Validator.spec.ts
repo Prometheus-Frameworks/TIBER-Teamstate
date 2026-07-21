@@ -40,7 +40,9 @@ const html = renderPublicReport2024Html(payload);
 const APPROVAL: PublicationApprovalRecord = {
   report_version_id: payload.report_version_id,
   approved_by: 'test-operator',
-  approved_at: GENERATED_AT
+  approved_at: GENERATED_AT,
+  json_sha256: computeSha256Hex(serializePublicReport2024Payload(payload)),
+  html_sha256: computeSha256Hex(html)
 };
 
 const fullContext: ValidatePublicReport2024Context = {
@@ -416,7 +418,7 @@ describe('validatePublicReport2024 — mandatory evidence package (fail closed o
     expect(codesOf(result)).toContain('E_VERSION_IDENTITY_MUTABLE');
   });
 
-  it('rejects malformed approval records: empty approved_by or invalid approved_at', () => {
+  it('rejects malformed or content-mismatched approval records', () => {
     const emptyApprover = validatePublicReport2024(payload, {
       ...fullContext,
       approvals: [{ ...APPROVAL, approved_by: '   ' }]
@@ -430,6 +432,20 @@ describe('validatePublicReport2024 — mandatory evidence package (fail closed o
     });
     expect(codesOf(badTimestamp)).toContain('E_PUBLICATION_NOT_APPROVED');
     expect(badTimestamp.publishable).toBe(false);
+
+    const staleJsonApproval = validatePublicReport2024(payload, {
+      ...fullContext,
+      approvals: [{ ...APPROVAL, json_sha256: 'a'.repeat(64) }]
+    });
+    expect(codesOf(staleJsonApproval)).toContain('E_PUBLICATION_NOT_APPROVED');
+    expect(staleJsonApproval.publishable).toBe(false);
+
+    const staleHtmlApproval = validatePublicReport2024(payload, {
+      ...fullContext,
+      approvals: [{ ...APPROVAL, html_sha256: 'b'.repeat(64) }]
+    });
+    expect(codesOf(staleHtmlApproval)).toContain('E_PUBLICATION_NOT_APPROVED');
+    expect(staleHtmlApproval.publishable).toBe(false);
   });
 });
 
