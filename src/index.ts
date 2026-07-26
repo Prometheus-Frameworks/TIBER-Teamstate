@@ -37,3 +37,9 @@ export * from './adapters/teamWeekRawV0GovernedAdapter.js';
 export * from './ingest/loadTeamWeekRawV0Governed.js';
 export * from './governed/teamWeekRawV0GovernedReadiness.js';
 export * from './governed/teamWeekRawV0ForecastRun2Artifact.js';
+
+export * from './contracts/teamstatePublicOffensiveEnvironment2024V1.js';
+export * from './reports/publicOffensiveEnvironment2024Report.js';
+export * from './reports/publicOffensiveEnvironment2024Html.js';
+export * from './reports/publicOffensiveEnvironment2024Validator.js';
+export * from './reports/publicReportRegistry.js';
