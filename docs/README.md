@@ -1,5 +1,9 @@
 # Teamstate Docs
 
+## Current pickup
+
+- [2026 weekly activation intent and descriptive pilot](teamstate-2026-weekly-activation-plan.md) — begin with the Data field/readiness inventory; Week 1 then Week 2 are proposed candidate runs, not activated weekly production.
+
 ## Key boundary documents
 
 - [`tts-v1-team-state-layer.md`](tts-v1-team-state-layer.md) — TTS v1 identity: what Teamstate owns / does not own, v1 artifact families, score vs. confidence, the Phase 4 consumption boundary, and artifact-hygiene decisions.
