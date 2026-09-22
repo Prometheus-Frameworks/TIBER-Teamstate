@@ -9,6 +9,12 @@ PR4 extends the PR3 reporting layer with downstream-ready ingestion and contract
 - explicit pipeline metadata artifact (`pipeline_metadata.json`)
 - compact current-state contract artifacts (`current_*.json`) for downstream repos
 
+## 2026 weekly activation: next pickup
+
+Our intended next operational step is a **2026 weekly descriptive Teamstate pilot**, starting with Week 1 and then Week 2 after their inputs qualify. No verified 2026 weekly Teamstate run was found in the September 21 repository inspection; the existing 2026 context files are operator-seeded, not weekly results.
+
+**Next pickup:** inventory the available TIBER-Data fields, source eligibility, coverage and adapter gaps, then propose the smallest supported pilot. See [2026 activation intent and pilot pickup](docs/teamstate-2026-weekly-activation-plan.md). This is planning documentation, not runtime activation or publication approval.
+
 ## May TIBER-Data Alignment: Team-Environment Interpretation Layer
 
 After the May TIBER-Data milestone, Teamstate is the **team-environment interpretation layer** in the TIBER ecosystem. Teamstate should consume governed, source-backed TIBER-Data artifacts and translate them into auditable team context. It should not own raw source truth, copy evidence values by hand, or fabricate derived football context when upstream provenance is not present.
