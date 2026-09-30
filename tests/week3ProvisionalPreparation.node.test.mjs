@@ -4,7 +4,7 @@
  */
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -13,15 +13,29 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const build = mkdtempSync(join(tmpdir(), 'tts-week3-fixture-'));
 after(() => rmSync(build, { recursive: true, force: true }));
 const localCompiler = join(root, 'node_modules/typescript/bin/tsc');
-const flags = ['--target', 'ES2022', '--module', 'commonjs', '--strict', '--skipLibCheck',
-  '--rootDir', 'src/provisional', '--outDir', build,
-  'src/provisional/inspectWeek3Boxscore.ts', 'src/provisional/week3BindingPreparation.ts'];
+// An explicit isolated project is portable across TS 5/6 and never inherits root tsconfig.
+const project = join(build, 'tsconfig.json');
+const compiled = join(build, 'compiled');
+const projectConfig = {
+  compilerOptions: { target: 'ES2022', module: 'CommonJS', strict: true, skipLibCheck: true,
+    rootDir: join(root, 'src/provisional'), outDir: compiled, types: [] },
+  files: [join(root, 'src/provisional/inspectWeek3Boxscore.ts'), join(root, 'src/provisional/week3BindingPreparation.ts')],
+  include: [],
+};
+writeFileSync(project, JSON.stringify(projectConfig));
+const flags = ['--project', project];
 const result = spawnSync(existsSync(localCompiler) ? process.execPath : 'tsc',
   existsSync(localCompiler) ? [localCompiler, ...flags] : flags, { cwd: root, encoding: 'utf8' });
 assert.equal(result.status, 0, `Installed TypeScript compilation failed (no download fallback): ${result.error ?? ''}\n${result.stdout}\n${result.stderr}`);
-const { inspectWeek3Boxscore } = await import(pathToFileURL(join(build, 'inspectWeek3Boxscore.js')).href);
-const { WEEK3_FIELDS, WEEK3_GAMES, WEEK3_PREPARATION } = await import(pathToFileURL(join(build, 'week3BindingPreparation.js')).href);
-const { WEEK1_FIELDS } = await import(pathToFileURL(join(build, 'week1Binding.js')).href);
+const { inspectWeek3Boxscore } = await import(pathToFileURL(join(compiled, 'inspectWeek3Boxscore.js')).href);
+const { WEEK3_FIELDS, WEEK3_GAMES, WEEK3_PREPARATION } = await import(pathToFileURL(join(compiled, 'week3BindingPreparation.js')).href);
+const { WEEK1_FIELDS } = await import(pathToFileURL(join(compiled, 'week1Binding.js')).href);
+
+test('compilation explicitly selects an isolated project without positional source arguments', () => {
+  assert.deepEqual(flags, ['--project', project]);
+  assert.equal(projectConfig.files.length, 2); assert.deepEqual(projectConfig.include, []);
+  assert.equal('extends' in projectConfig, false); assert.equal(projectConfig.compilerOptions.outDir, compiled);
+});
 
 function fixture() {
   // The fixed game keys exercise coverage only; every numeric field below is invented.
