@@ -31,9 +31,13 @@ The exact retained input manifest, authenticated members and review receipt stil
 
 ## Checks and limits
 
-`node --test tests/week3ProvisionalPreparation.node.test.mjs` compiles only the inspector/binding and unchanged Week 1 field dependency with installed TypeScript, then executes 14 synthetic Node tests. All pass, including strict TypeScript compilation. Numeric values are invented; real game keys test scope, not actual football activity. No real raw input, player data, Data replay or Teamstate output was produced.
+`node --test tests/week3ProvisionalPreparation.node.test.mjs` compiles only the inspector/binding and unchanged Week 1 field dependency with installed TypeScript, then executes 15 synthetic Node tests. All pass, including strict TypeScript compilation. Numeric values are invented; real game keys test scope, not actual football activity. No real raw input, player data, Data replay or Teamstate output was produced.
 
 The test uses local installed TypeScript or an installed `tsc` executable and has no download/install fallback. It cleans its temporary build. Its filename does not overlap the repository's existing Vitest `tests/**/*.spec.ts` selection. Existing dependencies/scripts/Week 1 files are unchanged. Vitest and the full repository suite were not run in this executor; no claim about those suites is made.
+
+## Independent-review repair
+
+The first exact-head review found P2 `4145934068`: TypeScript 6 refuses positional source files when the repository's root tsconfig is discoverable. The original focused snapshot had no root tsconfig. This is a real harness defect, not a football-rule issue. The exact root configuration was retrieved and restored locally. The independent reviewer reproduced the failure on TypeScript 6.0.3; this executor has TypeScript 5.8.3 and did not reproduce that version-specific failure. The test now creates an explicit temporary project with only two input files, a separate output directory, no inherited config and no ambient types. It invokes `tsc --project`, not version-specific `--ignoreConfig`, then removes the temporary build. An added regression checks the isolated-project command. Fifteen synthetic tests pass locally on TypeScript 5.8.3 with the repository config present; TypeScript 6 re-verification belongs to the fresh independent review. No dependency, repository config, source binding or inspector logic changed. Fresh exact-head review is requested for this repair.
 
 ## Stop point
 
