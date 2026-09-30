@@ -1,0 +1,43 @@
+{
+  "status": "preparation_only_missing_witnesses",
+  "source_scope": {
+    "season": 2026,
+    "season_type": "REG",
+    "week": 3
+  },
+  "data_base_commit": "e1e92078c626b9e2e502e927ba0de79afd26f451",
+  "data_head_commit": "eac3b9bc22cf1fa230b233a09f5e031a2a9b409a",
+  "source_support_commit": "2b58e2c22ccd2430041afcfbd143b057830878f0",
+  "candidate_path": "exports/candidates/weekly_boxscore/revisions/2026_REG_w03/f3366ac1c2192641c6e94ba7c756ed2e12ba73b37550619ae143deaeab9f9902.json",
+  "candidate_sha256": "f3366ac1c2192641c6e94ba7c756ed2e12ba73b37550619ae143deaeab9f9902",
+  "candidate_bytes_authenticated_in_this_preparation": false,
+  "candidate_generated_at": null,
+  "generation_witness": null,
+  "exact_input_manifest": null,
+  "qualified_input_review": null,
+  "provisional_use_accepted": false,
+  "real_input_execution_authorized": false,
+  "consumer_activation": false,
+  "missing_witnesses": [
+    "Candidate-generation evidence for this exact candidate and support; retrieval/commit clocks are not substitutes.",
+    "Exact complete retained input manifest and authenticated members for the producer boundary.",
+    "Adapter-consumable exact input/review binding; a canonical-head no-major-issues comment exists, but no such receipt was ported.",
+    "Separate operator provisional-purpose acceptance and bounded real-input execution decision."
+  ],
+  "source_limits": {
+    "game_finality": "unknown",
+    "correction_status": "open/provisional",
+    "evidence_cutoff": null,
+    "receiving_air_yards": "excluded_conflicts_retained",
+    "advanced_deployment": "unavailable",
+    "canonical_identity_admission": false,
+    "missing_player_is_zero": false
+  },
+  "producer": "TIBER-Teamstate",
+  "data_review_reconciliation": {
+    "comment_id": 5913333560,
+    "reviewed_head": "eac3b9bc22cf1fa230b233a09f5e031a2a9b409a",
+    "reported_disposition": "no major issues",
+    "detailed_replay_receipt": "not_supplied"
+  }
+}
