@@ -14,10 +14,10 @@ after(() => rmSync(build, { recursive: true, force: true }));
 const compiler = join(root, 'node_modules/typescript/bin/tsc');
 // Resolve installed declarations independently of checkout-local dependencies.
 // No install/download fallback; Node's runtime module resolution may supply them.
-function nodeTypeRoots(checkout) {
+function nodeTypeRoots(checkout, declarationCheckout = checkout) {
   const installedCompilers = (process.env.PATH ?? '').split(delimiter)
     .map(path => join(path, 'tsc')).filter(existsSync).map(path => realpathSync(path));
-  for (const location of [join(checkout, 'package.json'), process.execPath, ...installedCompilers]) {
+  for (const location of [join(checkout, 'package.json'), process.execPath, ...installedCompilers, join(declarationCheckout, 'package.json')]) {
     try {
       const declarations = createRequire(location).resolve('@types/node/package.json');
       return [dirname(dirname(declarations))];
@@ -155,7 +155,7 @@ test('installed compiler compiles without checkout-local Node types', () => {
   const checkout = join(build, 'empty-checkout');
   assert.equal(existsSync(join(checkout, 'node_modules/@types')), false);
   const config = JSON.parse(readFileSync(project, 'utf8'));
-  config.compilerOptions.typeRoots = nodeTypeRoots(checkout);
+  config.compilerOptions.typeRoots = nodeTypeRoots(checkout, root);
   const fallbackProject = join(build, 'fallback-tsconfig.json');
   writeFileSync(fallbackProject, JSON.stringify(config));
   const fallback = spawnSync(existsSync(compiler) ? process.execPath : 'tsc',
@@ -175,5 +175,17 @@ test('producer review completion anchor is required, valid and later than Data r
   const b = bytes(purposeFixture()), a = { ...anchors, receiptSha256: hash(b), receiptSize: b.length };
   for (const time of [undefined, '', 'invalid', '2026-10-02T00:00:00Z', '2026-10-05T21:00:00Z']) {
     assert.throws(() => api.verifyWeek3PurposeReceipt(b, { ...a, producerReviewCompletedAt: time }));
+  }
+});
+
+test('acceptance lower bound preserves microsecond precision', () => {
+  const f = purposeFixture(), review = '2026-10-05T20:00:00.123999Z';
+  for (const time of ['2026-10-05T20:00:00.123000Z', '2026-10-05T20:00:00.123998Z']) {
+    f.accepted_at = time; const b = bytes(f);
+    assert.throws(() => api.verifyWeek3PurposeReceipt(b, { ...anchors, receiptSha256: hash(b), receiptSize: b.length, producerReviewCompletedAt: review }), /acceptance clock/);
+  }
+  for (const time of [review, '2026-10-05T20:00:00.124Z']) {
+    f.accepted_at = time; const b = bytes(f);
+    assert.equal(api.verifyWeek3PurposeReceipt(b, { ...anchors, receiptSha256: hash(b), receiptSize: b.length, producerReviewCompletedAt: review }), undefined);
   }
 });

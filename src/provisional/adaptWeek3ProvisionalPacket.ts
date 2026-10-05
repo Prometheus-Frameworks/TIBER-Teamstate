@@ -104,10 +104,15 @@ export interface Week3PurposeReceiptExpectation {
 export function verifyWeek3PurposeReceipt(bytes: Uint8Array, expected: Week3PurposeReceiptExpectation): void {
   const validClock = (value: unknown): value is string => typeof value === 'string' &&
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value) && Number.isFinite(Date.parse(value));
+  // Preserve every permitted fractional digit; Date.parse alone truncates to milliseconds.
+  const clockMicros = (value: string): bigint => {
+    const fraction = /\.(\d{1,6})Z$/.exec(value)?.[1] ?? '';
+    return BigInt(Date.parse(value.replace(/\.\d+Z$/, 'Z'))) * 1000n + BigInt(fraction.padEnd(6, '0'));
+  };
   // This trusted anchor binds completion of review of BOTH final implementation heads.
   // It must be approved independently of the receipt, together with the review digest.
   if (!validClock(expected.producerReviewCompletedAt) ||
-      Date.parse(expected.producerReviewCompletedAt) < Date.parse('2026-10-03T15:37:01.594796Z')) throw new Error('Invalid independently approved producer review clock');
+      clockMicros(expected.producerReviewCompletedAt) < clockMicros('2026-10-03T15:37:01.594796Z')) throw new Error('Invalid independently approved producer review clock');
   if (!/^[a-f0-9]{64}$/.test(expected.receiptSha256) || !/^[a-f0-9]{64}$/.test(expected.producerReviewSha256) ||
       !/^[a-f0-9]{40}$/.test(expected.teamstateHead) || !/^[a-f0-9]{40}$/.test(expected.ropHead) ||
       !Number.isSafeInteger(expected.receiptSize) || expected.receiptSize < 1 || expected.receiptSize > 65536) throw new Error('Invalid independently approved receipt anchors');
@@ -135,5 +140,5 @@ export function verifyWeek3PurposeReceipt(bytes: Uint8Array, expected: Week3Purp
     reviewed_tree: B.reviewedDataTree, storage_head: B.storageHead }, 'purpose source review');
   for (const key of ['source_admission', 'consumer_activation', 'real_input_execution_authorized']) equal(receipt[key], false, `purpose ${key}`);
   if (!validClock(receipt.accepted_at) ||
-      Date.parse(receipt.accepted_at) < Date.parse(expected.producerReviewCompletedAt)) throw new Error('Invalid purpose acceptance clock');
+      clockMicros(receipt.accepted_at) < clockMicros(expected.producerReviewCompletedAt)) throw new Error('Invalid purpose acceptance clock');
 }
