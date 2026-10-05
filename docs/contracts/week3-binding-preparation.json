@@ -1,5 +1,5 @@
 {
-  "status": "preparation_only_missing_witnesses",
+  "status": "bounded_binding_repair_pending_independent_review_and_operator_decision",
   "source_scope": {
     "season": 2026,
     "season_type": "REG",
@@ -10,19 +10,36 @@
   "source_support_commit": "2b58e2c22ccd2430041afcfbd143b057830878f0",
   "candidate_path": "exports/candidates/weekly_boxscore/revisions/2026_REG_w03/f3366ac1c2192641c6e94ba7c756ed2e12ba73b37550619ae143deaeab9f9902.json",
   "candidate_sha256": "f3366ac1c2192641c6e94ba7c756ed2e12ba73b37550619ae143deaeab9f9902",
-  "candidate_bytes_authenticated_in_this_preparation": false,
+  "candidate_bytes_authenticated_in_this_preparation": true,
   "candidate_generated_at": null,
-  "generation_witness": null,
-  "exact_input_manifest": null,
-  "qualified_input_review": null,
+  "generation_witness": {
+    "kind": "fresh_offline_replay_materialization",
+    "started_at": "2026-10-03T15:34:05.067808Z",
+    "completed_at": "2026-10-03T15:34:05.379891Z",
+    "original_candidate_generated_at": null,
+    "build_receipt_sha256": "c7e0b4d5a7c299ed51b85b2e1d98f5ce13eb0ac8d2765c155d2ca36ab8b66bba"
+  },
+  "exact_input_manifest": {
+    "files": 16,
+    "source_dependencies": 13,
+    "authenticated_manifest_sha256": "cf1c2a555bda20199ca36642f427eb83edfbfbb5f4546e233ce994a0fe8aa1b1",
+    "pins": "src/provisional/week3Binding.ts",
+    "historical_pending_receipts_unchanged": true
+  },
+  "qualified_input_review": {
+    "disposition": "clean",
+    "reviewed_head": "4821a08ecad8c4ed7177b2acda0cb29d93a2649a",
+    "reviewed_tree": "e0dde60d67b719258ea3cfb190702204d0bf7756",
+    "storage_head": "739b7acdbc92f3b81463cb9a707e71ef8b0911ba",
+    "sha256": "e9a9611c3cbe294189584e8da30108d36594fcffc4e72a460e6b406784fb5643"
+  },
   "provisional_use_accepted": false,
   "real_input_execution_authorized": false,
   "consumer_activation": false,
   "missing_witnesses": [
-    "Candidate-generation evidence for this exact candidate and support; retrieval/commit clocks are not substitutes.",
-    "Exact complete retained input manifest and authenticated members for the producer boundary.",
-    "Adapter-consumable exact input/review binding; a canonical-head no-major-issues comment exists, but no such receipt was ported.",
-    "Separate operator provisional-purpose acceptance and bounded real-input execution decision."
+    "Independent exact-final-head producer review.",
+    "Separate operator purpose receipt and trusted immutable expectation anchors.",
+    "Separate bounded real-input execution decision."
   ],
   "source_limits": {
     "game_finality": "unknown",
@@ -38,6 +55,23 @@
     "comment_id": 5913333560,
     "reviewed_head": "eac3b9bc22cf1fa230b233a09f5e031a2a9b409a",
     "reported_disposition": "no major issues",
-    "detailed_replay_receipt": "not_supplied"
+    "detailed_replay_receipt": "Separately pinned October 3 replay review; prior source-head comment remains historical."
+  },
+  "purpose_verification": {
+    "function": "verifyWeek3PurposeReceipt",
+    "creates_receipt": false,
+    "applies_acceptance": false,
+    "expected_anchors": "Separately approved final proposal; not the supplied receipt."
+  },
+  "checks": {
+    "typescript": "5.9.2",
+    "shape_tests": 15,
+    "binding_tests": 44,
+    "failed": 0,
+    "skipped": 0,
+    "strict_slice_compilation": "passed",
+    "full_repository_suite": "not_run",
+    "typescript6": "not_run",
+    "real_input_wrapper": "not_run"
   }
 }
