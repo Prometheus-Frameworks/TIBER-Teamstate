@@ -97,11 +97,17 @@ export function adaptWeek3ProvisionalPacket(packet: ReadonlyMap<string, Uint8Arr
 
 export interface Week3PurposeReceiptExpectation {
   receiptSha256: string; receiptSize: number;
-  teamstateHead: string; ropHead: string; producerReviewSha256: string;
+  teamstateHead: string; ropHead: string; producerReviewSha256: string; producerReviewCompletedAt: string;
 }
 /** Verify only. Expectations must come from the separately approved final run proposal, NOT the receipt.
  * No receipt creation, signing, file writing, acceptance application or execution occurs here. */
 export function verifyWeek3PurposeReceipt(bytes: Uint8Array, expected: Week3PurposeReceiptExpectation): void {
+  const validClock = (value: unknown): value is string => typeof value === 'string' &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(value) && Number.isFinite(Date.parse(value));
+  // This trusted anchor binds completion of review of BOTH final implementation heads.
+  // It must be approved independently of the receipt, together with the review digest.
+  if (!validClock(expected.producerReviewCompletedAt) ||
+      Date.parse(expected.producerReviewCompletedAt) < Date.parse('2026-10-03T15:37:01.594796Z')) throw new Error('Invalid independently approved producer review clock');
   if (!/^[a-f0-9]{64}$/.test(expected.receiptSha256) || !/^[a-f0-9]{64}$/.test(expected.producerReviewSha256) ||
       !/^[a-f0-9]{40}$/.test(expected.teamstateHead) || !/^[a-f0-9]{40}$/.test(expected.ropHead) ||
       !Number.isSafeInteger(expected.receiptSize) || expected.receiptSize < 1 || expected.receiptSize > 65536) throw new Error('Invalid independently approved receipt anchors');
@@ -128,6 +134,6 @@ export function verifyWeek3PurposeReceipt(bytes: Uint8Array, expected: Week3Purp
   equal(receipt.source_review, { ...identity(A + 'independent-review.json'), reviewed_head: B.reviewedDataHead,
     reviewed_tree: B.reviewedDataTree, storage_head: B.storageHead }, 'purpose source review');
   for (const key of ['source_admission', 'consumer_activation', 'real_input_execution_authorized']) equal(receipt[key], false, `purpose ${key}`);
-  if (typeof receipt.accepted_at !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(receipt.accepted_at) ||
-      !Number.isFinite(Date.parse(receipt.accepted_at)) || Date.parse(receipt.accepted_at) < Date.parse('2026-10-03T15:37:01.594796Z')) throw new Error('Invalid purpose acceptance clock');
+  if (!validClock(receipt.accepted_at) ||
+      Date.parse(receipt.accepted_at) < Date.parse(expected.producerReviewCompletedAt)) throw new Error('Invalid purpose acceptance clock');
 }

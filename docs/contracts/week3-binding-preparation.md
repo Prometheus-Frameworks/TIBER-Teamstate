@@ -73,3 +73,14 @@ Installed TypeScript **5.9.2** strictly compiles the isolated source slice. Exis
 There are no workflows in the pinned repository. Read-only Railway preflight on October 5 at 12:37–12:38 UTC found only production tracking `main`, no staged changes and PR environments disabled. That establishes the known Railway branch/preview boundary, not universal absence of other integrations. Draft state is preserved; no review bot is invoked by the implementer. An immutable commit is supplied for one independent exact-head review before any non-force branch update. No merge, deployment, provider access, runtime, schedule, source admission or cohort expansion is authorized.
 
 Stop after the one independent review if material findings or failed checks arise. The final review and run/acceptance proposal must return to Joe; this document is neither review completion nor execution permission.
+
+
+## Two P2 repairs after the October 5 ready review
+
+Starting head: `4506cd44072d975b077a94e80390f1cea549d7a5`. Findings `4187547563` and `4187547576` supersede its earlier clean disposition. This bounded follow-up changes only the receipt verifier, synthetic binding harness and this clarification.
+
+The harness resolves installed Node declarations from the checkout, Node runtime or installed compiler location instead of fixing type roots to missing local dependencies. It performs no installation or downloads and fails clearly if declarations are unavailable. Its regression compiles the same isolated source slice with an empty checkout location for type resolution.
+
+The trusted expectation now additionally requires `producerReviewCompletedAt`, the independently approved completion time of review of **both final producer implementation heads**, bound to the approved review digest. This anchor must come from the final operator-approved proposal, never from the receipt. It must be a valid UTC timestamp at or after the pinned Data review replay completion; acceptance cannot predate it. No actual completion or acceptance clock is manufactured here. Synthetic fixtures use fictional October 5 20:00 UTC review and acceptance times. Regressions reject the old midnight witness, acceptance before the final review, and missing/invalid/too-early review anchors; equality at the lower bound is allowed. The receipt schema and existing closed key set are unchanged.
+
+Validation: **62/62** synthetic checks (15 shape + 47 binding), including isolated strict compilation, with TypeScript **5.9.2**. The checkout has no local `node_modules`; an external scratch compiler was installed for verification and exposed on PATH, exercising the installed-compiler fallback. This does not change repository dependencies or allow the harness to install anything. Full repository/Vitest and TypeScript 6 checks are not claimed. No real input execution or acceptance occurred. PR remains unmerged pending one fresh independent exact-head review.

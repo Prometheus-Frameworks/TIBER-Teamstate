@@ -1,21 +1,37 @@
 /** Synthetic checks only. No real input reads, producer runs, network or installation. */
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, writeFileSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, delimiter } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const build = mkdtempSync(join(tmpdir(), 'tts-week3-binding-'));
 after(() => rmSync(build, { recursive: true, force: true }));
 const compiler = join(root, 'node_modules/typescript/bin/tsc');
+// Resolve installed declarations independently of checkout-local dependencies.
+// No install/download fallback; Node's runtime module resolution may supply them.
+function nodeTypeRoots(checkout) {
+  const installedCompilers = (process.env.PATH ?? '').split(delimiter)
+    .map(path => join(path, 'tsc')).filter(existsSync).map(path => realpathSync(path));
+  for (const location of [join(checkout, 'package.json'), process.execPath, ...installedCompilers]) {
+    try {
+      const declarations = createRequire(location).resolve('@types/node/package.json');
+      return [dirname(dirname(declarations))];
+    } catch (error) {
+      if (error.code !== 'MODULE_NOT_FOUND') throw error;
+    }
+  }
+  throw new Error('Installed @types/node declarations required (no download fallback)');
+}
 const project = join(build, 'tsconfig.json');
 const compiled = join(build, 'compiled');
 writeFileSync(project, JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'CommonJS', strict: true,
   skipLibCheck: true, rootDir: join(root, 'src/provisional'), outDir: compiled,
-  typeRoots: [join(root, 'node_modules/@types')], types: ['node'] },
+  typeRoots: nodeTypeRoots(root), types: ['node'] },
   files: [join(root, 'src/provisional/adaptWeek3ProvisionalPacket.ts')], include: [] }));
 const run = spawnSync(existsSync(compiler) ? process.execPath : 'tsc', existsSync(compiler) ? [compiler, '--project', project] : ['--project', project], { cwd: root, encoding: 'utf8' });
 assert.equal(run.status, 0, `Strict compilation failed: ${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
@@ -99,7 +115,7 @@ test('packet gate rejects empty, extra, wrong-size and hash-drift synthetic byte
   p.set('extra', new Uint8Array()); assert.throws(() => api.authenticateWeek3Evidence(p), /16-file/);
   assert.throws(() => api.adaptWeek3ProvisionalPacket(new Map()));
 });
-const anchors = { receiptSha256: '', receiptSize: 0, teamstateHead: '1'.repeat(40), ropHead: '2'.repeat(40), producerReviewSha256: '3'.repeat(64) };
+const anchors = { producerReviewCompletedAt: '2026-10-05T20:00:00Z', receiptSha256: '', receiptSize: 0, teamstateHead: '1'.repeat(40), ropHead: '2'.repeat(40), producerReviewSha256: '3'.repeat(64) };
 function purposeFixture() {
   return { schema_version: 'teamstate_week3_provisional_purpose_receipt_v1', status: 'operator_accepted_provisional_input',
     purpose: 'teamstate_ten_field_description', scope: { season: 2026, season_type: 'REG', week: 3 },
@@ -109,7 +125,7 @@ function purposeFixture() {
     replay: { kind: B.replayKind, started_at: B.replayStartedAt, completed_at: B.replayCompletedAt,
       original_candidate_generated_at: null, build_receipt: identity(A + 'build-receipt.json') },
     source_review: { ...identity(A + 'independent-review.json'), reviewed_head: B.reviewedDataHead,
-      reviewed_tree: B.reviewedDataTree, storage_head: B.storageHead }, accepted_at: '2026-10-05T00:00:00Z',
+      reviewed_tree: B.reviewedDataTree, storage_head: B.storageHead }, accepted_at: '2026-10-05T20:00:01Z',
     source_admission: false, consumer_activation: false, real_input_execution_authorized: false };
 }
 const verify = f => { const b = bytes(f); return api.verifyWeek3PurposeReceipt(b, { ...anchors, receiptSha256: hash(b), receiptSize: b.length }); };
@@ -133,4 +149,31 @@ test('purpose receipt rejects mismatched immutable byte anchors and caller boole
   assert.throws(() => api.verifyWeek3PurposeReceipt(b, { ...a, receiptSize: b.length + 1 }));
   assert.throws(() => api.verifyWeek3PurposeReceipt(b, { ...a, receiptSha256: '0'.repeat(64) }));
   assert.throws(() => api.verifyWeek3PurposeReceipt(bytes(true), a));
+});
+
+test('installed compiler compiles without checkout-local Node types', () => {
+  const checkout = join(build, 'empty-checkout');
+  assert.equal(existsSync(join(checkout, 'node_modules/@types')), false);
+  const config = JSON.parse(readFileSync(project, 'utf8'));
+  config.compilerOptions.typeRoots = nodeTypeRoots(checkout);
+  const fallbackProject = join(build, 'fallback-tsconfig.json');
+  writeFileSync(fallbackProject, JSON.stringify(config));
+  const fallback = spawnSync(existsSync(compiler) ? process.execPath : 'tsc',
+    existsSync(compiler) ? [compiler, '--project', fallbackProject] : ['--project', fallbackProject],
+    { cwd: root, encoding: 'utf8' });
+  assert.equal(fallback.status, 0, `Global compilation failed: ${fallback.error ?? ''}\n${fallback.stdout}\n${fallback.stderr}`);
+});
+test('acceptance cannot predate the independently approved final producer review', () => {
+  for (const time of ['2026-10-05T00:00:00Z', '2026-10-05T19:59:59Z']) {
+    const f = purposeFixture(); f.accepted_at = time;
+    assert.throws(() => verify(f), /acceptance clock/);
+  }
+  const f = purposeFixture(); f.accepted_at = anchors.producerReviewCompletedAt;
+  assert.equal(verify(f), undefined);
+});
+test('producer review completion anchor is required, valid and later than Data review', () => {
+  const b = bytes(purposeFixture()), a = { ...anchors, receiptSha256: hash(b), receiptSize: b.length };
+  for (const time of [undefined, '', 'invalid', '2026-10-02T00:00:00Z', '2026-10-05T21:00:00Z']) {
+    assert.throws(() => api.verifyWeek3PurposeReceipt(b, { ...a, producerReviewCompletedAt: time }));
+  }
 });
