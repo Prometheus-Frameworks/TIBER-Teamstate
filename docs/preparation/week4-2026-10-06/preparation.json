@@ -1,0 +1,22 @@
+{
+  "schema_version": "week4_producer_binding_preparation_v1",
+  "baseline": "9153a7f66f0f502405bb7ae6115a2c68295296f3",
+  "status": "prepared_pending_independent_exact_head_review",
+  "data_reviewed_head": "ca31f5052061e854b3df8ad46e555506f1f7712d",
+  "data_reviewed_tree": "7d3f8a4c2ce889258fa6be9eea48c5274c577012",
+  "data_storage_head": "c924405c7043b07af5981a9683ac9a7df076e26d",
+  "data_review_sha256": "339e8690fb7d117354f0dc5be1a8e272e426517eb9303d28d29effec11ab8d13",
+  "candidate_sha256": "307204e4c8123e8b1f66d8dabbacfb5310ad84b72abfa935b15f0fd4e5016de9",
+  "scope": {
+    "season": 2026,
+    "season_type": "REG",
+    "week": 4
+  },
+  "packet_members": 16,
+  "synthetic_checks": 110,
+  "purpose_acceptance": null,
+  "execution_authorized": false,
+  "source_admitted": false,
+  "real_input_executed": false,
+  "consumer_activated": false
+}
