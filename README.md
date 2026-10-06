@@ -1,5 +1,7 @@
 # TIBER-Teamstate
 
+> **[TIBER Now — what works, what we’re building, and what’s still conceptual](https://github.com/Prometheus-Frameworks/TIBER-Fantasy/blob/main/docs/TIBER_NOW.md)**
+
 TIBER-Teamstate is a deterministic TypeScript backend/library for modeling **team-level NFL environments** from governed inputs. It is an interpretation layer, not the owner of raw source truth.
 
 PR4 extends the PR3 reporting layer with downstream-ready ingestion and contract artifacts:
