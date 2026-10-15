@@ -13,6 +13,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = 'TIBER-ROP-2026-W01-W05/'
 ROP_HASH = 'd2bb08b185c7ec73d80480ccc7cbc234ce02d89ac6d57308f6bcfa34ff69af13'
+ROP_BYTES = 24420710
+ROP_ATTACHMENT_PATHS = frozenset(('outputs/player-weeks.json', 'review/output-review.json'))
 FIELDS = ('attempts','completions','passing_yards','passing_tds','passing_interceptions',
           'sacks_suffered','carries','rushing_yards','rushing_tds','fumbles_lost_total')
 RATES = {'completion_pct':('completions','attempts',100),
@@ -56,10 +58,16 @@ def data_module():
     mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
     return mod
 
-def load_and_qualify() -> tuple[dict,dict,dict]:
-    """Recheck retained archive, receipts, independent Data input bindings, raw facts and schedule."""
+def load_and_qualify(include_rop: bool = True) -> tuple[dict,dict | None,dict]:
+    """Qualify required team evidence; read/review the ROP attachment only when enabled.
+
+    The exact source container and all TTS inputs stay required in either mode.
+    Disabled ROP is unavailable, not a failed qualification of the team baseline.
+    An enabled but invalid attachment still fails closed; callers may explicitly
+    request the separately qualified team-only baseline with include_rop=False.
+    """
     archive=ROOT/'inputs/ROP-original.zip';raw=archive.read_bytes()
-    same(sha(raw),ROP_HASH,'Original ROP archive');same(len(raw),24420710,'Original ROP archive size')
+    same(sha(raw),ROP_HASH,'Original ROP archive');same(len(raw),ROP_BYTES,'Original ROP archive size')
     need(archive.is_file() and not archive.is_symlink(),'Source archive is not a regular file')
     module=data_module();weeks={};pins=[];totals=Counter()
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
@@ -69,6 +77,8 @@ def load_and_qualify() -> tuple[dict,dict,dict]:
             return z.read(PREFIX+path)
         manifest=strict_json(read('MANIFEST.json'))
         for item in manifest['files']:
+            if not include_rop and item['path'] in ROP_ATTACHMENT_PATHS:
+                continue
             pin(read(item['path']),item,item['path']);totals['source_manifest_members']+=1
         input_m=read('input-manifest.json')
         review=strict_json(read('inputs/private-release/independent-input-review-r2.json'))
@@ -137,13 +147,15 @@ def load_and_qualify() -> tuple[dict,dict,dict]:
                     'attribution':receipt['attribution'],'upstream_finality':'unknown','correction':'open','evidence_cutoff':None}}
             totals['raw_team_rows']+=len(rebuilt['teams']);totals['baseline_operands_reconciled']+=len(rebuilt['teams'])*len(FIELDS)
         same(len({tuple(x['team_universe']) for x in weeks.values()}),1,'Team universe drift across pinned schedules')
-        rop_raw=read('outputs/player-weeks.json');rop=strict_json(rop_raw)
-        rr=strict_json(read('review/output-review.json'))
-        rp=next(x for x in rr['output_files'] if x['path']=='outputs/player-weeks.json');pin(rop_raw,rp,'Reviewed ROP evidence')
-        same(rr['disposition'],'clean','Retained ROP review')
-        same(rr['run_id'],rop['run_id'],'Retained ROP run')
-        same(rop['input_manifest_sha256'],sha(input_m),'ROP input manifest')
-        rop['original_payload_sha256']=sha(rop_raw)
+        rop=None
+        if include_rop:
+            rop_raw=read('outputs/player-weeks.json');rop=strict_json(rop_raw)
+            rr=strict_json(read('review/output-review.json'))
+            rp=next(x for x in rr['output_files'] if x['path']=='outputs/player-weeks.json');pin(rop_raw,rp,'Reviewed ROP evidence')
+            same(rr['disposition'],'clean','Retained ROP review')
+            same(rr['run_id'],rop['run_id'],'Retained ROP run')
+            same(rop['input_manifest_sha256'],sha(input_m),'ROP input manifest')
+            rop['original_payload_sha256']=sha(rop_raw)
     report={'method':'execution-agent qualification; NOT independent final-release review','checks':dict(totals),
         'source_archive_sha256':ROP_HASH,'existing_data_review':{'disposition':review['disposition'],'reviewer':review['reviewer'],
         'completed_at':review['completed_at'],'input_manifest_sha256':review['input_manifest_sha256']},
@@ -296,9 +308,9 @@ def make_output(weeks: dict,rop: dict | None,rows: list[dict],qualification: dic
         'external_actions':{'github_writes':False,'deployment':False,'rop_rerun':False,'new_acquisition':False,'schedule_changes':False}}
 
 def produce(include_rop: bool = True) -> dict:
-    weeks,rop,qualification=load_and_qualify()
+    weeks,rop,qualification=load_and_qualify(include_rop=include_rop)
     rows=run_tts(weeks)
-    return make_output(weeks,rop if include_rop else None,rows,qualification)
+    return make_output(weeks,rop,rows,qualification)
 
 def write_payload(output: dict,directory: Path) -> None:
     directory.mkdir(parents=True,exist_ok=False)

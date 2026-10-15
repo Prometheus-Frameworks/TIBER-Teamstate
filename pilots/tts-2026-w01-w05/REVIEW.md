@@ -4,7 +4,7 @@
 
 Review the exact PR head and base named in the review-request comment. This is a new review of the multiweek successor, not a continuation of the old #96/#97 disposition. Joe directly requested PR publication and fresh independent review on October 15, 2026; this document is the assistant-materialized handoff. Keep the PR draft, unmerged and inactive. Report findings; do not implement, merge, deploy, activate a consumer, acquire sources, or publish private evidence under this request.
 
-Fourteen code/definition files are byte-identical to the retained candidate and pinned in PUBLICATION-MANIFEST.json. The public-only README, this handoff, publication manifest, .gitignore and private CommonJS package boundary are packaging additions. Generated JS is not committed; the two locally regenerated JS payloads matched their archived originals byte-for-byte. The root repository's ESM/build/runtime configuration is untouched.
+The original publication at `74958834db39c322048def8ddee8b189f8ec2882` copied fourteen code/definition files byte-for-byte. Following that head's two P2 findings, Joe authorized this bounded repair and fresh independent review in the executing conversation. Twelve copied files remain unchanged; `code/release.py` and `code/profile-view.template.html` now differ from the immutable private candidate. `PUBLICATION-MANIFEST.json` retains their original bindings separately from their repaired source pins. The public-only README, this handoff, publication manifest, .gitignore and private CommonJS package boundary are packaging additions. The two new regression suites use synthetic evidence only. Generated JS is not committed; both regenerated JS payloads still match their archived originals byte-for-byte. The root repository's ESM/build/runtime configuration is untouched.
 
 This is a review location for the delivered release, not a second producer or new small-cohort experiment. The directory is intentionally isolated from production entry points until a separately authorized integration decision.
 
@@ -28,9 +28,13 @@ From `pilots/tts-2026-w01-w05`, with an already-available TypeScript compiler an
 ```sh
 tsc --project code/tsconfig.json
 node --test code/tests/inspector.test.cjs
+node --test code/tests/profile-view.test.cjs
+python -m unittest discover -s code/tests -p test_release_synthetic.py -v
 ```
 
 Publication preflight reran these: TypeScript 5.8.3 passed; Node 22.16.0 passed 78 synthetic tests. All copied Python sources compiled syntactically. These are executor checks, not this independent review. No new full-repository test, Python integration run or final private-output certification is claimed by publication.
+
+Repair preflight uses available TypeScript 5.9.2, Node 24.19.0 and Python 3.12.14. The 78 inspector tests, 16 template-script tests and 11 Python entry-point tests pass. The Python fixtures replace only the root and expected synthetic container identity; they execute the real loading/qualification code, raw Data builder, compiled inspector bridge, joins and aggregates. Disabled ROP payload/review reads raise an assertion if attempted. Controls cover missing/invalid optional members, enabled ROP review failure, missing required team/player/schedule/candidate/review inputs, digest drift and incomplete observations. These new synthetic checks do not qualify private data or waive any original private-review gate.
 
 The copied `code/tests/test_release.py` has a real-private-input `setUpClass`: its 28 tests cannot run from a public-only checkout. `code/tests/raw_verifier.py` also requires private inputs and outputs. Their code is inspectable here; report execution as unavailable unless separately authorized private bytes are actually accessible. Do not make their absence pass by skipping fixtures silently, inventing data or downloading replacements.
 

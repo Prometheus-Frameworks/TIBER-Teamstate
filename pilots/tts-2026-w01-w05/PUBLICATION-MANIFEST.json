@@ -9,26 +9,112 @@
     "archive_sha256": "3083775eb46bd68c6ea528f7374a9c5af017f7385d0fb09db9d12e16d1299729"
   },
   "byte_identical_copied_files": [
-    {"path":"METRIC-DEFINITIONS.md","archive_path":"METRIC-DEFINITIONS.md","bytes":4096,"sha256":"c3635d1da1977be6637a4f6a75e2b40c9bf64e6a5c926c81e600cd3ff53100f9","git_blob_sha":"73d60e14ab9de2cc70c23752f814ec105e32281d"},
-    {"path":"REPRODUCE.py","archive_path":"REPRODUCE.py","bytes":2005,"sha256":"9843e3690dc4ab42e605f297340c92203962e979e61617b5c334687903e77da3","git_blob_sha":"0dcbd488b84f797b95195fdbd9abf67ca66cf792"},
-    {"path":"code/inspect-batch.cjs","archive_path":"code/inspect-batch.cjs","bytes":840,"sha256":"7361d68b8861133e32e7a86ff7eb9bab4dfc0e7666d3e92dd5b14d5053930f69","git_blob_sha":"feecef72fb8c816515bf47cf8b48e5a225ab652b"},
-    {"path":"code/profile-view.template.html","archive_path":"code/profile-view.template.html","bytes":26799,"sha256":"d487d317e759a7ce4b1810e775bd5489abd361574771229dda4eab82f4855385","git_blob_sha":"74109c53fb623cd25a40709cda4e49349690942f"},
-    {"path":"code/release.py","archive_path":"code/release.py","bytes":26130,"sha256":"67097b50964ad311635cdf7c3c49643851d80a6dd6e4c43450eca624098ded5e","git_blob_sha":"80d6576bd750c861ab3a59b445c714279b878228"},
-    {"path":"code/render_view.py","archive_path":"code/render_view.py","bytes":576,"sha256":"eb0d21d0f3951ad5312c859fbe2768772ab905d0e8e74a64e634f1024499e9d9","git_blob_sha":"4b5c0c8579273a2c323deba4ee1d647e081575ce"},
-    {"path":"code/src/provisional/inspectReleaseWeek.ts","archive_path":"code/src/provisional/inspectReleaseWeek.ts","bytes":7469,"sha256":"4d71160ec39260c82ba5a13f50a997f383ed507adae78f5f363b6c422f8fa458","git_blob_sha":"70ee288d5c0ff2f992d7b854b205e6d03b2fd553"},
-    {"path":"code/src/provisional/releaseFields.ts","archive_path":"code/src/provisional/releaseFields.ts","bytes":443,"sha256":"7c02176e2dbe90bd66ff08ed85319e7f2e0191674487ffe488384c2f8dee6e81","git_blob_sha":"aa9b034222b7c9d84771439633c38975685bfa57"},
-    {"path":"code/tests/inspector.test.cjs","archive_path":"code/tests/inspector.test.cjs","bytes":5821,"sha256":"551b2b85a2fd219bb953b7117c13499ca7cf420baa4ac1f7cc3fb2a4d977a6bd","git_blob_sha":"f9c16cfab7dff2853c12da5eb3b82a9558732619"},
-    {"path":"code/tests/raw_verifier.py","archive_path":"code/tests/raw_verifier.py","bytes":4886,"sha256":"daaad858f36a044f9765881a3e26a568cb4b35da3f13ac8702a294bacd55cdae","git_blob_sha":"c1bded428ce613a535cb241b20610f59ec9661eb"},
-    {"path":"code/tests/test_release.py","archive_path":"code/tests/test_release.py","bytes":6872,"sha256":"7a8e51fc3e90cf3824bf0a1a11cc108f9104a1d313eb84ba095f8bfa9f3bf289","git_blob_sha":"4f3622843dccc958e8b471be7022cc801a817cc0"},
-    {"path":"code/tsconfig.json","archive_path":"code/tsconfig.json","bytes":319,"sha256":"7195a2d11ad9064f73ef5b473be97b22802cf159d88c75845128610e820b1344","git_blob_sha":"241c10093b62101115be808a3869a836be1e5602"},
-    {"path":"code/upstream/build_weekly_boxscore_candidate_v0.py","archive_path":"code/upstream/build_weekly_boxscore_candidate_v0.py","bytes":12594,"sha256":"e3195d836b2fcc77895ff05a8722f8fb24b50d0fdde50bf0b36730b9d8ef920d","git_blob_sha":"f68d031584fe0ed03557e04bd224ef5b6aa5560f"},
-    {"path":"code/upstream/inspectWeek4Boxscore.ts","archive_path":"code/upstream/inspectWeek4Boxscore.ts","bytes":6477,"sha256":"1637a397ab186c4497383f4db7a8abbce4b7e2236e1a70e0212819bf70440049","git_blob_sha":"3e946c6355262089a322522b94a81db7eadbae24"}
+    {
+      "path": "METRIC-DEFINITIONS.md",
+      "archive_path": "METRIC-DEFINITIONS.md",
+      "bytes": 4096,
+      "sha256": "c3635d1da1977be6637a4f6a75e2b40c9bf64e6a5c926c81e600cd3ff53100f9",
+      "git_blob_sha": "73d60e14ab9de2cc70c23752f814ec105e32281d"
+    },
+    {
+      "path": "REPRODUCE.py",
+      "archive_path": "REPRODUCE.py",
+      "bytes": 2005,
+      "sha256": "9843e3690dc4ab42e605f297340c92203962e979e61617b5c334687903e77da3",
+      "git_blob_sha": "0dcbd488b84f797b95195fdbd9abf67ca66cf792"
+    },
+    {
+      "path": "code/inspect-batch.cjs",
+      "archive_path": "code/inspect-batch.cjs",
+      "bytes": 840,
+      "sha256": "7361d68b8861133e32e7a86ff7eb9bab4dfc0e7666d3e92dd5b14d5053930f69",
+      "git_blob_sha": "feecef72fb8c816515bf47cf8b48e5a225ab652b"
+    },
+    {
+      "path": "code/render_view.py",
+      "archive_path": "code/render_view.py",
+      "bytes": 576,
+      "sha256": "eb0d21d0f3951ad5312c859fbe2768772ab905d0e8e74a64e634f1024499e9d9",
+      "git_blob_sha": "4b5c0c8579273a2c323deba4ee1d647e081575ce"
+    },
+    {
+      "path": "code/src/provisional/inspectReleaseWeek.ts",
+      "archive_path": "code/src/provisional/inspectReleaseWeek.ts",
+      "bytes": 7469,
+      "sha256": "4d71160ec39260c82ba5a13f50a997f383ed507adae78f5f363b6c422f8fa458",
+      "git_blob_sha": "70ee288d5c0ff2f992d7b854b205e6d03b2fd553"
+    },
+    {
+      "path": "code/src/provisional/releaseFields.ts",
+      "archive_path": "code/src/provisional/releaseFields.ts",
+      "bytes": 443,
+      "sha256": "7c02176e2dbe90bd66ff08ed85319e7f2e0191674487ffe488384c2f8dee6e81",
+      "git_blob_sha": "aa9b034222b7c9d84771439633c38975685bfa57"
+    },
+    {
+      "path": "code/tests/inspector.test.cjs",
+      "archive_path": "code/tests/inspector.test.cjs",
+      "bytes": 5821,
+      "sha256": "551b2b85a2fd219bb953b7117c13499ca7cf420baa4ac1f7cc3fb2a4d977a6bd",
+      "git_blob_sha": "f9c16cfab7dff2853c12da5eb3b82a9558732619"
+    },
+    {
+      "path": "code/tests/raw_verifier.py",
+      "archive_path": "code/tests/raw_verifier.py",
+      "bytes": 4886,
+      "sha256": "daaad858f36a044f9765881a3e26a568cb4b35da3f13ac8702a294bacd55cdae",
+      "git_blob_sha": "c1bded428ce613a535cb241b20610f59ec9661eb"
+    },
+    {
+      "path": "code/tests/test_release.py",
+      "archive_path": "code/tests/test_release.py",
+      "bytes": 6872,
+      "sha256": "7a8e51fc3e90cf3824bf0a1a11cc108f9104a1d313eb84ba095f8bfa9f3bf289",
+      "git_blob_sha": "4f3622843dccc958e8b471be7022cc801a817cc0"
+    },
+    {
+      "path": "code/tsconfig.json",
+      "archive_path": "code/tsconfig.json",
+      "bytes": 319,
+      "sha256": "7195a2d11ad9064f73ef5b473be97b22802cf159d88c75845128610e820b1344",
+      "git_blob_sha": "241c10093b62101115be808a3869a836be1e5602"
+    },
+    {
+      "path": "code/upstream/build_weekly_boxscore_candidate_v0.py",
+      "archive_path": "code/upstream/build_weekly_boxscore_candidate_v0.py",
+      "bytes": 12594,
+      "sha256": "e3195d836b2fcc77895ff05a8722f8fb24b50d0fdde50bf0b36730b9d8ef920d",
+      "git_blob_sha": "f68d031584fe0ed03557e04bd224ef5b6aa5560f"
+    },
+    {
+      "path": "code/upstream/inspectWeek4Boxscore.ts",
+      "archive_path": "code/upstream/inspectWeek4Boxscore.ts",
+      "bytes": 6477,
+      "sha256": "1637a397ab186c4497383f4db7a8abbce4b7e2236e1a70e0212819bf70440049",
+      "git_blob_sha": "3e946c6355262089a322522b94a81db7eadbae24"
+    }
   ],
   "regenerated_not_published": [
-    {"path":"code/compiled/inspectReleaseWeek.js","bytes":7428,"sha256":"9806fe34d6b13402b7a697acb8640025f110f1befe9fa65a76bdb6e23b78666f","matches_original":true},
-    {"path":"code/compiled/releaseFields.js","bytes":393,"sha256":"09150b97f232551ab13bcc12a16482352bf7d7e86da02674f7b342a98b60b575","matches_original":true}
+    {
+      "path": "code/compiled/inspectReleaseWeek.js",
+      "bytes": 7428,
+      "sha256": "9806fe34d6b13402b7a697acb8640025f110f1befe9fa65a76bdb6e23b78666f",
+      "matches_original": true
+    },
+    {
+      "path": "code/compiled/releaseFields.js",
+      "bytes": 393,
+      "sha256": "09150b97f232551ab13bcc12a16482352bf7d7e86da02674f7b342a98b60b575",
+      "matches_original": true
+    }
   ],
-  "publication_only_files": ["README.md","REVIEW.md","PUBLICATION-MANIFEST.json","package.json",".gitignore"],
+  "publication_only_files": [
+    "README.md",
+    "REVIEW.md",
+    "PUBLICATION-MANIFEST.json",
+    "package.json",
+    ".gitignore"
+  ],
   "excluded": [
     "Original populated HTML, output JSON/CSV, private input archives, history, source/purpose records and original input/output manifests",
     "Original browser_check.py: retained private fixture-specific assertions; not part of public code review",
@@ -37,16 +123,83 @@
   ],
   "packaging_delta": "Add a private CommonJS package boundary inside the pilot so the parent repository ESM setting does not break the existing compiled bridge. No original computation changes.",
   "verification": {
-    "checked_at_utc":"2026-10-15T12:58:27.751888+00:00",
-    "remote_tree_at_comparison":"1c03dbdd5acbcf1ee556cd2fbfff2c79f2004458",
-    "git_blob_matches":14,
-    "strict_typescript":"5.8.3 passed",
-    "node":"22.16.0",
-    "synthetic_inspector_tests":78,
-    "synthetic_inspector_status":"passed",
-    "compiled_js_matches_original":true,
-    "python_syntax":"all copied Python sources compile",
-    "private_integration_tests_this_publication":"not rerun",
-    "independent_review":"pending"
+    "checked_at_utc": "2026-10-15T12:58:27.751888+00:00",
+    "remote_tree_at_comparison": "1c03dbdd5acbcf1ee556cd2fbfff2c79f2004458",
+    "git_blob_matches": 14,
+    "strict_typescript": "5.8.3 passed",
+    "node": "22.16.0",
+    "synthetic_inspector_tests": 78,
+    "synthetic_inspector_status": "passed",
+    "compiled_js_matches_original": true,
+    "python_syntax": "all copied Python sources compile",
+    "private_integration_tests_this_publication": "not rerun",
+    "independent_review": "pending"
+  },
+  "modified_since_candidate": [
+    {
+      "path": "code/profile-view.template.html",
+      "archive_path": "code/profile-view.template.html",
+      "original_candidate": {
+        "bytes": 26799,
+        "sha256": "d487d317e759a7ce4b1810e775bd5489abd361574771229dda4eab82f4855385",
+        "git_blob_sha": "74109c53fb623cd25a40709cda4e49349690942f"
+      },
+      "repaired_source": {
+        "bytes": 27138,
+        "sha256": "8647ac27a71024a4f80cc3d83a2f8d24dacef944ba15781dd4a15b805530533a",
+        "git_blob_sha": "b09acb22d8c4b32726086dd77ca257ae6dd301e7"
+      },
+      "reason": "Thread 4283321844: compare each metric only with two finite observations; explicitly label unavailable comparisons and format missing player counts."
+    },
+    {
+      "path": "code/release.py",
+      "archive_path": "code/release.py",
+      "original_candidate": {
+        "bytes": 26130,
+        "sha256": "67097b50964ad311635cdf7c3c49643851d80a6dd6e4c43450eca624098ded5e",
+        "git_blob_sha": "80d6576bd750c861ab3a59b445c714279b878228"
+      },
+      "repaired_source": {
+        "bytes": 26759,
+        "sha256": "1cf78cedce3fff4b5b57e232830d43f798a54d69d8dfd0d9088aa240d8335548",
+        "git_blob_sha": "d5f150a647bd99d26de84052abe681c26101733d"
+      },
+      "reason": "Thread 4283321817: pass include_rop into qualification and skip disabled attachment reads without weakening required TTS qualification."
+    }
+  ],
+  "repair_only_files": [
+    {
+      "path": "code/tests/test_release_synthetic.py",
+      "bytes": 14084,
+      "sha256": "9e3e618e7b751d1a6b6e841d57fb18faf84e32c3c4407ba48280b97f7de1b5a3",
+      "git_blob_sha": "4d6b5ba550d5d19ae09664bf496f4879df476622"
+    },
+    {
+      "path": "code/tests/profile-view.test.cjs",
+      "bytes": 5318,
+      "sha256": "c1dd5c60473f634b987c9dda7847e5b7664ca452eafbee5ac007fe9923ece430",
+      "git_blob_sha": "81ea01d8fb98816eabe9a443c8b098472675f773"
+    }
+  ],
+  "repair": {
+    "authority": "Joe requested both P2 repairs, synthetic regressions and a fresh exact-head independent review on October 15, 2026.",
+    "reviewed_baseline_head": "74958834db39c322048def8ddee8b189f8ec2882",
+    "first_independent_review": "Two P2 findings; repaired head requires a new independent review.",
+    "original_private_package": "Unchanged and not rerun or re-certified by this source repair.",
+    "tests": {
+      "typescript": "5.9.2 strict passed",
+      "node": "24.19.0",
+      "python": "3.12.14",
+      "synthetic_inspector": 78,
+      "synthetic_template_script": 16,
+      "synthetic_outer_entry_point": 11,
+      "python_syntax": "all sources passed",
+      "compiled_js_matches_original": true,
+      "private_integration": "not rerun",
+      "private_exact_output_review": "not_performed",
+      "private_cross_context_readback": "not_tested",
+      "corrected_head_independent_review": "pending"
+    },
+    "boundaries": "Draft and unmerged; code-only repair. No private evidence publication, new acquisition, ROP run, deployment, model activation or recurring production changes."
   }
 }

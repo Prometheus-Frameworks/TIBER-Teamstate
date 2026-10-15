@@ -10,7 +10,7 @@ This directory preserves the implementation behind the private 2026 REG Weeks 1â
 - Private manifest: 65 members, SHA-256 `5b0ef746c72a39623855d3ad0592d93e7302ac9ccbb414ebf85f69b21b9e7295`.
 - Source baseline: Teamstate PR #97, `4a602237db87c17afefcb1b0543551e328cc6697`, specifically `src/provisional/inspectWeek4Boxscore.ts`.
 
-This public review copy includes source code and sanitized review documentation, not the private archive, raw inputs, output data, populated HTML, screenshots, private storage locators or original conversation records. The retained candidate is unchanged. Exact copied-code bindings and any presentation-only exclusions are identified in `PUBLICATION-MANIFEST.json`.
+This public review copy includes source code and sanitized review documentation, not the private archive, raw inputs, output data, populated HTML, screenshots, private storage locators or original conversation records. The retained candidate is unchanged. `PUBLICATION-MANIFEST.json` separates twelve unchanged copied files from the two source files repaired after the first independent review. The repaired source is not byte-identical to `candidate-r1` and does not certify or replace that private package.
 
 The operator directly requested publication as a PR and a fresh independent review on October 15, 2026. This is an agent-materialized record of that instruction, not independent human-origin proof or authority for merge, deployment, source acquisition or subsequent activation.
 
@@ -28,7 +28,17 @@ From this directory, with installed Node and TypeScript:
 ```sh
 tsc --project code/tsconfig.json
 node --test code/tests/inspector.test.cjs
+node --test code/tests/profile-view.test.cjs
+python -m unittest discover -s code/tests -p test_release_synthetic.py -v
 ```
+
+The added suites use synthetic evidence only: eleven Python entry-point tests exercise the actual loader, Data builder, TTS bridge and aggregation; sixteen template-script tests exercise missing comparisons, zero/signed values and unavailable player counts. They do not run or substitute for the 28 retained-input tests in `test_release.py`. Template-script checks use an in-memory DOM, not browser or physical-phone acceptance.
+
+## Review repair
+
+The first Codex review at `74958834db39c322048def8ddee8b189f8ec2882` found two P2 defects. `produce(include_rop=False)` now passes that choice into `load_and_qualify`, skipping both ROP attachment manifest reads and ROP payload/review qualification. Required container identity, source manifests, Data review, raw team/player CSV reconciliation, witnesses and schedules remain required. The archive itself contains the required TTS inputs even though its historical filename includes ROP. The enabled/default ROP path retains strict attachment qualification; invalid requested ROP is not silently certified or converted into a successful attachment.
+
+Narratives compare sacks suffered and passing yards separately, only when both operands are finite. Missing pairs are explicitly unavailable. Player-remainder prose uses the same unavailable-value formatter as the tables. No private output has been regenerated, replaced or accepted by this repair. Fresh review must bind the corrected PR head; the first review cannot be transferred to it.
 
 Private integration and reproduction checks require the separately retained candidate package and its exact local inputs/records. They are not expected to pass from a public-only checkout. Do not download or invent substitute football evidence.
 
