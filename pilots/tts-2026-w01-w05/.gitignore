@@ -1,0 +1,15 @@
+# Private evidence is never part of this public review copy.
+/inputs/
+/outputs/
+/records/
+/history/
+/checks/
+/review/
+/INPUT_CODE_MANIFEST.json
+/MANIFEST.json
+/*.zip
+/*.csv
+/TIBER-*.html
+/code/compiled/
+__pycache__/
+*.pyc
