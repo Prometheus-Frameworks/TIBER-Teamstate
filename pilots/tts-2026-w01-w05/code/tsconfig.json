@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "strict": true,
+    "types": [],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "outDir": "compiled",
+    "skipLibCheck": true
+  },
+  "files": [
+    "src/provisional/releaseFields.ts",
+    "src/provisional/inspectReleaseWeek.ts"
+  ]
+}
